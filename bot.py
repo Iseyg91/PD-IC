@@ -781,6 +781,13 @@ class MainSelect(Select):
         print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
         await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
+        category = self.values[0]  # Récupérer la valeur sélectionnée
+        print(f"Catégorie sélectionnée: {category}")
+
+        # Mettre à jour l'embed selon le choix de l'utilisateur
+        await self.view_ctx.update_embed(category)
+        print(f"Embed mis à jour avec la catégorie: {category}")
+
         # Vérification de view_ctx avant d'appeler la mise à jour
         if hasattr(self.view_ctx, 'update_embed'):
             try:
