@@ -786,33 +786,33 @@ async def callback(self, interaction: discord.Interaction):
     # Mise à jour de l'embed directement via l'interaction pour éviter des bugs
     await interaction.response.edit_message(embed=self.view_ctx.update_embed(category))
 
-        # Vérification de view_ctx avant d'appeler la mise à jour
-        if hasattr(self.view_ctx, 'update_embed'):
-            try:
-                category = self.values[0]  # Récupérer la valeur sélectionnée
-                print(f"Catégorie sélectionnée: {category}")
-                await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
-                print(f"Embed mis à jour avec la catégorie: {category}")
-            except Exception as e:
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-                await interaction.followup.send(
-                    embed=discord.Embed(
-                        title="❌ **Erreur**",
-                        description="Une erreur est survenue lors de la mise à jour de l'embed.",
-                        color=discord.Color.red()
-                    ),
-                    ephemeral=True
-                )
-        else:
-            print("Erreur: view_ctx n'a pas la méthode update_embed.")
+    # Vérification de view_ctx avant d'appeler la mise à jour
+    if hasattr(self.view_ctx, 'update_embed'):
+        try:
+            category = self.values[0]  # Récupérer la valeur sélectionnée
+            print(f"Catégorie sélectionnée: {category}")
+            await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
+            print(f"Embed mis à jour avec la catégorie: {category}")
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour de l'embed: {e}")
             await interaction.followup.send(
                 embed=discord.Embed(
                     title="❌ **Erreur**",
-                    description="Le système de mise à jour d'embed n'est pas disponible.",
+                    description="Une erreur est survenue lors de la mise à jour de l'embed.",
                     color=discord.Color.red()
                 ),
                 ephemeral=True
             )
+    else:
+        print("Erreur: view_ctx n'a pas la méthode update_embed.")
+        await interaction.followup.send(
+            embed=discord.Embed(
+                title="❌ **Erreur**",
+                description="Le système de mise à jour d'embed n'est pas disponible.",
+                color=discord.Color.red()
+            ),
+            ephemeral=True
+        )
 
 class ReturnButton(Button):
     def __init__(self, view):
