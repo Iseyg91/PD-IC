@@ -777,6 +777,7 @@ class MainSelect(Select):
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view
+# Correction dans la méthode callback de MainSelect
 async def callback(self, interaction: discord.Interaction):
     print("Interaction reçue.")  # Debug
     await interaction.response.defer()  # Évite les délais d’interaction
@@ -784,8 +785,11 @@ async def callback(self, interaction: discord.Interaction):
     category = self.values[0]
     print(f"Catégorie sélectionnée: {category}")
 
-    # Mise à jour de l'embed directement via l'interaction pour éviter des bugs
-    await interaction.response.edit_message(embed=self.view_ctx.update_embed(category))
+    # Appeler la méthode update_embed comme une coroutine
+    embed = await self.view_ctx.update_embed(category)
+
+    # Mise à jour du message avec le nouvel embed
+    await interaction.response.edit_message(embed=embed, view=self.view_ctx)
 
     # Vérification de view_ctx avant d'appeler la mise à jour
     if hasattr(self.view_ctx, 'update_embed'):
