@@ -1089,6 +1089,13 @@ async def on_message(message):
     if message.author.bot:
         return  # Ignorer les messages du bot
 
+    # 🔹 Traitement des commandes en préfixe
+    if message.content.startswith("+"):  # Vérifie si le message commence par un préfixe
+        await bot.process_commands(message)  # Traite les commandes en préfixe immédiatement
+        return  # Retourne après traitement des commandes pour ne pas exécuter le reste du code
+
+    # Après avoir traité les commandes, on continue avec les autres actions
+
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
 
     # 🔹 Anti-Lien (uniquement liens Discord)
@@ -1173,8 +1180,8 @@ async def on_message(message):
         # Envoie un message de remerciement sans rappel
         await message.channel.send(f"Merci {message.author.mention} pour ton bump !")
 
-    # **Traitement des commandes en préfixe**
-    await bot.process_commands(message)  # Traite les commandes en préfixe après tout le reste
+    # **Traitement des commandes en préfixe** (c'est maintenant déjà géré en début de fonction)
+    # await bot.process_commands(message)  # Pas besoin de répéter ici
 
 async def send_alert_to_admin(message, detected_word):
     """Envoie une alerte privée à l'admin en cas de mot interdit détecté."""
@@ -1196,7 +1203,6 @@ async def send_alert_to_admin(message, detected_word):
         await admin.send(embed=embed)
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
-
 
 
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
