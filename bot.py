@@ -713,7 +713,7 @@ class SetupView(discord.ui.View):
 
     async def update_embed(self, category):
         print(f"[DEBUG] update_embed appelé avec {category}")
-        
+
         if not self.embed_message:
             print("[ERREUR] embed_message est None !")
             return
@@ -735,7 +735,7 @@ class SetupView(discord.ui.View):
             print("[DEBUG] Tentative de modification de l'embed...")
             await self.embed_message.edit(embed=embed, view=self)
             print("[DEBUG] Embed mis à jour avec succès !")
-            
+
             # Il est important de répondre à l'interaction après la mise à jour de l'embed
             await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
 
