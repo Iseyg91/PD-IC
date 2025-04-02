@@ -754,13 +754,13 @@ class SetupView(View):
             self.add_item(ReturnButton(self))
 
         # Vérifier que embed_message est valide avant de tenter de modifier
-if self.embed_message:
-    try:
-        await self.embed_message.edit(embed=embed, view=self)
-    except Exception as e:
-        print(f"Erreur lors de la mise à jour de l'embed: {e}")
-else:
-    print("Erreur : embed_message est nul ou non défini.")
+        if self.embed_message:
+            try:
+                await self.embed_message.edit(embed=embed, view=self)
+            except Exception as e:
+                print(f"Erreur lors de la mise à jour de l'embed: {e}")
+        else:
+            print("Erreur : embed_message est nul ou non défini.")
 
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
