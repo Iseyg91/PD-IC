@@ -1087,67 +1087,65 @@ user_messages = {}
 @bot.event
 async def on_message(message):
     if message.author.bot:
-        return  # Ignorer les messages du bot
+        return  # Ignore les messages du bot
 
-    # 🔹 Traitement des commandes en préfixe
-    if message.content.startswith("+"):  # Vérifie si le message commence par un préfixe
-        await bot.process_commands(message)  # Traite les commandes en préfixe immédiatement
-        return  # Retourne après traitement des commandes pour ne pas exécuter le reste du code
-
-    # Après avoir traité les commandes, on continue avec les autres actions
-
+    # Récupère la configuration du serveur depuis la base de données
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
 
-    # 🔹 Anti-Lien (uniquement liens Discord)
+    # Vérifie si la configuration existe, sinon continue sans appliquer les règles
+    if not guild_data:
+        return  # Le serveur n'a pas de configuration, on ne fait rien
+
+    # 🔹 Anti-Lien (uniquement si activé dans la configuration du serveur)
     if guild_data.get("anti_link", False):
-        if not message.author.guild_permissions.administrator:
-            if "discord.gg" in message.content:
-                await message.delete()
-                await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
-                return
+        if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
+            await message.delete()
+            await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
+            return
 
-    # 🔹 Anti-Spam amélioré
+    # 🔹 Anti-Spam (uniquement si activé dans la configuration du serveur)
     if guild_data.get("anti_spam_limit", False):
-        if not message.author.guild_permissions.administrator:
-            now = time.time()
-            user_id = message.author.id
+        now = time.time()
+        user_id = message.author.id
 
-            # Si l'utilisateur n'a pas encore de liste, initialise-la
-            if user_id not in user_messages:
-                user_messages[user_id] = []
+        # Si l'utilisateur n'a pas encore de liste, initialise-la
+        if user_id not in user_messages:
+            user_messages[user_id] = []
 
-            # Ajoute l'heure du message dans la liste de l'utilisateur
-            user_messages[user_id].append(now)
+        # Ajoute l'heure du message dans la liste de l'utilisateur
+        user_messages[user_id].append(now)
 
-            # Ne garde que les messages des 5 dernières secondes
-            recent_messages = [t for t in user_messages[user_id] if t > now - 5]
-            user_messages[user_id] = recent_messages
+        # Ne garde que les messages des 5 dernières secondes
+        recent_messages = [t for t in user_messages[user_id] if t > now - 5]
+        user_messages[user_id] = recent_messages
 
-            if len(recent_messages) > 10:  # Plus de 10 messages en 5 secondes → BAN
-                await message.guild.ban(message.author, reason="Spam excessif")
-                return
+        if len(recent_messages) > 10:  # Plus de 10 messages en 5 secondes → BAN
+            await message.guild.ban(message.author, reason="Spam excessif")
+            return
 
-            # Vérifie le spam sur 60 secondes
-            spam_messages = [t for t in user_messages[user_id] if t > now - 60]
-            if len(spam_messages) > guild_data["anti_spam_limit"]:
-                await message.delete()
-                await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
-                return
+        # Vérifie le spam sur 60 secondes
+        spam_messages = [t for t in user_messages[user_id] if t > now - 60]
+        if len(spam_messages) > guild_data["anti_spam_limit"]:
+            await message.delete()
+            await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
+            return
 
-    # 🔹 Anti-Everyone
+    # 🔹 Anti-Everyone (uniquement si activé dans la configuration du serveur)
     if guild_data.get("anti_everyone", False):
-        if not message.author.guild_permissions.administrator:
-            if "@everyone" in message.content or "@here" in message.content:
-                await message.delete()
-                await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
-                return
+        if "@everyone" in message.content or "@here" in message.content:
+            await message.delete()
+            await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
+            return
 
-    # Détection des mots sensibles
+    # Détection des mots sensibles (pas de changement ici, on le garde comme c'est)
     for word in sensitive_words:
         if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
             print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
             asyncio.create_task(send_alert_to_admin(message, word))
             break  # On arrête la boucle dès qu'un mot interdit est trouvé
+
+    # Traite les commandes en préfixe
+    await bot.process_commands(message)  # Traite les commandes en préfixe après tout le reste
 
     # Réponse automatique aux mentions du bot
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
