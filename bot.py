@@ -714,9 +714,18 @@ class SetupView(discord.ui.View):
     async def update_embed(self, category):
         print(f"[DEBUG] update_embed appelé avec {category}")  # Ajouté pour voir si la fonction est bien appelée
 
-        if not self.embed_message or self.embed_message.deleted:
-            print("[ERREUR] embed_message est invalide ou supprimé !")  # Ajouté pour détecter un problème avec embed_message
-            return
+        # ✅ Vérification avant d'éditer l'embed
+        if self.embed_message and not self.embed_message.deleted:
+            try:
+                # Tentative de modification de l'embed
+                await self.embed_message.edit(embed=embed, view=self)
+                print(f"Embed mis à jour pour la catégorie: {category}")
+            except Exception as e:
+                # Gestion des erreurs lors de la mise à jour de l'embed
+                print(f"Erreur lors de la mise à jour de l'embed: {e}")
+        else:
+            # Gestion de l'erreur si l'embed_message est invalide
+            print("Erreur : embed_message est nul ou non défini.")
 
         try:
             embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
