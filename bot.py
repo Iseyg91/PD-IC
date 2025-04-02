@@ -1043,7 +1043,6 @@ async def notify_bot_owner(self, interaction, param, new_value):
                 ephemeral=True
             )
 
-# Commande /setup qui est protégée par le check des permissions
 @bot.tree.command(name="setup", description="Description de ta commande")
 async def setup(interaction: discord.Interaction):
     print("Commande 'setup' appelée.")  # Log de débogage
@@ -1053,7 +1052,10 @@ async def setup(interaction: discord.Interaction):
         print("Utilisateur non autorisé.")
         await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
-    
+
+    # Défère la réponse pour éviter l'erreur de double réponse
+    await interaction.response.defer()
+
     # Récupère les données du serveur à partir de la base de données
     guild_data = collection.find_one({"guild_id": str(interaction.guild.id)}) or {}
 
@@ -1073,8 +1075,9 @@ async def setup(interaction: discord.Interaction):
 
     print("Embed créé, envoi en cours...")
     view = SetupView(interaction, guild_data, collection)
-    await interaction.response.send_message(embed=embed, view=view)  # Envoi de l'embed
+    await interaction.followup.send(embed=embed, view=view)  # Utiliser followup au lieu de send_message
     print("Message d'embed envoyé.")
+
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
 # Liste des mots sensibles
