@@ -713,7 +713,7 @@ class SetupView(discord.ui.View):
 
 async def update_embed(self, category):
     print(f"[DEBUG] update_embed appelé avec {category}")
-
+    
     if not self.embed_message:
         print("[ERREUR] embed_message est None !")
         return
@@ -733,14 +733,15 @@ async def update_embed(self, category):
             self.add_item(ReturnButton(self))
 
         print("[DEBUG] Tentative de modification de l'embed...")
-        await self.embed_message.edit(embed=embed, view=self)  # ✅ Correctement dans une fonction async
+        await self.embed_message.edit(embed=embed, view=self)
         print("[DEBUG] Embed mis à jour avec succès !")
-
-        # Il est important de répondre à l'interaction après la mise à jour de l'embed
-        await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
+        
+        # Répondre à l'interaction
+        await self.ctx.followup.send("✅ L'embed a été mis à jour.", ephemeral=True)
 
     except Exception as e:
         print(f"[ERREUR] Impossible de modifier l'embed: {e}")
+        await self.ctx.followup.send(f"❌ Une erreur est survenue : {e}", ephemeral=True)
 
     """Met à jour l'embed et rafraîchit dynamiquement le message."""
     embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
