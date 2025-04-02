@@ -735,6 +735,9 @@ async def update_embed(self, category):
         print("[DEBUG] Tentative de modification de l'embed...")
         await self.embed_message.edit(embed=embed, view=self)
         print("[DEBUG] Embed mis à jour avec succès !")
+        
+        # Il est important de répondre à l'interaction après la mise à jour de l'embed
+        await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
 
     except Exception as e:
         print(f"[ERREUR] Impossible de modifier l'embed: {e}")
@@ -805,15 +808,15 @@ class MainSelect(Select):
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view
 
-async def callback(self, interaction: discord.Interaction):
-    await interaction.response.defer()  # Avertir Discord que la réponse est en cours
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()  # Defer pour éviter l'échec, mais on doit répondre après
 
-    if hasattr(self.view_ctx, 'update_embed'):
         category = self.values[0]  # Vérifier que la valeur sélectionnée est correcte
-        await self.view_ctx.update_embed(category)
+        await self.view_ctx.update_embed(category)  # Mise à jour de l'embed
         print(f"Embed mis à jour avec la catégorie: {category}")
-    else:
-        print("Erreur: view_ctx n'a pas la méthode update_embed.")
+        
+        # Après la mise à jour de l'embed, tu peux envoyer un message de confirmation ou gérer l'interaction :
+        await interaction.response.send_message("Sélection de la catégorie réussie.", ephemeral=True)
 
 class ReturnButton(Button):
     def __init__(self, view):
@@ -822,7 +825,13 @@ class ReturnButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        await self.view_ctx.update_embed("accueil")  # Retour à la vue d'accueil
+        
+        # Mise à jour de l'embed pour retourner à l'écran d'accueil
+        await self.view_ctx.update_embed("accueil")
+        
+        # Ajouter une réponse après avoir mis à jour l'embed
+        await interaction.response.send_message("Retour à l'accueil effectué.", ephemeral=True)
+
 
 
 class InfoSelect(Select):
