@@ -753,14 +753,14 @@ class SetupView(View):
             self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
-        # Vérifier que embed_message est valide avant de tenter de modifier
-        if self.embed_message:
-            try:
-                await self.embed_message.edit(embed=embed, view=self)
-            except Exception as e:
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-        else:
-            print("Erreur : embed_message est nul ou non défini.")
+if self.embed_message:
+    try:
+        await self.embed_message.edit(embed=embed, view=self)
+    except discord.errors.NotFound:
+        print("Message non trouvé, envoi d'un nouveau message.")
+        self.embed_message = await self.ctx.send(embed=embed, view=self)
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour de l'embed: {e}")
 
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
@@ -776,17 +776,15 @@ class MainSelect(Select):
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view
+async def callback(self, interaction: discord.Interaction):
+    print("Interaction reçue.")  # Debug
+    await interaction.response.defer()  # Évite les délais d’interaction
 
-    async def callback(self, interaction: discord.Interaction):
-        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
-        await interaction.response.defer()  # Avertir Discord que la réponse est en cours
+    category = self.values[0]
+    print(f"Catégorie sélectionnée: {category}")
 
-        category = self.values[0]  # Récupérer la valeur sélectionnée
-        print(f"Catégorie sélectionnée: {category}")
-
-        # Mettre à jour l'embed selon le choix de l'utilisateur
-        await self.view_ctx.update_embed(category)
-        print(f"Embed mis à jour avec la catégorie: {category}")
+    # Mise à jour de l'embed directement via l'interaction pour éviter des bugs
+    await interaction.response.edit_message(embed=self.view_ctx.update_embed(category))
 
         # Vérification de view_ctx avant d'appeler la mise à jour
         if hasattr(self.view_ctx, 'update_embed'):
