@@ -1045,18 +1045,18 @@ async def notify_bot_owner(self, interaction, param, new_value):
 
 @bot.tree.command(name="setup", description="Description de ta commande")
 async def setup(interaction: discord.Interaction):
-    print("Commande 'setup' appelée.")  # Log de débogage
+    print("Commande 'setup' appelée.")  # Log de debug
 
-    # Vérifie si l'utilisateur est le propriétaire du bot ou un administrateur du serveur
-    if interaction.user.id != AUTHORIZED_USER_ID and not interaction.user.guild_permissions.administrator:
-        print("Utilisateur non autorisé.")
-        await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
-        return
-
-    # Défère la réponse pour éviter l'erreur de double réponse
+    # ✅ Évite l'échec de l'interaction en différant immédiatement la réponse
     await interaction.response.defer()
 
-    # Récupère les données du serveur à partir de la base de données
+    # Vérifie si l'utilisateur est autorisé
+    if interaction.user.id != AUTHORIZED_USER_ID and not interaction.user.guild_permissions.administrator:
+        print("Utilisateur non autorisé.")
+        await interaction.followup.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
+
+    # Récupère les données du serveur
     guild_data = collection.find_one({"guild_id": str(interaction.guild.id)}) or {}
 
     embed = discord.Embed(
@@ -1064,10 +1064,8 @@ async def setup(interaction: discord.Interaction):
         description=""" 
         🔧 **Bienvenue dans le setup !**  
         Configurez votre serveur facilement en quelques clics !  
-
         📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
         🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
-
         🔽 **Sélectionnez une option pour commencer !**
         """,
         color=discord.Color.blurple()
@@ -1075,7 +1073,9 @@ async def setup(interaction: discord.Interaction):
 
     print("Embed créé, envoi en cours...")
     view = SetupView(interaction, guild_data, collection)
-    await interaction.followup.send(embed=embed, view=view)  # Utiliser followup au lieu de send_message
+
+    # ✅ Utilisation de `followup.send()` car `response.send_message()` ne marche plus après `defer()`
+    await interaction.followup.send(embed=embed, view=view)  
     print("Message d'embed envoyé.")
 
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
