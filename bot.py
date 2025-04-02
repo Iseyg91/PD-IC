@@ -711,84 +711,82 @@ class SetupView(discord.ui.View):
         self.embed_message = await self.ctx.send(embed=embed, view=self)
         print(f"Message initial envoyé: {self.embed_message}")
 
-async def update_embed(self, category):
-    print(f"[DEBUG] update_embed appelé avec {category}")  # Ajouté pour voir si la fonction est bien appelée
+    async def update_embed(self, category):
+        print(f"[DEBUG] update_embed appelé avec {category}")  # Ajouté pour voir si la fonction est bien appelée
 
-    if not self.embed_message:
-        print("[ERREUR] embed_message est None !")  # Ajouté pour détecter un problème avec embed_message
-        return
+        if not self.embed_message or self.embed_message.deleted:
+            print("[ERREUR] embed_message est invalide ou supprimé !")  # Ajouté pour détecter un problème avec embed_message
+            return
 
-    try:
-        embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
-        embed.description = f"Voici les options pour la catégorie `{category}`."
+        try:
+            embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
+            embed.description = f"Voici les options pour la catégorie `{category}`."
 
-        self.clear_items()
+            self.clear_items()
+            if category == "accueil":
+                self.add_item(MainSelect(self))
+            elif category == "gestion":
+                self.add_item(InfoSelect(self))
+                self.add_item(ReturnButton(self))
+            elif category == "anti":
+                self.add_item(AntiSelect(self))
+                self.add_item(ReturnButton(self))
+
+            print("[DEBUG] Tentative de modification de l'embed...")  # Ajouté pour voir si on atteint cette partie
+            await self.embed_message.edit(embed=embed, view=self)
+            print("[DEBUG] Embed mis à jour avec succès !")  # Ajouté pour confirmer la mise à jour
+
+            await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
+
+        except Exception as e:
+            print(f"[ERREUR] Impossible de modifier l'embed: {e}")
+
         if category == "accueil":
+            embed.title = "⚙️ **Configuration du Serveur**"
+            embed.description = """
+            🎉 **Bienvenue dans le menu de configuration !**  
+            Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+
+            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+
+            🔽 **Sélectionnez une catégorie pour commencer !**
+            """
+            self.clear_items()
             self.add_item(MainSelect(self))
+
         elif category == "gestion":
+            embed.title = "⚙️ **Gestion du Bot**"
+            embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
+            embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
+            embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
+            embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
+            embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
+
+            self.clear_items()
             self.add_item(InfoSelect(self))
             self.add_item(ReturnButton(self))
+
         elif category == "anti":
+            embed.title = "🛡️ **Sécurité & Anti-Raid**"
+            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
+
+            self.clear_items()
             self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
-        print("[DEBUG] Tentative de modification de l'embed...")  # Ajouté pour voir si on atteint cette partie
-        await self.embed_message.edit(embed=embed, view=self)
-        print("[DEBUG] Embed mis à jour avec succès !")  # Ajouté pour confirmer la mise à jour
-
-        await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
-
-    except Exception as e:
-        print(f"[ERREUR] Impossible de modifier l'embed: {e}")
-
-
-    if category == "accueil":
-        embed.title = "⚙️ **Configuration du Serveur**"
-        embed.description = """
-        🎉 **Bienvenue dans le menu de configuration !**  
-        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
-
-        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
-
-        🔽 **Sélectionnez une catégorie pour commencer !**
-        """
-        self.clear_items()
-        self.add_item(MainSelect(self))
-
-    elif category == "gestion":
-        embed.title = "⚙️ **Gestion du Bot**"
-        embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
-        embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-        embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
-
-        self.clear_items()
-        self.add_item(InfoSelect(self))
-        self.add_item(ReturnButton(self))
-
-    elif category == "anti":
-        embed.title = "🛡️ **Sécurité & Anti-Raid**"
-        embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
-        embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
-
-        self.clear_items()
-        self.add_item(AntiSelect(self))
-        self.add_item(ReturnButton(self))
-
-    # ✅ Vérification avant d'éditer l'embed
-    if self.embed_message:
-        try:
-            await self.embed_message.edit(embed=embed, view=self)  # ✅ Déplacé ici dans une fonction async
-            print(f"Embed mis à jour pour la catégorie: {category}")
-        except Exception as e:
-            print(f"Erreur lors de la mise à jour de l'embed: {e}")
-    else:
-        print("Erreur : embed_message est nul ou non défini.")
-
+        # ✅ Vérification avant d'éditer l'embed
+        if self.embed_message and not self.embed_message.deleted:
+            try:
+                await self.embed_message.edit(embed=embed, view=self)  # ✅ Déplacé ici dans une fonction async
+                print(f"Embed mis à jour pour la catégorie: {category}")
+            except Exception as e:
+                print(f"Erreur lors de la mise à jour de l'embed: {e}")
+        else:
+            print("Erreur : embed_message est nul ou non défini.")
 
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
@@ -818,7 +816,6 @@ class MainSelect(discord.ui.Select):
         except Exception as e:
             print(f"[ERREUR] Problème dans MainSelect: {e}")  # Debug console
             await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
-
 
 class ReturnButton(Button):
     def __init__(self, view):
@@ -882,14 +879,12 @@ class InfoSelect(Select):
             new_value = response.role_mentions[0].id if response.role_mentions else None
         elif param in ["sanctions_channel", "reports_channel"]:
             new_value = response.channel_mentions[0].id if response.channel_mentions else None
-
+        
         if new_value:
-            self.view_ctx.collection.update_one(
-                {"guild_id": str(self.view_ctx.ctx.guild.id)},
-                {"$set": {param: str(new_value)}},
-                upsert=True
-            )
-            self.view_ctx.guild_data[param] = str(new_value)
+            self.view_ctx.guild_data[param] = new_value
+            await interaction.followup.send(f"✅ {param.capitalize()} mis à jour avec succès.", ephemeral=True)
+        else:
+            await interaction.followup.send("❌ Valeur invalide fournie.", ephemeral=True)
 
             # ✅ Notification au propriétaire du serveur
             await self.view_ctx.notify_bot_owner(interaction, param, new_value)
