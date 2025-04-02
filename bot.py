@@ -712,6 +712,33 @@ class SetupView(discord.ui.View):
         print(f"Message initial envoyé: {self.embed_message}")
 
 async def update_embed(self, category):
+    print(f"[DEBUG] update_embed appelé avec {category}")
+    
+    if not self.embed_message:
+        print("[ERREUR] embed_message est None !")
+        return
+
+    try:
+        embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
+        embed.description = f"Voici les options pour la catégorie `{category}`."
+
+        self.clear_items()
+        if category == "accueil":
+            self.add_item(MainSelect(self))
+        elif category == "gestion":
+            self.add_item(InfoSelect(self))
+            self.add_item(ReturnButton(self))
+        elif category == "anti":
+            self.add_item(AntiSelect(self))
+            self.add_item(ReturnButton(self))
+
+        print("[DEBUG] Tentative de modification de l'embed...")
+        await self.embed_message.edit(embed=embed, view=self)
+        print("[DEBUG] Embed mis à jour avec succès !")
+
+    except Exception as e:
+        print(f"[ERREUR] Impossible de modifier l'embed: {e}")
+
     """Met à jour l'embed et rafraîchit dynamiquement le message."""
     embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
     embed.description = f"Voici les options pour la catégorie `{category}`."
