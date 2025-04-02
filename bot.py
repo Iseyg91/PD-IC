@@ -699,20 +699,25 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-    async def start(self):
-        """Envoie un message initial pour la configuration."""
-        embed = discord.Embed(
-            title="⚙️ **Configuration du Serveur**",
-            description="Choisissez une option pour commencer.",
-            color=discord.Color.blurple()
-        )
+async def start(self):
+    """Envoie un message initial pour la configuration."""
+    embed = discord.Embed(
+        title="⚙️ **Configuration du Serveur**",
+        description="Choisissez une option pour commencer.",
+        color=discord.Color.blurple()
+    )
 
-        # Envoi du message initial et affectation à embed_message
+    # Envoi du message initial et affectation à embed_message
+    try:
         self.embed_message = await self.ctx.send(embed=embed, view=self)
         print(f"Message initial envoyé: {self.embed_message}")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi du message initial : {e}")
 
 async def update_embed(self, category):
     """Met à jour l'embed et rafraîchit dynamiquement le message."""
+    print(f"Mise à jour de l'embed pour la catégorie: {category}")  # Debug
+
     embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
     embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
@@ -731,6 +736,7 @@ async def update_embed(self, category):
         self.add_item(MainSelect(self))
 
     elif category == "gestion":
+        print("Catégorie 'gestion' sélectionnée.")  # Debug
         embed.title = "⚙️ **Gestion du Bot**"
         embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
         embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
@@ -743,6 +749,7 @@ async def update_embed(self, category):
         self.add_item(ReturnButton(self))
 
     elif category == "anti":
+        print("Catégorie 'anti' sélectionnée.")  # Debug
         embed.title = "🛡️ **Sécurité & Anti-Raid**"
         embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
         embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
@@ -753,10 +760,10 @@ async def update_embed(self, category):
         self.add_item(AntiSelect(self))
         self.add_item(ReturnButton(self))
 
-    # Correction : Déplacer ce bloc à l'intérieur de la fonction
     if self.embed_message:
         try:
             await self.embed_message.edit(embed=embed, view=self)
+            print("Embed mis à jour avec succès.")  # Debug
         except discord.errors.NotFound:
             print("Message non trouvé, envoi d'un nouveau message.")
             self.embed_message = await self.ctx.send(embed=embed, view=self)
@@ -777,7 +784,7 @@ class MainSelect(Select):
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view
-# Correction dans la méthode callback de MainSelect
+
 async def callback(self, interaction: discord.Interaction):
     print("Interaction reçue.")  # Debug
     await interaction.response.defer()  # Évite les délais d’interaction
