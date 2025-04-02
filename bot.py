@@ -688,9 +688,9 @@ async def viewpremium(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 #------------------------------------------------------------------------- Commande SETUP
-AUTHORIZED_USER_ID = 792755123587645461  # Ton ID Discord
+AUTHORIZED_USER_ID = 792755123587645461
 
-class SetupView(discord.ui.View):
+class SetupView(View):
     def __init__(self, ctx, guild_data, collection):
         super().__init__(timeout=180)
         self.ctx = ctx
@@ -712,43 +712,9 @@ class SetupView(discord.ui.View):
         print(f"Message initial envoyé: {self.embed_message}")
 
     async def update_embed(self, category):
-        print(f"[DEBUG] update_embed appelé avec {category}")  # Ajouté pour voir si la fonction est bien appelée
-
-        # ✅ Vérification avant d'éditer l'embed
-        if self.embed_message and not self.embed_message.deleted:
-            try:
-                # Tentative de modification de l'embed
-                await self.embed_message.edit(embed=embed, view=self)
-                print(f"Embed mis à jour pour la catégorie: {category}")
-            except Exception as e:
-                # Gestion des erreurs lors de la mise à jour de l'embed
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-        else:
-            # Gestion de l'erreur si l'embed_message est invalide
-            print("Erreur : embed_message est nul ou non défini.")
-
-        try:
-            embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
-            embed.description = f"Voici les options pour la catégorie `{category}`."
-
-            self.clear_items()
-            if category == "accueil":
-                self.add_item(MainSelect(self))
-            elif category == "gestion":
-                self.add_item(InfoSelect(self))
-                self.add_item(ReturnButton(self))
-            elif category == "anti":
-                self.add_item(AntiSelect(self))
-                self.add_item(ReturnButton(self))
-
-            print("[DEBUG] Tentative de modification de l'embed...")  # Ajouté pour voir si on atteint cette partie
-            await self.embed_message.edit(embed=embed, view=self)
-            print("[DEBUG] Embed mis à jour avec succès !")  # Ajouté pour confirmer la mise à jour
-
-            await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
-
-        except Exception as e:
-            print(f"[ERREUR] Impossible de modifier l'embed: {e}")
+        """Met à jour l'embed et rafraîchit dynamiquement le message."""
+        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
+        embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
         if category == "accueil":
             embed.title = "⚙️ **Configuration du Serveur**"
@@ -787,44 +753,61 @@ class SetupView(discord.ui.View):
             self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
-        # ✅ Vérification avant d'éditer l'embed
-        if self.embed_message and not self.embed_message.deleted:
-            try:
-                await self.embed_message.edit(embed=embed, view=self)  # ✅ Déplacé ici dans une fonction async
-                print(f"Embed mis à jour pour la catégorie: {category}")
-            except Exception as e:
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-        else:
-            print("Erreur : embed_message est nul ou non défini.")
+        # Vérifier que embed_message est valide avant de tenter de modifier
+if self.embed_message:
+    try:
+        await self.embed_message.edit(embed=embed, view=self)
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour de l'embed: {e}")
+else:
+    print("Erreur : embed_message est nul ou non défini.")
 
+# Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
         return "❌ **Non défini**"
     return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
 
-class MainSelect(discord.ui.Select):
-    def __init__(self, view_ctx):
+class MainSelect(Select):
+    def __init__(self, view):
         options = [
-            discord.SelectOption(label="🔧 Paramètres", value="settings"),
-            discord.SelectOption(label="🛡️ Sécurité", value="security"),
-            discord.SelectOption(label="🎛️ Gestion", value="management"),
+            discord.SelectOption(label="⚙️ Gestion du Bot", description="Modifier les rôles et salons", value="gestion"),
+            discord.SelectOption(label="🛡️ Sécurité & Anti-Raid", description="Configurer les protections", value="anti")
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
-        self.view_ctx = view_ctx
+        self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()  # ✅ Empêche l'échec de l'interaction
+        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
+        await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
-        try:
-            category = self.values[0]
-            print(f"[DEBUG] Catégorie sélectionnée: {category}")  # Log pour debug
-            await self.view_ctx.update_embed(category)
-
-            await interaction.followup.send("✅ Catégorie mise à jour.", ephemeral=True)
-
-        except Exception as e:
-            print(f"[ERREUR] Problème dans MainSelect: {e}")  # Debug console
-            await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
+        # Vérification de view_ctx avant d'appeler la mise à jour
+        if hasattr(self.view_ctx, 'update_embed'):
+            try:
+                category = self.values[0]  # Récupérer la valeur sélectionnée
+                print(f"Catégorie sélectionnée: {category}")
+                await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
+                print(f"Embed mis à jour avec la catégorie: {category}")
+            except Exception as e:
+                print(f"Erreur lors de la mise à jour de l'embed: {e}")
+                await interaction.followup.send(
+                    embed=discord.Embed(
+                        title="❌ **Erreur**",
+                        description="Une erreur est survenue lors de la mise à jour de l'embed.",
+                        color=discord.Color.red()
+                    ),
+                    ephemeral=True
+                )
+        else:
+            print("Erreur: view_ctx n'a pas la méthode update_embed.")
+            await interaction.followup.send(
+                embed=discord.Embed(
+                    title="❌ **Erreur**",
+                    description="Le système de mise à jour d'embed n'est pas disponible.",
+                    color=discord.Color.red()
+                ),
+                ephemeral=True
+            )
 
 class ReturnButton(Button):
     def __init__(self, view):
@@ -833,12 +816,7 @@ class ReturnButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        
-        # Mise à jour de l'embed pour retourner à l'écran d'accueil
-        await self.view_ctx.update_embed("accueil")
-        
-        # Ajouter une réponse après avoir mis à jour l'embed
-        await interaction.response.send_message("Retour à l'accueil effectué.", ephemeral=True)
+        await self.view_ctx.update_embed("accueil")  # Appel correctement dans une méthode async
 
 class InfoSelect(Select):
     def __init__(self, view):
@@ -847,7 +825,7 @@ class InfoSelect(Select):
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-            discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
+            discord.SelectOption(label="📝 Salon Rapports", value="reports_channel"),
         ]
         super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
         self.view_ctx = view
@@ -888,28 +866,42 @@ class InfoSelect(Select):
             new_value = response.role_mentions[0].id if response.role_mentions else None
         elif param in ["sanctions_channel", "reports_channel"]:
             new_value = response.channel_mentions[0].id if response.channel_mentions else None
-        
+
         if new_value:
-            self.view_ctx.guild_data[param] = new_value
-            await interaction.followup.send(f"✅ {param.capitalize()} mis à jour avec succès.", ephemeral=True)
-        else:
-            await interaction.followup.send("❌ Valeur invalide fournie.", ephemeral=True)
+            # Mise à jour de la base de données avec la nouvelle valeur
+            self.view_ctx.collection.update_one(
+                {"guild_id": str(self.view_ctx.ctx.guild.id)},
+                {"$set": {param: str(new_value)}},
+                upsert=True
+            )
+            self.view_ctx.guild_data[param] = str(new_value)
 
-            # ✅ Notification au propriétaire du serveur
-            await self.view_ctx.notify_bot_owner(interaction, param, new_value)
+            async def update_settings():
+                await self.view_ctx.notify_guild_owner(interaction, param, new_value)
+                await self.view_ctx.update_embed("gestion")
 
-            # ✅ Embed de confirmation
+            asyncio.create_task(update_settings())  # Lancer correctement la tâche async
+
+            # Embed de succès
             embed_success = discord.Embed(
                 title="✅ **Modification enregistrée !**",
                 description=f"Le paramètre `{param}` a été mis à jour avec succès.",
                 color=discord.Color.green(),
                 timestamp=discord.utils.utcnow()
             )
-            embed_success.add_field(name="🆕 Nouvelle valeur :", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
-            embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+            embed_success.add_field(
+                name="🆕 Nouvelle valeur :",
+                value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>",
+                inline=False
+            )
+            embed_success.set_footer(
+                text=f"Modifié par {interaction.user.display_name}",
+                icon_url=interaction.user.avatar.url if interaction.user.avatar else None
+            )
 
             await interaction.followup.send(embed=embed_success, ephemeral=True)
             await self.view_ctx.update_embed("gestion")
+
         else:
             embed_error = discord.Embed(
                 title="❌ **Erreur de saisie**",
@@ -917,6 +909,7 @@ class InfoSelect(Select):
                 color=discord.Color.red()
             )
             await interaction.followup.send(embed=embed_error, ephemeral=True)
+
 
 class AntiSelect(Select):
     def __init__(self, view):
@@ -929,159 +922,221 @@ class AntiSelect(Select):
         self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer()  # Avertir que l'interaction est en cours
 
-        try:
-            print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
-            param = self.values[0]
+        param = self.values[0]
+        embed_request = discord.Embed(
+            title="⚙️ **Modification d'une protection**",
+            description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                        "Tapez :\n"
+                        "✅ `true` pour **activer**\n"
+                        "❌ `false` pour **désactiver**\n"
+                        "🚫 `cancel` pour **annuler**",
+            color=discord.Color.blurple(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-            embed_request = discord.Embed(
-                title="⚙️ **Modification d'une protection**",
-                description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
-                            "Tapez :\n"
-                            "✅ `true` pour **activer**\n"
-                            "❌ `false` pour **désactiver**\n"
-                            "🚫 `cancel` pour **annuler**",
-                color=discord.Color.blurple(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed_request.set_footer(text="Répondez dans les 60 secondes.")
-
-            await interaction.followup.send(embed=embed_request, ephemeral=True)
-        except Exception as e:
-            print(f"Erreur dans AntiSelect: {e}")
-            traceback.print_exc()
-            await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
+        await interaction.followup.send(embed=embed_request, ephemeral=True)
 
         def check(msg):
-            return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
+            return msg.author == interaction.user and msg.channel == interaction.channel
 
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
             await response.delete()
         except asyncio.TimeoutError:
-            embed_timeout = discord.Embed(
-                title="⏳ **Temps écoulé**",
-                description="Aucune modification effectuée.",
-                color=discord.Color.red()
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="⏳ **Temps écoulé**",
+                    description="Aucune modification effectuée.",
+                    color=discord.Color.red()
+                ), ephemeral=True
             )
-            return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
 
         response_content = response.content.lower()
 
         if response_content == "cancel":
-            embed_cancel = discord.Embed(
-                title="🚫 **Modification annulée**",
-                description="Aucune modification n'a été apportée.",
-                color=discord.Color.orange()
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="🚫 **Modification annulée**",
+                    description="Aucune modification n'a été apportée.",
+                    color=discord.Color.orange()
+                ), ephemeral=True
             )
-            await interaction.followup.send(embed=embed_cancel, ephemeral=True)
-            return await self.view_ctx.update_embed("anti")
 
         if response_content not in ["true", "false"]:
-            embed_invalid = discord.Embed(
-                title="❌ **Réponse invalide**",
-                description="Veuillez entrer uniquement `true` ou `false`.",
-                color=discord.Color.red()
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="❌ **Réponse invalide**",
+                    description="Veuillez entrer uniquement `true` ou `false`.",
+                    color=discord.Color.red()
+                ), ephemeral=True
             )
-            return await interaction.followup.send(embed=embed_invalid, ephemeral=True)
 
         new_value = response_content == "true"
 
+        # Mise à jour de la base de données
         self.view_ctx.collection.update_one(
             {"guild_id": str(self.view_ctx.ctx.guild.id)},
             {"$set": {param: new_value}},
             upsert=True
         )
+        self.view_ctx.guild_data[param] = new_value
 
-        # ✅ Notification au propriétaire du serveur
-        await self.view_ctx.notify_bot_owner(interaction, param, new_value)
+        # Notifier le propriétaire
+        await self.view_ctx.notify_guild_owner(interaction, param, new_value)
 
-        # ✅ Embed de confirmation
-        embed_success = discord.Embed(
-            title="✅ **Modification enregistrée !**",
-            description=f"La protection `{param}` est maintenant **{'activée' if new_value else 'désactivée'}**.",
-            color=discord.Color.green(),
+        # Confirmer la modification à l'utilisateur
+        await interaction.followup.send(
+            embed=discord.Embed(
+                title="✅ **Modification enregistrée !**",
+                description=f"La protection `{param}` est maintenant **{'activée' if new_value else 'désactivée'}**.",
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            ).set_footer(
+                text=f"Modifié par {interaction.user.display_name}",
+                icon_url=interaction.user.avatar.url if interaction.user.avatar else None
+            ),
+            ephemeral=True
+        )
+
+        # Mise à jour immédiate de l'embed
+        await self.view_ctx.update_embed("anti")
+        
+        param = self.values[0]
+        embed_request = discord.Embed(
+            title="⚙️ **Modification d'une protection**",
+            description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                        "Tapez :\n"
+                        "✅ `true` pour **activer**\n"
+                        "❌ `false` pour **désactiver**\n"
+                        "🚫 `cancel` pour **annuler**",
+            color=discord.Color.blurple(),
             timestamp=discord.utils.utcnow()
         )
-        embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+        embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-        await interaction.followup.send(embed=embed_success, ephemeral=True)
+        await interaction.followup.send(embed=embed_request, ephemeral=True)
+
+        def check(msg):
+            return msg.author == interaction.user and msg.channel == interaction.channel
+
+        try:
+            response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
+            await response.delete()
+        except asyncio.TimeoutError:
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="⏳ **Temps écoulé**",
+                    description="Aucune modification effectuée.",
+                    color=discord.Color.red()
+                ), ephemeral=True
+            )
+
+        response_content = response.content.lower()
+
+        if response_content == "cancel":
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="🚫 **Modification annulée**",
+                    description="Aucune modification n'a été apportée.",
+                    color=discord.Color.orange()
+                ), ephemeral=True
+            )
+
+        if response_content not in ["true", "false"]:
+            return await interaction.followup.send(
+                embed=discord.Embed(
+                    title="❌ **Réponse invalide**",
+                    description="Veuillez entrer uniquement `true` ou `false`.",
+                    color=discord.Color.red()
+                ), ephemeral=True
+            )
+
+        new_value = response_content == "true"
+
+        # ✅ Mise à jour de la base de données
+        self.view_ctx.collection.update_one(
+            {"guild_id": str(self.view_ctx.ctx.guild.id)},
+            {"$set": {param: new_value}},
+            upsert=True
+        )
+        self.view_ctx.guild_data[param] = new_value
+
+        # ✅ Notifier le propriétaire
+        await self.view_ctx.notify_guild_owner(interaction, param, new_value)
+
+        # ✅ Confirmation à l'utilisateur
+        await interaction.followup.send(
+            embed=discord.Embed(
+                title="✅ **Modification enregistrée !**",
+                description=f"La protection `{param}` est maintenant **{'activée' if new_value else 'désactivée'}**.",
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            ).set_footer(
+                text=f"Modifié par {interaction.user.display_name}",
+                icon_url=interaction.user.avatar.url if interaction.user.avatar else None
+            ),
+            ephemeral=True
+        )
+
+        # ✅ Mise à jour immédiate de l'embed
         await self.view_ctx.update_embed("anti")
 
-import traceback
-
-async def notify_bot_owner(self, interaction, param, new_value):
-    bot_owner = self.view_ctx.ctx.bot.get_user(AUTHORIZED_USER_ID)  # Ton ID Discord
-
-    if not bot_owner:  # Si l'ID ne retourne pas un utilisateur, on le récupère
-        bot_owner = await self.view_ctx.ctx.bot.fetch_user(AUTHORIZED_USER_ID)
-
-    if bot_owner:
+async def notify_guild_owner(self, interaction, param, new_value):
+    guild_owner = self.ctx.guild.owner  # Récupère l'owner du serveur
+    if guild_owner:
         embed = discord.Embed(
             title="🔔 **Mise à jour de la configuration**",
-            description=f"⚙️ **Une modification a été effectuée sur le bot dans le serveur `{interaction.guild.name}`.**",
+            description=f"⚙️ Une modification a été effectuée sur votre serveur **{interaction.guild.name}**.",
             color=discord.Color.orange(),
             timestamp=discord.utils.utcnow()
         )
         embed.add_field(name="👤 **Modifié par**", value=interaction.user.mention, inline=True)
         embed.add_field(name="🔧 **Paramètre modifié**", value=f"`{param}`", inline=True)
-        embed.add_field(name="🆕 **Nouvelle valeur**", value=f"{new_value}", inline=False)
-        embed.set_footer(text="Pensez à vérifier la configuration du bot.")
+        embed.add_field(name="🆕 **Nouvelle valeur**", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
+        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
+        embed.set_footer(text="Vérifiez votre configuration si nécessaire.")
 
         try:
-            await bot_owner.send(embed=embed)
-            print(f"✅ Message privé envoyé à toi-même ({bot_owner.name}).")
+            await guild_owner.send(embed=embed)
+            print(f"✅ MP envoyé au propriétaire {guild_owner.name}.")
         except discord.Forbidden:
-            print("❌ Impossible d'envoyer un MP à toi-même. Vérifie tes paramètres Discord.")
-            traceback.print_exc()
-
-            try:
-                await bot_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
-            except discord.Forbidden:
-                print("❌ Le message de test a aussi échoué.")
-
+            print(f"⚠️ Impossible d'envoyer un MP à {guild_owner.name}.")
             await interaction.followup.send(
-                "⚠️ **Impossible de t'envoyer un message privé.** Vérifie tes paramètres de confidentialité.",
+                "⚠️ **Impossible d'envoyer un MP au propriétaire du serveur.**",
                 ephemeral=True
             )
 
-@bot.tree.command(name="setup", description="Description de ta commande")
-async def setup(interaction: discord.Interaction):
-    print("Commande 'setup' appelée.")  # Log de debug
-
-    # ✅ Évite l'échec de l'interaction en différant immédiatement la réponse
-    await interaction.response.defer()
-
-    # Vérifie si l'utilisateur est autorisé
-    if interaction.user.id != AUTHORIZED_USER_ID and not interaction.user.guild_permissions.administrator:
+@bot.command(name="setup")
+async def setup(ctx):
+    print("Commande 'setup' appelée.")  # Log de débogage
+    if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
-        await interaction.followup.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
-    # Récupère les données du serveur
-    guild_data = collection.find_one({"guild_id": str(interaction.guild.id)}) or {}
+    guild_data = collection.find_one({"guild_id": str(ctx.guild.id)}) or {}
 
     embed = discord.Embed(
         title="⚙️ **Configuration du Serveur**",
-        description=""" 
+        description="""
         🔧 **Bienvenue dans le setup !**  
         Configurez votre serveur facilement en quelques clics !  
+
         📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
         🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+
         🔽 **Sélectionnez une option pour commencer !**
         """,
         color=discord.Color.blurple()
     )
 
     print("Embed créé, envoi en cours...")
-    view = SetupView(interaction, guild_data, collection)
-
-    # ✅ Utilisation de `followup.send()` car `response.send_message()` ne marche plus après `defer()`
-    await interaction.followup.send(embed=embed, view=view)  
+    view = SetupView(ctx, guild_data, collection)
+    view.embed_message = await ctx.send(embed=embed, view=view)  # Vérification que l'embed est envoyé
     print("Message d'embed envoyé.")
-
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
 # Liste des mots sensibles
