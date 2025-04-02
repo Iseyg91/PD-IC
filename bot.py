@@ -799,24 +799,30 @@ def format_mention(id, type_mention):
         return "❌ **Non défini**"
     return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
 
-class MainSelect(Select):
-    def __init__(self, view):
+class MainSelect(discord.ui.Select):
+    def __init__(self, view_ctx):
         options = [
-            discord.SelectOption(label="⚙️ Gestion du Bot", description="Modifier les rôles et salons", value="gestion"),
-            discord.SelectOption(label="🛡️ Sécurité & Anti-Raid", description="Configurer les protections", value="anti")
+            discord.SelectOption(label="🔧 Paramètres", value="settings"),
+            discord.SelectOption(label="🛡️ Sécurité", value="security"),
+            discord.SelectOption(label="🎛️ Gestion", value="management"),
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
-        self.view_ctx = view
+        self.view_ctx = view_ctx
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()  # Defer pour éviter l'échec, mais on doit répondre après
+        await interaction.response.defer()  # ✅ Empêche l'échec de l'interaction
 
-        category = self.values[0]  # Vérifier que la valeur sélectionnée est correcte
-        await self.view_ctx.update_embed(category)  # Mise à jour de l'embed
-        print(f"Embed mis à jour avec la catégorie: {category}")
-        
-        # Après la mise à jour de l'embed, tu peux envoyer un message de confirmation ou gérer l'interaction :
-        await interaction.response.send_message("Sélection de la catégorie réussie.", ephemeral=True)
+        try:
+            category = self.values[0]
+            print(f"[DEBUG] Catégorie sélectionnée: {category}")  # Log pour debug
+            await self.view_ctx.update_embed(category)
+
+            await interaction.followup.send("✅ Catégorie mise à jour.", ephemeral=True)
+
+        except Exception as e:
+            print(f"[ERREUR] Problème dans MainSelect: {e}")  # Debug console
+            await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
+
 
 class ReturnButton(Button):
     def __init__(self, view):
