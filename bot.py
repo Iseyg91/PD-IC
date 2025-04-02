@@ -712,10 +712,10 @@ class SetupView(discord.ui.View):
         print(f"Message initial envoyé: {self.embed_message}")
 
 async def update_embed(self, category):
-    print(f"[DEBUG] update_embed appelé avec {category}")
-    
+    print(f"[DEBUG] update_embed appelé avec {category}")  # Ajouté pour voir si la fonction est bien appelée
+
     if not self.embed_message:
-        print("[ERREUR] embed_message est None !")
+        print("[ERREUR] embed_message est None !")  # Ajouté pour détecter un problème avec embed_message
         return
 
     try:
@@ -732,20 +732,15 @@ async def update_embed(self, category):
             self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
-        print("[DEBUG] Tentative de modification de l'embed...")
+        print("[DEBUG] Tentative de modification de l'embed...")  # Ajouté pour voir si on atteint cette partie
         await self.embed_message.edit(embed=embed, view=self)
-        print("[DEBUG] Embed mis à jour avec succès !")
-        
-        # Répondre à l'interaction
-        await self.ctx.followup.send("✅ L'embed a été mis à jour.", ephemeral=True)
+        print("[DEBUG] Embed mis à jour avec succès !")  # Ajouté pour confirmer la mise à jour
+
+        await self.ctx.respond("L'embed a été mis à jour avec succès.", ephemeral=True)
 
     except Exception as e:
         print(f"[ERREUR] Impossible de modifier l'embed: {e}")
-        await self.ctx.followup.send(f"❌ Une erreur est survenue : {e}", ephemeral=True)
 
-    """Met à jour l'embed et rafraîchit dynamiquement le message."""
-    embed = discord.Embed(title=f"Configuration: {category}", color=discord.Color.blurple())
-    embed.description = f"Voici les options pour la catégorie `{category}`."
 
     if category == "accueil":
         embed.title = "⚙️ **Configuration du Serveur**"
@@ -838,8 +833,6 @@ class ReturnButton(Button):
         
         # Ajouter une réponse après avoir mis à jour l'embed
         await interaction.response.send_message("Retour à l'accueil effectué.", ephemeral=True)
-
-
 
 class InfoSelect(Select):
     def __init__(self, view):
