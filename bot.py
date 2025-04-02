@@ -1089,7 +1089,17 @@ async def on_message(message):
     if message.author.bot:
         return  # Ignore les messages du bot
 
-    # 🔹 Réponse à la mention du bot (toujours activée)
+    # 🔹 Détection des mots sensibles (toujours active)
+    for word in sensitive_words:
+        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
+            asyncio.create_task(send_alert_to_admin(message, word))
+            break  # On arrête la boucle dès qu'un mot interdit est trouvé
+
+    # Récupère la configuration du serveur depuis la base de données
+    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
+
+    # 🔹 Réponse à la mention du bot (avant de traiter les autres règles)
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
         embed = discord.Embed(
             title="👋 Besoin d’aide ?",
@@ -1116,19 +1126,10 @@ async def on_message(message):
         await message.channel.send(embed=embed, view=view)
         return  # Retourne pour éviter de faire le reste du traitement si c'est une mention
 
-    # Récupère la configuration du serveur depuis la base de données
-    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
-
-    # 🔹 Détection des mots sensibles (toujours active)
-    for word in sensitive_words:
-        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
-            asyncio.create_task(send_alert_to_admin(message, word))
-            break  # On arrête la boucle dès qu'un mot interdit est trouvé
-
-    # Vérifie si le serveur a une configuration
+    # Si le serveur n'a pas de configuration, on ne fait rien d'autre
     if not guild_data:
-        return  # Le serveur n'a pas de configuration, on ne fait rien d'autre
+        await bot.process_commands(message)  # Traite les commandes en préfixe
+        return
 
     # 🔹 Anti-Lien (uniquement si activé dans la configuration du serveur)
     if guild_data.get("anti_link", False):
@@ -1173,9 +1174,6 @@ async def on_message(message):
 
     # Traite les commandes en préfixe
     await bot.process_commands(message)  # Traite les commandes en préfixe après tout le reste
-
-    # **Traitement des commandes en préfixe** (c'est maintenant déjà géré en début de fonction)
-    # await bot.process_commands(message)  # Pas besoin de répéter ici
 
 async def send_alert_to_admin(message, detected_word):
     """Envoie une alerte privée à l'admin en cas de mot interdit détecté."""
