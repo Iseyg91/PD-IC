@@ -1089,12 +1089,46 @@ async def on_message(message):
     if message.author.bot:
         return  # Ignore les messages du bot
 
+    # 🔹 Réponse à la mention du bot (toujours activée)
+    if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
+        embed = discord.Embed(
+            title="👋 Besoin d’aide ?",
+            description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
+                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+aide`\n"
+                         "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
+                         "✨ **Profite bien du serveur et amuse-toi !**"),
+            color=discord.Color.blue()
+        )
+        embed.set_thumbnail(url=bot.user.avatar.url)
+        embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
+        
+        view = View()
+        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
+
+        async def button_callback(interaction: discord.Interaction):
+            ctx = await bot.get_context(interaction.message)
+            await ctx.invoke(bot.get_command("aide"))
+            await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
+
+        button.callback = button_callback
+        view.add_item(button)
+
+        await message.channel.send(embed=embed, view=view)
+        return  # Retourne pour éviter de faire le reste du traitement si c'est une mention
+
     # Récupère la configuration du serveur depuis la base de données
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
 
-    # Vérifie si la configuration existe, sinon continue sans appliquer les règles
+    # 🔹 Détection des mots sensibles (toujours active)
+    for word in sensitive_words:
+        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
+            asyncio.create_task(send_alert_to_admin(message, word))
+            break  # On arrête la boucle dès qu'un mot interdit est trouvé
+
+    # Vérifie si le serveur a une configuration
     if not guild_data:
-        return  # Le serveur n'a pas de configuration, on ne fait rien
+        return  # Le serveur n'a pas de configuration, on ne fait rien d'autre
 
     # 🔹 Anti-Lien (uniquement si activé dans la configuration du serveur)
     if guild_data.get("anti_link", False):
@@ -1137,46 +1171,8 @@ async def on_message(message):
             await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
             return
 
-    # Détection des mots sensibles (pas de changement ici, on le garde comme c'est)
-    for word in sensitive_words:
-        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
-            asyncio.create_task(send_alert_to_admin(message, word))
-            break  # On arrête la boucle dès qu'un mot interdit est trouvé
-
     # Traite les commandes en préfixe
     await bot.process_commands(message)  # Traite les commandes en préfixe après tout le reste
-
-    # Réponse automatique aux mentions du bot
-    if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
-        embed = discord.Embed(
-            title="👋 Besoin d’aide ?",
-            description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
-                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+aide`\n"
-                         "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
-                         "✨ **Profite bien du serveur et amuse-toi !**"),
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=bot.user.avatar.url)
-        embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
-        
-        view = View()
-        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
-
-        async def button_callback(interaction: discord.Interaction):
-            ctx = await bot.get_context(interaction.message)
-            await ctx.invoke(bot.get_command("aide"))
-            await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
-
-        button.callback = button_callback
-        view.add_item(button)
-
-        await message.channel.send(embed=embed, view=view)
-
-    # **Suppression complète de la logique de rappel de bump et des enregistrements**
-    if message.content.startswith("/bump") and message.author.id in bump_ids:
-        # Envoie un message de remerciement sans rappel
-        await message.channel.send(f"Merci {message.author.mention} pour ton bump !")
 
     # **Traitement des commandes en préfixe** (c'est maintenant déjà géré en début de fonction)
     # await bot.process_commands(message)  # Pas besoin de répéter ici
