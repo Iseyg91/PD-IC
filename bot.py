@@ -888,31 +888,32 @@ class AntiSelect(Select):
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
 
-    async def callback(self, interaction: discord.Interaction):
-        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
+async def callback(self, interaction: discord.Interaction):
+    try:
+        print(f"Interaction received: {interaction}")  # Debug
         await interaction.response.defer(thinking=True)
 
-        try:
-            print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
-            param = self.values[0]
+        param = self.values[0]
 
-            embed_request = discord.Embed(
-                title="⚙️ **Modification d'une protection**",
-                description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
-                            "Tapez :\n"
-                            "✅ `true` pour **activer**\n"
-                            "❌ `false` pour **désactiver**\n"
-                            "🚫 `cancel` pour **annuler**",
-                color=discord.Color.blurple(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed_request.set_footer(text="Répondez dans les 60 secondes.")
+        embed_request = discord.Embed(
+            title="⚙️ **Modification d'une protection**",
+            description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                        "Tapez :\n"
+                        "✅ `true` pour **activer**\n"
+                        "❌ `false` pour **désactiver**\n"
+                        "🚫 `cancel` pour **annuler**",
+            color=discord.Color.blurple(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-            await interaction.followup.send(embed=embed_request, ephemeral=True)
-        except Exception as e:
-            print(f"Erreur dans AntiSelect: {e}")
-            traceback.print_exc()
-            await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
+        await interaction.followup.send(embed=embed_request, ephemeral=True)
+
+    except Exception as e:
+        print(f"Erreur dans AntiSelect: {e}")
+        import traceback
+        traceback.print_exc()
+        await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
 
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
