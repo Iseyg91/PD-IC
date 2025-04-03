@@ -819,8 +819,10 @@ class MainSelect(Select):
 
         # Vérification de view_ctx avant d'appeler la mise à jour
         if hasattr(self.view_ctx, 'update_embed'):
-            await self.view_ctx.update_embed(self.values[0])  # Mettre à jour l'embed selon le choix de l'utilisateur
-            print(f"Embed mis à jour avec la catégorie: {self.values[0]}")
+            # Utilisation de la valeur choisie pour mettre à jour l'embed
+            category = self.values[0]
+            await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
+            print(f"Embed mis à jour avec la catégorie: {category}")
         else:
             print("Erreur: view_ctx n'a pas la méthode update_embed.")
 
