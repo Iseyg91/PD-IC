@@ -2558,7 +2558,7 @@ AUTORIZED_SERVER_ID = 1034007767050104892
 
 # Commande +prison
 @bot.command()
-@commands.has_role 1165936153418006548  # ID du rôle sans guillemets
+@commands.has_role (1165936153418006548)
 async def prison(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2593,7 +2593,7 @@ async def prison(ctx, member: discord.Member = None):
 
 # Commande +arrestation
 @bot.command()
-@commands.has_role 1165936153418006548
+@commands.has_role (1165936153418006548)
 async def arrestation(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2628,7 +2628,7 @@ async def arrestation(ctx, member: discord.Member = None):
 
 # Commande +liberation
 @bot.command()
-@commands.has_role 1165936153418006548
+@commands.has_role (1165936153418006548)
 async def liberation(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2663,7 +2663,7 @@ async def liberation(ctx, member: discord.Member = None):
 
 # Commande +evasion
 @bot.command()
-@commands.has_role 1344591867068809268
+@commands.has_role (1344591867068809268)
 async def evasion(ctx):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2699,7 +2699,7 @@ async def evasion(ctx):
 
 # Commande cautionpayer
 @bot.command()
-@commands.has_role 1347165421958205470
+@commands.has_role (1347165421958205470)
 async def cautionpayer(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
