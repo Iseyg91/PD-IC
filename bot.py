@@ -713,6 +713,7 @@ async def start(self):
 
 async def update_embed(self, category):
     """Met à jour l'embed et rafraîchit dynamiquement le message."""
+    print(f"update_embed appelé pour la catégorie: {category}")  # Debug: Vérification de la catégorie choisie
     embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
     embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
@@ -771,7 +772,6 @@ async def update_embed(self, category):
     else:
         print("Erreur : embed_message est nul ou non défini.")
 
-
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
@@ -787,16 +787,16 @@ class MainSelect(Select):
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view  # Utilisez la vue correctement ici.
 
-    async def callback(self, interaction: discord.Interaction):
-        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
-        await interaction.response.defer()  # Avertir Discord que la réponse est en cours
+async def callback(self, interaction: discord.Interaction):
+    print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
+    await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
-        # Vérification de view_ctx avant d'appeler la mise à jour
-        if hasattr(self.view_ctx, 'update_embed'):
-            await self.view_ctx.update_embed(self.values[0])  # Mettre à jour l'embed selon le choix de l'utilisateur
-            print(f"Embed mis à jour avec la catégorie: {self.values[0]}")
-        else:
-            print("Erreur: view_ctx n'a pas la méthode update_embed.")
+    # Vérification de view_ctx avant d'appeler la mise à jour
+    if hasattr(self.view_ctx, 'update_embed'):
+        await self.view_ctx.update_embed(self.values[0])  # Mettre à jour l'embed selon le choix de l'utilisateur
+        print(f"Embed mis à jour avec la catégorie: {self.values[0]}")
+    else:
+        print("Erreur: view_ctx n'a pas la méthode update_embed.")
 
 class ReturnButton(Button):
     def __init__(self, view):
