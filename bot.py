@@ -742,16 +742,29 @@ class SetupView(View):
             self.add_item(InfoSelect(self))
             self.add_item(ReturnButton(self))
 
-        elif category == "anti":
-            embed.title = "🛡️ **Sécurité & Anti-Raid**"
-            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
-            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
+elif category == "anti":
+    embed.title = "🛡️ **Sécurité & Anti-Raid**"
+    embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+    
+    protections = {
+        "🔗 Anti-lien": "anti_link",
+        "💬 Anti-Spam": "anti_spam",
+        "🚫 Anti-Everyone": "anti_everyone",
+        "⛔ Anti-MassBan": "anti_massban",
+        "⛔ Anti-MassKick": "anti_masskick",
+        "🤖 Anti-Bot": "anti_bot",
+        "📂 Anti-CreateChannel": "anti_createchannel",
+        "🗑️ Anti-DeleteChannel": "anti_deletechannel",
+        "📌 Anti-CreateRole": "anti_createrole",
+        "🗑️ Anti-DeleteRole": "anti_deleterole",
+    }
 
-            self.clear_items()
-            self.add_item(AntiSelect(self))
-            self.add_item(ReturnButton(self))
+    for name, key in protections.items():
+        embed.add_field(name=name, value=f"{'✅ Activé' if self.guild_data.get(key, False) else '❌ Désactivé'}", inline=True)
+
+    self.clear_items()
+    self.add_item(AntiSelect(self))
+    self.add_item(ReturnButton(self))
 
         # Vérifier que embed_message est valide avant de tenter de modifier
         if self.embed_message:
@@ -884,9 +897,17 @@ class AntiSelect(Select):
             discord.SelectOption(label="🔗 Anti-lien", value="anti_link"),
             discord.SelectOption(label="💬 Anti-Spam", value="anti_spam"),
             discord.SelectOption(label="🚫 Anti-Everyone", value="anti_everyone"),
+            discord.SelectOption(label="⛔ Anti-MassBan", value="anti_massban"),
+            discord.SelectOption(label="⛔ Anti-MassKick", value="anti_masskick"),
+            discord.SelectOption(label="🤖 Anti-Bot", value="anti_bot"),
+            discord.SelectOption(label="📂 Anti-CreateChannel", value="anti_createchannel"),
+            discord.SelectOption(label="🗑️ Anti-DeleteChannel", value="anti_deletechannel"),
+            discord.SelectOption(label="📌 Anti-CreateRole", value="anti_createrole"),
+            discord.SelectOption(label="🗑️ Anti-DeleteRole", value="anti_deleterole"),
         ]
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
+
 
     async def callback(self, interaction: discord.Interaction):
         print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
@@ -1196,6 +1217,26 @@ async def send_alert_to_admin(message, detected_word):
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
+#------------------------------------------------------------------------ Commande d'Anti-MassBan/kick:
+@bot.event
+async def on_member_remove(member):
+    guild_data = collection.find_one({"guild_id": str(member.guild.id)})
+    if not guild_data:
+        return
+
+    audit_logs = await member.guild.audit_logs(limit=1, action=discord.AuditLogAction.kick).flatten()
+    if audit_logs:
+        entry = audit_logs[0]
+        if guild_data.get("anti_masskick", False) and not entry.user.guild_permissions.administrator:
+            await member.guild.ban(entry.user, reason="Tentative de MassKick détectée")
+            return
+
+    audit_logs = await member.guild.audit_logs(limit=1, action=discord.AuditLogAction.ban).flatten()
+    if audit_logs:
+        entry = audit_logs[0]
+        if guild_data.get("anti_massban", False) and not entry.user.guild_permissions.administrator:
+            await member.guild.ban(entry.user, reason="Tentative de MassBan détectée")
+            return
 
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
 
@@ -1323,10 +1364,17 @@ async def send_economy_info(user: discord.Member):
 
 @bot.event
 async def on_member_join(member):
+    guild_data = collection.find_one({"guild_id": str(member.guild.id)})
+
+    # Vérifie si l'anti-bot est activé et que le membre est un bot
+    if guild_data.get("anti_bot", False) and member.bot:
+        await member.ban(reason="Bot interdit sur ce serveur.")
+        return  # Stoppe l'exécution ici si c'est un bot
+
     # Vérifie si le membre a rejoint le serveur Etherya
     if member.guild.id != ETHERYA_SERVER_ID:
         return  # Stoppe l'exécution si ce n'est pas Etherya
-    
+
     # Envoi du message de bienvenue
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
@@ -1357,7 +1405,7 @@ async def on_member_join(member):
                 print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
             except discord.HTTPException:
                 print("Une erreur est survenue lors de l'envoi du message.")
-    
+
     # Création d'un fil privé pour le membre
     channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
     channel = bot.get_channel(channel_id)
@@ -1370,7 +1418,7 @@ async def on_member_join(member):
         # Embed de bienvenue
         welcome_embed = discord.Embed(
             title="🌌 Bienvenue à Etherya !",
-            description=( 
+            description=(
                 "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
                 "Prêt à découvrir tout ce que le serveur a à offrir ?"
             ),
@@ -1382,7 +1430,7 @@ async def on_member_join(member):
         # Embed du guide
         guide_embed = discord.Embed(
             title="📖 Besoin d'un Guide ?",
-            description=( 
+            description=(
                 "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
                 "les différentes façons d'évoluer. Veux-tu le suivre ?"
             ),
@@ -1450,6 +1498,32 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
+#-------------------------------------------------------------------------- Commandes d'anti création/suppression de salons et rôles
+
+@bot.event
+async def on_guild_channel_create(channel):
+    guild_data = collection.find_one({"guild_id": str(channel.guild.id)})
+    if guild_data.get("anti_createchannel", False):
+        await channel.delete(reason="Création de salon interdite.")
+
+@bot.event
+async def on_guild_channel_delete(channel):
+    guild_data = collection.find_one({"guild_id": str(channel.guild.id)})
+    if guild_data.get("anti_deletechannel", False):
+        await channel.guild.create_text_channel(name=channel.name, reason="Restauration du salon supprimé.")
+
+@bot.event
+async def on_guild_role_create(role):
+    guild_data = collection.find_one({"guild_id": str(role.guild.id)})
+    if guild_data.get("anti_createrole", False):
+        await role.delete(reason="Création de rôle interdite.")
+
+@bot.event
+async def on_guild_role_delete(role):
+    guild_data = collection.find_one({"guild_id": str(role.guild.id)})
+    if guild_data.get("anti_deleterole", False):
+        await role.guild.create_role(name=role.name, reason="Restauration du rôle supprimé.")
+
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
