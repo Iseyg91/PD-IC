@@ -757,22 +757,22 @@ class SetupView(View):
             embed.add_field(name="📌 Anti-CreateRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_createrole', False) else '❌ Désactivé'}", inline=True)
             embed.add_field(name="🗑️ Anti-DeleteRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_deleterole', False) else '❌ Désactivé'}", inline=True)
 
-    for name, key in protections.items():
-        embed.add_field(name=name, value=f"{'✅ Activé' if self.guild_data.get(key, False) else '❌ Désactivé'}", inline=True)
+            for name, key in protections.items():
+                embed.add_field(name=name, value=f"{'✅ Activé' if self.guild_data.get(key, False) else '❌ Désactivé'}", inline=True)
 
-    self.clear_items()
-    self.add_item(AntiSelect(self))
-    self.add_item(ReturnButton(self))
+            self.clear_items()
+            self.add_item(AntiSelect(self))
+            self.add_item(ReturnButton(self))
 
-        # Vérifier que embed_message est valide avant de tenter de modifier
-        if self.embed_message:
-            try:
-                await self.embed_message.edit(embed=embed, view=self)
-                print(f"Embed mis à jour pour la catégorie: {category}")
-            except Exception as e:
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-        else:
-            print("Erreur : embed_message est nul ou non défini.")
+            # Vérifier que embed_message est valide avant de tenter de modifier
+            if self.embed_message:
+                try:
+                    await self.embed_message.edit(embed=embed, view=self)
+                    print(f"Embed mis à jour pour la catégorie: {category}")
+                except Exception as e:
+                    print(f"Erreur lors de la mise à jour de l'embed: {e}")
+            else:
+                print("Erreur : embed_message est nul ou non défini.")
 
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
