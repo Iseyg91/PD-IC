@@ -742,22 +742,20 @@ class SetupView(View):
             self.add_item(InfoSelect(self))
             self.add_item(ReturnButton(self))
 
-elif category == "anti":
-    embed.title = "🛡️ **Sécurité & Anti-Raid**"
-    embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
-    
-    protections = {
-        "🔗 Anti-lien": "anti_link",
-        "💬 Anti-Spam": "anti_spam",
-        "🚫 Anti-Everyone": "anti_everyone",
-        "⛔ Anti-MassBan": "anti_massban",
-        "⛔ Anti-MassKick": "anti_masskick",
-        "🤖 Anti-Bot": "anti_bot",
-        "📂 Anti-CreateChannel": "anti_createchannel",
-        "🗑️ Anti-DeleteChannel": "anti_deletechannel",
-        "📌 Anti-CreateRole": "anti_createrole",
-        "🗑️ Anti-DeleteRole": "anti_deleterole",
-    }
+        elif category == "anti":
+            embed.title = "🛡️ **Sécurité & Anti-Raid**"
+            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+            
+            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="⛔ Anti-MassBan :", value=f"{'✅ Activé' if self.guild_data.get('anti_massban', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="⛔ Anti-MassKick :", value=f"{'✅ Activé' if self.guild_data.get('anti_masskick', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🤖 Anti-Bot :", value=f"{'✅ Activé' if self.guild_data.get('anti_bot', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="📂 Anti-CreateChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_createchannel', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🗑️ Anti-DeleteChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_deletechannel', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="📌 Anti-CreateRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_createrole', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🗑️ Anti-DeleteRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_deleterole', False) else '❌ Désactivé'}", inline=True)
 
     for name, key in protections.items():
         embed.add_field(name=name, value=f"{'✅ Activé' if self.guild_data.get(key, False) else '❌ Désactivé'}", inline=True)
