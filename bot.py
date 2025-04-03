@@ -711,57 +711,92 @@ class SetupView(View):
         self.embed_message = await self.ctx.send(embed=embed, view=self)
         print(f"Message initial envoyé: {self.embed_message}")
 
-    async def update_embed(self, category):
-        """Met à jour l'embed et rafraîchit dynamiquement le message."""
-        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
-        embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
+async def update_embed(self, category, modified_field=None, new_value=None):
+    """Met à jour l'embed et rafraîchit dynamiquement le message."""
+    embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
+    embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
-        if category == "accueil":
-            embed.title = "⚙️ **Configuration du Serveur**"
-            embed.description = """
-            🎉 **Bienvenue dans le menu de configuration !**  
-            Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+    # Mise à jour de l'embed selon la catégorie
+    if category == "accueil":
+        embed.title = "⚙️ **Configuration du Serveur**"
+        embed.description = """
+        🎉 **Bienvenue dans le menu de configuration !**  
+        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
 
-            🔽 **Sélectionnez une catégorie pour commencer !**
-            """
-            self.clear_items()
-            self.add_item(MainSelect(self))
+        🔽 **Sélectionnez une catégorie pour commencer !**
+        """
+        self.clear_items()
+        self.add_item(MainSelect(self))
 
-        elif category == "gestion":
-            embed.title = "⚙️ **Gestion du Bot**"
+    elif category == "gestion":
+        embed.title = "⚙️ **Gestion du Bot**"
+        
+        # Si un champ a été modifié, mettre à jour uniquement ce champ
+        if modified_field == "owner":
+            embed.add_field(name="👑 Propriétaire :", value=format_mention(new_value, "user"), inline=False)
+        else:
             embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
+        
+        if modified_field == "admin_role":
+            embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(new_value, "role"), inline=False)
+        else:
             embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
+        
+        if modified_field == "staff_role":
+            embed.add_field(name="👥 Rôle Staff :", value=format_mention(new_value, "role"), inline=False)
+        else:
             embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
+        
+        if modified_field == "sanctions_channel":
+            embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(new_value, "channel"), inline=False)
+        else:
             embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
+        
+        if modified_field == "reports_channel":
+            embed.add_field(name="📝 Salon Alerte :", value=format_mention(new_value, "channel"), inline=False)
+        else:
             embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
 
-            self.clear_items()
-            self.add_item(InfoSelect(self))
-            self.add_item(ReturnButton(self))
+        self.clear_items()
+        self.add_item(InfoSelect(self))
+        self.add_item(ReturnButton(self))
 
-        elif category == "anti":
-            embed.title = "🛡️ **Sécurité & Anti-Raid**"
-            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+    elif category == "anti":
+        embed.title = "🛡️ **Sécurité & Anti-Raid**"
+        embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+        
+        # Mettre à jour uniquement les protections modifiées
+        if modified_field == "anti_link":
+            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if new_value else '❌ Désactivé'}", inline=True)
+        else:
             embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
+        
+        if modified_field == "anti_spam":
+            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if new_value else '❌ Désactivé'}", inline=True)
+        else:
             embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
+        
+        if modified_field == "anti_everyone":
+            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if new_value else '❌ Désactivé'}", inline=True)
+        else:
             embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
 
-            self.clear_items()
-            self.add_item(AntiSelect(self))
-            self.add_item(ReturnButton(self))
+        self.clear_items()
+        self.add_item(AntiSelect(self))
+        self.add_item(ReturnButton(self))
 
-        # Vérifier que embed_message est valide avant de tenter de modifier
-        if self.embed_message:
-            try:
-                await self.embed_message.edit(embed=embed, view=self)
-                print(f"Embed mis à jour pour la catégorie: {category}")
-            except Exception as e:
-                print(f"Erreur lors de la mise à jour de l'embed: {e}")
-        else:
-            print("Erreur : embed_message est nul ou non défini.")
+    # Vérifier que embed_message est valide avant de tenter de modifier
+    if self.embed_message:
+        try:
+            await self.embed_message.edit(embed=embed, view=self)
+            print(f"Embed mis à jour pour la catégorie: {category}")
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour de l'embed: {e}")
+    else:
+        print("Erreur : embed_message est nul ou non défini.")
 
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
@@ -840,6 +875,7 @@ class InfoSelect(Select):
 
         new_value = None
 
+        # Traitement des différentes valeurs en fonction du paramètre
         if param == "owner":
             new_value = response.mentions[0].id if response.mentions else None
         elif param in ["admin_role", "staff_role"]:
@@ -869,7 +905,10 @@ class InfoSelect(Select):
             embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
             await interaction.followup.send(embed=embed_success, ephemeral=True)
-            await self.view_ctx.update_embed("gestion")
+
+            # Mise à jour de l'embed pour la catégorie "gestion", en spécifiant le champ modifié
+            await self.view_ctx.update_embed("gestion", modified_field=param, new_value=new_value)
+
         else:
             embed_error = discord.Embed(
                 title="❌ **Erreur de saisie**",
@@ -968,7 +1007,9 @@ class AntiSelect(Select):
         embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
         await interaction.followup.send(embed=embed_success, ephemeral=True)
-        await self.view_ctx.update_embed("anti")
+
+        # Mise à jour de l'embed pour la catégorie "anti", en spécifiant le champ modifié
+        await self.view_ctx.update_embed("anti", modified_field=param, new_value=new_value)
 
 async def notify_guild_owner(self, interaction, param, new_value):
     guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
