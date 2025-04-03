@@ -972,6 +972,9 @@ class AntiSelect(Select):
 
 async def notify_guild_owner(self, interaction, param, new_value):
     guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
+    
+    print(f"🔍 Vérification : Propriétaire du serveur = {guild_owner}")  # Log pour voir si l'owner est bien récupéré
+    
     if guild_owner:  # Vérifie si le propriétaire existe
         embed = discord.Embed(
             title="🔔 **Mise à jour de la configuration**",
@@ -986,25 +989,33 @@ async def notify_guild_owner(self, interaction, param, new_value):
         embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
 
         try:
+            # Vérification avant l'envoi du MP
+            print(f"📩 Tentative d'envoi d'un MP à {guild_owner.name}...")
+
             # Envoie de l'embed au propriétaire
             await guild_owner.send(embed=embed)
-            print(f"Message privé envoyé au propriétaire {guild_owner.name}.")  # Log pour confirmer l'envoi
+            print(f"✅ Message privé envoyé avec succès à {guild_owner.name}.")  # Log de confirmation
 
         except discord.Forbidden:
-            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")  # Log si l'envoi échoue
+            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")
 
-            # Tentons d'envoyer un message simple au propriétaire pour tester la permission
+            # Tentative d'envoi d'un message texte simple pour voir si le problème est lié aux embeds
             try:
                 await guild_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
-                print("Le message de test a été envoyé avec succès.")
+                print("✅ Le message de test a été envoyé avec succès.")
             except discord.Forbidden:
-                print("⚠️ Le message de test a échoué. Le problème vient probablement des paramètres de confidentialité du propriétaire.")
+                print("❌ Le message de test a échoué. Vérifie les paramètres de confidentialité du propriétaire.")
 
-            # Avertir l'utilisateur via le suivi
-            await interaction.followup.send(
-                "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
-                ephemeral=True
-            )
+            # Avertir l'utilisateur dans le serveur
+            try:
+                await interaction.followup.send(
+                    "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
+                    ephemeral=True
+                )
+                print("📢 Notification envoyée à l'utilisateur dans le serveur.")
+            except Exception as e:
+                print(f"❌ Erreur lors de l'envoi du message de suivi : {e}")
+
 
 @bot.command(name="setup")
 async def setup(ctx):
