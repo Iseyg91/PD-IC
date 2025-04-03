@@ -699,82 +699,69 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-async def start(self):
-    """Envoie un message initial pour la configuration."""
-    embed = discord.Embed(
-        title="⚙️ **Configuration du Serveur**",
-        description="Choisissez une option pour commencer.",
-        color=discord.Color.blurple()
-    )
+    async def start(self):
+        """Envoie un message initial pour la configuration."""
+        embed = discord.Embed(
+            title="⚙️ **Configuration du Serveur**",
+            description="Choisissez une option pour commencer.",
+            color=discord.Color.blurple()
+        )
 
-    # Envoi du message initial et affectation à embed_message
-    self.embed_message = await self.ctx.send(embed=embed, view=self)
-    print(f"Message initial envoyé: {self.embed_message}")
+        # Envoi du message initial et affectation à embed_message
+        self.embed_message = await self.ctx.send(embed=embed, view=self)
+        print(f"Message initial envoyé: {self.embed_message}")
 
-    # Assurez-vous que la vue est associée à l'embed
-    self.embed_message = await self.embed_message.edit(embed=embed, view=self)
+    async def update_embed(self, category):
+        """Met à jour l'embed et rafraîchit dynamiquement le message."""
+        embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
+        embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
-async def update_embed(self, category):
-    """Met à jour l'embed et rafraîchit dynamiquement le message."""
-    print(f"update_embed appelé pour la catégorie: {category}")  # Debug: Vérification de la catégorie choisie
-    embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
-    embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
+        if category == "accueil":
+            embed.title = "⚙️ **Configuration du Serveur**"
+            embed.description = """
+            🎉 **Bienvenue dans le menu de configuration !**  
+            Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-    # Sélection des catégories
-    if category == "accueil":
-        embed.title = "⚙️ **Configuration du Serveur**"
-        embed.description = """
-        🎉 **Bienvenue dans le menu de configuration !**  
-        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
 
-        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+            🔽 **Sélectionnez une catégorie pour commencer !**
+            """
+            self.clear_items()
+            self.add_item(MainSelect(self))
 
-        🔽 **Sélectionnez une catégorie pour commencer !**
-        """
-        self.clear_items()
-        self.add_item(MainSelect(self))
+        elif category == "gestion":
+            embed.title = "⚙️ **Gestion du Bot**"
+            embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
+            embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
+            embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
+            embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
+            embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
 
-    elif category == "gestion":
-        embed.title = "⚙️ **Gestion du Bot**"
-        embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
-        embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-        embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
+            self.clear_items()
+            self.add_item(InfoSelect(self))
+            self.add_item(ReturnButton(self))
 
-        self.clear_items()
-        self.add_item(InfoSelect(self))
-        self.add_item(ReturnButton(self))
+        elif category == "anti":
+            embed.title = "🛡️ **Sécurité & Anti-Raid**"
+            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
+            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
+            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
 
-    elif category == "anti":
-        embed.title = "🛡️ **Sécurité & Anti-Raid**"
-        embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
-        
-        embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="⛔ Anti-MassBan :", value=f"{'✅ Activé' if self.guild_data.get('anti_massban', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="⛔ Anti-MassKick :", value=f"{'✅ Activé' if self.guild_data.get('anti_masskick', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="🤖 Anti-Bot :", value=f"{'✅ Activé' if self.guild_data.get('anti_bot', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="📂 Anti-CreateChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_createchannel', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="🗑️ Anti-DeleteChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_deletechannel', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="📌 Anti-CreateRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_createrole', False) else '❌ Désactivé'}", inline=True)
-        embed.add_field(name="🗑️ Anti-DeleteRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_deleterole', False) else '❌ Désactivé'}", inline=True)
+            self.clear_items()
+            self.add_item(AntiSelect(self))
+            self.add_item(ReturnButton(self))
 
-        self.clear_items()
-        self.add_item(AntiSelect(self))
-        self.add_item(ReturnButton(self))
-
-    # Vérification de la validité de embed_message avant d'effectuer l'édition
-    if self.embed_message:
-        try:
-            await self.embed_message.edit(embed=embed, view=self)
-            print(f"Embed mis à jour pour la catégorie: {category}")
-        except Exception as e:
-            print(f"Erreur lors de la mise à jour de l'embed: {e}")
-    else:
-        print("Erreur : embed_message est nul ou non défini.")
+        # Vérifier que embed_message est valide avant de tenter de modifier
+        if self.embed_message:
+            try:
+                await self.embed_message.edit(embed=embed, view=self)
+                print(f"Embed mis à jour pour la catégorie: {category}")
+            except Exception as e:
+                print(f"Erreur lors de la mise à jour de l'embed: {e}")
+        else:
+            print("Erreur : embed_message est nul ou non défini.")
 
 # Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
@@ -792,17 +779,24 @@ class MainSelect(Select):
         self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        print("Interaction reçue: MainSelect")  # Debug: Vérifie si l'interaction est reçue
+        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
         await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
         # Vérification de view_ctx avant d'appeler la mise à jour
         if hasattr(self.view_ctx, 'update_embed'):
-            category = self.values[0]
-            print(f"Catégorie sélectionnée: {category}")  # Debug: Affiche la catégorie sélectionnée
-            await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
-            print(f"Embed mis à jour avec la catégorie: {category}")
+            await self.view_ctx.update_embed(self.values[0])  # Mettre à jour l'embed selon le choix de l'utilisateur
+            print(f"Embed mis à jour avec la catégorie: {self.values[0]}")
         else:
             print("Erreur: view_ctx n'a pas la méthode update_embed.")
+
+class ReturnButton(Button):
+    def __init__(self, view):
+        super().__init__(style=discord.ButtonStyle.danger, label="🔙 Retour", custom_id="return")
+        self.view_ctx = view
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+        await self.view_ctx.update_embed("accueil")
 
 class InfoSelect(Select):
     def __init__(self, view):
@@ -818,8 +812,6 @@ class InfoSelect(Select):
 
     async def callback(self, interaction: discord.Interaction):
         param = self.values[0]
-
-        print(f"Interaction reçue pour {param}")  # Debug: Affiche le paramètre sélectionné
 
         embed_request = discord.Embed(
             title="✏️ **Modification du paramètre**",
@@ -892,17 +884,9 @@ class AntiSelect(Select):
             discord.SelectOption(label="🔗 Anti-lien", value="anti_link"),
             discord.SelectOption(label="💬 Anti-Spam", value="anti_spam"),
             discord.SelectOption(label="🚫 Anti-Everyone", value="anti_everyone"),
-            discord.SelectOption(label="⛔ Anti-MassBan", value="anti_massban"),
-            discord.SelectOption(label="⛔ Anti-MassKick", value="anti_masskick"),
-            discord.SelectOption(label="🤖 Anti-Bot", value="anti_bot"),
-            discord.SelectOption(label="📂 Anti-CreateChannel", value="anti_createchannel"),
-            discord.SelectOption(label="🗑️ Anti-DeleteChannel", value="anti_deletechannel"),
-            discord.SelectOption(label="📌 Anti-CreateRole", value="anti_createrole"),
-            discord.SelectOption(label="🗑️ Anti-DeleteRole", value="anti_deleterole"),
         ]
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
-
 
     async def callback(self, interaction: discord.Interaction):
         print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
@@ -1050,9 +1034,7 @@ async def setup(ctx):
     view = SetupView(ctx, guild_data, collection)
     view.embed_message = await ctx.send(embed=embed, view=view)  # Vérification que l'embed est envoyé
     print("Message d'embed envoyé.")
-
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
-
 # Liste des mots sensibles
 sensitive_words = [
     # Insultes et injures
@@ -1212,26 +1194,6 @@ async def send_alert_to_admin(message, detected_word):
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
-#------------------------------------------------------------------------ Commande d'Anti-MassBan/kick:
-@bot.event
-async def on_member_remove(member):
-    guild_data = collection.find_one({"guild_id": str(member.guild.id)})
-    if not guild_data:
-        return
-
-    audit_logs = await member.guild.audit_logs(limit=1, action=discord.AuditLogAction.kick).flatten()
-    if audit_logs:
-        entry = audit_logs[0]
-        if guild_data.get("anti_masskick", False) and not entry.user.guild_permissions.administrator:
-            await member.guild.ban(entry.user, reason="Tentative de MassKick détectée")
-            return
-
-    audit_logs = await member.guild.audit_logs(limit=1, action=discord.AuditLogAction.ban).flatten()
-    if audit_logs:
-        entry = audit_logs[0]
-        if guild_data.get("anti_massban", False) and not entry.user.guild_permissions.administrator:
-            await member.guild.ban(entry.user, reason="Tentative de MassBan détectée")
-            return
 
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
 
@@ -1359,17 +1321,10 @@ async def send_economy_info(user: discord.Member):
 
 @bot.event
 async def on_member_join(member):
-    guild_data = collection.find_one({"guild_id": str(member.guild.id)})
-
-    # Vérifie si l'anti-bot est activé et que le membre est un bot
-    if guild_data.get("anti_bot", False) and member.bot:
-        await member.ban(reason="Bot interdit sur ce serveur.")
-        return  # Stoppe l'exécution ici si c'est un bot
-
     # Vérifie si le membre a rejoint le serveur Etherya
     if member.guild.id != ETHERYA_SERVER_ID:
         return  # Stoppe l'exécution si ce n'est pas Etherya
-
+    
     # Envoi du message de bienvenue
     channel = bot.get_channel(WELCOME_CHANNEL_ID)
     if channel:
@@ -1400,7 +1355,7 @@ async def on_member_join(member):
                 print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
             except discord.HTTPException:
                 print("Une erreur est survenue lors de l'envoi du message.")
-
+    
     # Création d'un fil privé pour le membre
     channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
     channel = bot.get_channel(channel_id)
@@ -1413,7 +1368,7 @@ async def on_member_join(member):
         # Embed de bienvenue
         welcome_embed = discord.Embed(
             title="🌌 Bienvenue à Etherya !",
-            description=(
+            description=( 
                 "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
                 "Prêt à découvrir tout ce que le serveur a à offrir ?"
             ),
@@ -1425,7 +1380,7 @@ async def on_member_join(member):
         # Embed du guide
         guide_embed = discord.Embed(
             title="📖 Besoin d'un Guide ?",
-            description=(
+            description=( 
                 "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
                 "les différentes façons d'évoluer. Veux-tu le suivre ?"
             ),
@@ -1493,31 +1448,6 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
-#-------------------------------------------------------------------------- Commandes d'anti création/suppression de salons et rôles
-
-@bot.event
-async def on_guild_channel_create(channel):
-    guild_data = collection.find_one({"guild_id": str(channel.guild.id)})
-    if guild_data.get("anti_createchannel", False):
-        await channel.delete(reason="Création de salon interdite.")
-
-@bot.event
-async def on_guild_channel_delete(channel):
-    guild_data = collection.find_one({"guild_id": str(channel.guild.id)})
-    if guild_data.get("anti_deletechannel", False):
-        await channel.guild.create_text_channel(name=channel.name, reason="Restauration du salon supprimé.")
-
-@bot.event
-async def on_guild_role_create(role):
-    guild_data = collection.find_one({"guild_id": str(role.guild.id)})
-    if guild_data.get("anti_createrole", False):
-        await role.delete(reason="Création de rôle interdite.")
-
-@bot.event
-async def on_guild_role_delete(role):
-    guild_data = collection.find_one({"guild_id": str(role.guild.id)})
-    if guild_data.get("anti_deleterole", False):
-        await role.guild.create_role(name=role.name, reason="Restauration du rôle supprimé.")
 
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
@@ -2628,7 +2558,7 @@ AUTORIZED_SERVER_ID = 1034007767050104892
 
 # Commande +prison
 @bot.command()
-@commands.has_role(1165936153418006548)  # ID du rôle sans guillemets
+@commands.has_role 1165936153418006548  # ID du rôle sans guillemets
 async def prison(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2663,7 +2593,7 @@ async def prison(ctx, member: discord.Member = None):
 
 # Commande +arrestation
 @bot.command()
-@commands.has_role(1165936153418006548)
+@commands.has_role 1165936153418006548
 async def arrestation(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2698,7 +2628,7 @@ async def arrestation(ctx, member: discord.Member = None):
 
 # Commande +liberation
 @bot.command()
-@commands.has_role(1165936153418006548)
+@commands.has_role 1165936153418006548
 async def liberation(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2733,7 +2663,7 @@ async def liberation(ctx, member: discord.Member = None):
 
 # Commande +evasion
 @bot.command()
-@commands.has_role(1344591867068809268)
+@commands.has_role 1344591867068809268
 async def evasion(ctx):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -2769,7 +2699,7 @@ async def evasion(ctx):
 
 # Commande cautionpayer
 @bot.command()
-@commands.has_role(1347165421958205470)
+@commands.has_role 1347165421958205470
 async def cautionpayer(ctx, member: discord.Member = None):
     if ctx.guild.id != AUTORIZED_SERVER_ID:
         embed = discord.Embed(
@@ -3873,7 +3803,7 @@ async def rappel(interaction: discord.Interaction, duree: str, raison: str, mode
     else:
         await interaction.channel.send(f"{interaction.user.mention}", embed=rappel_embed)
 
-THUMBNAIL_URL = "https://github.com/Iseyg91/Etherya-Gestion/blob/main/37baf0deff8e2a1a3cddda717a3d3e40.jpg?raw=true"
+THUMBNAIL_URL = "https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true"
 
 # Fonction pour vérifier si une URL est valide
 def is_valid_url(url):
