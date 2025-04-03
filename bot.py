@@ -711,12 +711,16 @@ async def start(self):
     self.embed_message = await self.ctx.send(embed=embed, view=self)
     print(f"Message initial envoyé: {self.embed_message}")
 
+    # Assurez-vous que la vue est associée à l'embed
+    self.embed_message = await self.embed_message.edit(embed=embed, view=self)
+
 async def update_embed(self, category):
     """Met à jour l'embed et rafraîchit dynamiquement le message."""
     print(f"update_embed appelé pour la catégorie: {category}")  # Debug: Vérification de la catégorie choisie
     embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
     embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
+    # Sélection des catégories
     if category == "accueil":
         embed.title = "⚙️ **Configuration du Serveur**"
         embed.description = """
