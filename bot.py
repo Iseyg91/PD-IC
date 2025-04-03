@@ -785,27 +785,20 @@ class MainSelect(Select):
             discord.SelectOption(label="🛡️ Sécurité & Anti-Raid", description="Configurer les protections", value="anti")
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
-        self.view_ctx = view  # Utilisez la vue correctement ici.
-
-async def callback(self, interaction: discord.Interaction):
-    print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
-    await interaction.response.defer()  # Avertir Discord que la réponse est en cours
-
-    # Vérification de view_ctx avant d'appeler la mise à jour
-    if hasattr(self.view_ctx, 'update_embed'):
-        await self.view_ctx.update_embed(self.values[0])  # Mettre à jour l'embed selon le choix de l'utilisateur
-        print(f"Embed mis à jour avec la catégorie: {self.values[0]}")
-    else:
-        print("Erreur: view_ctx n'a pas la méthode update_embed.")
-
-class ReturnButton(Button):
-    def __init__(self, view):
-        super().__init__(style=discord.ButtonStyle.danger, label="🔙 Retour", custom_id="return")
         self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        await self.view_ctx.update_embed("accueil")
+        print("Interaction reçue: MainSelect")  # Debug: Vérifie si l'interaction est reçue
+        await interaction.response.defer()  # Avertir Discord que la réponse est en cours
+
+        # Vérification de view_ctx avant d'appeler la mise à jour
+        if hasattr(self.view_ctx, 'update_embed'):
+            category = self.values[0]
+            print(f"Catégorie sélectionnée: {category}")  # Debug: Affiche la catégorie sélectionnée
+            await self.view_ctx.update_embed(category)  # Mettre à jour l'embed selon le choix de l'utilisateur
+            print(f"Embed mis à jour avec la catégorie: {category}")
+        else:
+            print("Erreur: view_ctx n'a pas la méthode update_embed.")
 
 class InfoSelect(Select):
     def __init__(self, view):
@@ -821,6 +814,8 @@ class InfoSelect(Select):
 
     async def callback(self, interaction: discord.Interaction):
         param = self.values[0]
+
+        print(f"Interaction reçue pour {param}")  # Debug: Affiche le paramètre sélectionné
 
         embed_request = discord.Embed(
             title="✏️ **Modification du paramètre**",
