@@ -1455,6 +1455,14 @@ async def guide_command(interaction: discord.Interaction):
     await bot.process_commands(message)
 #---------------------------------------------------------------------------- Snipe Isey:
 
+# Dictionnaire de stockage des mentions
+mentions_dict = {}
+
+# Formatage stylé
+def format_mention(index, msg):
+    return (f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
+            f"sur **{msg['server']}** :\n> {msg['content']}\n")
+
 # Commande pour afficher les pings
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
