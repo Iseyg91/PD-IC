@@ -1465,51 +1465,54 @@ def format_mention(index, msg):
         f"(*{msg['server']}*)\n> {msg['content']}\n"
     )
 
-# 📩 Commande protégée
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
-    AUTHORISED_ID = 792755123587645461
-    TARGET_ID = 123456789012345678  # Remplace par l'ID cible
+    try:
+        AUTHORISED_ID = 792755123587645461
+        TARGET_ID = 123456789012345678  # À remplacer si nécessaire
 
-    if ctx.author.id != AUTHORISED_ID:
-        return await ctx.send("⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
+        if ctx.author.id != AUTHORISED_ID:
+            return await ctx.send("⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
 
-    if count < 1:
-        return await ctx.send("⚠️ Le nombre doit être supérieur à 0.")
-    if count > 25:
-        count = 25
+        if count < 1:
+            return await ctx.send("⚠️ Le nombre doit être supérieur à 0.")
+        if count > 25:
+            count = 25
 
-    # 🧩 Récupération des mentions
-    all_mentions = []
-    for guild_data in mentions_dict.values():
-        for channel_mentions in guild_data.values():
-            all_mentions.extend(channel_mentions)
+        # 🧩 Récupération des mentions
+        all_mentions = []
+        for guild_data in mentions_dict.values():
+            for channel_mentions in guild_data.values():
+                all_mentions.extend(channel_mentions)
 
-    if not all_mentions:
-        return await ctx.send("😶 Aucune mention trouvée.")
+        if not all_mentions:
+            return await ctx.send("😶 Aucune mention trouvée.")
 
-    recent_mentions = all_mentions[-count:]
+        recent_mentions = all_mentions[-count:]
 
-    # 🎨 Formatage du contenu
-    formatted_mentions = [
-        format_mention(idx, mention)
-        for idx, mention in enumerate(reversed(recent_mentions), 1)
-    ]
-    full_text = "\n".join(formatted_mentions)
+        # 🧾 Formatage
+        formatted_mentions = [
+            format_mention(idx, mention)
+            for idx, mention in enumerate(reversed(recent_mentions), 1)
+        ]
+        full_text = "\n".join(formatted_mentions)
 
-    # ✂️ Tronquage si nécessaire (max 1024 par champ / 4096 total description)
-    if len(full_text) > 1024:
-        full_text = full_text[:1010] + "\n... *(message tronqué)*"
+        if len(full_text) > 1024:
+            full_text = full_text[:1010] + "\n... *(message tronqué)*"
 
-    # 🧾 Création de l'embed
-    embed = Embed(
-        title=f"📬 Derniers pings pour <@{TARGET_ID}>",
-        color=0x5865F2
-    )
-    embed.set_footer(text=f"{len(recent_mentions)} mention(s) affichée(s)")
-    embed.add_field(name="Mentions", value=full_text, inline=False)
+        # 🧾 Embed
+        embed = Embed(
+            title=f"📬 Derniers pings pour <@{TARGET_ID}>",
+            color=0x5865F2
+        )
+        embed.set_footer(text=f"{len(recent_mentions)} mention(s) affichée(s)")
+        embed.add_field(name="Mentions", value=full_text, inline=False)
 
-    await ctx.send(embed=embed)
+        await ctx.send(embed=embed)
+
+    except Exception as e:
+        await ctx.send(f"❌ Une erreur est survenue : `{type(e).__name__}` - {e}")
+        raise  # Pour aussi l'afficher dans la console
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
