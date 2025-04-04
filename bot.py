@@ -1455,43 +1455,65 @@ async def guide_command(interaction: discord.Interaction):
     await bot.process_commands(message)
 #---------------------------------------------------------------------------- Snipe Isey:
 
-# Dictionnaire de stockage des mentions
+# 📦 Dictionnaire de stockage des mentions
 mentions_dict = {}
 
-# Formatage stylé
+# 🎨 Formatage stylé d’une mention
 def format_mention(index, msg):
-    return (f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
-            f"sur **{msg['server']}** :\n> {msg['content']}\n")
+    return (
+        f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
+        f"(*{msg['server']}*)\n> {msg['content']}\n"
+    )
 
-# Commande pour afficher les pings
+# 📩 Commande protégée
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
+    AUTHORISED_ID = 792755123587645461
+    TARGET_ID = 123456789012345678  # Remplace ça par l'ID de la personne suivie
+
+    # 🔐 Restriction d’accès à un seul utilisateur
+    if ctx.author.id != AUTHORISED_ID:
+        return await ctx.send("⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
+
+    # ✅ Vérification du nombre demandé
     if count < 1:
-        await ctx.send("Le nombre doit être supérieur à 0 🧐")
-        return
+        return await ctx.send("⚠️ Le nombre doit être supérieur à 0.")
     if count > 25:
-        count = 25
+        count = 25  # Sécurité pour éviter le spam
 
+    # 📥 Récupération de toutes les mentions stockées
     all_mentions = []
-
-    for guild in mentions_dict.values():
-        for channel_msgs in guild.values():
-            all_mentions.extend(channel_msgs)
-
-    all_mentions = all_mentions[-count:]  # on prend les derniers
+    for guild_data in mentions_dict.values():
+        for channel_mentions in guild_data.values():
+            all_mentions.extend(channel_mentions)
 
     if not all_mentions:
-        await ctx.send("Aucune mention trouvée 😶")
-        return
+        return await ctx.send("😶 Aucune mention trouvée.")
 
-    response = f"📬 **Derniers pings pour <@{TARGET_ID}> ({len(all_mentions)})** :\n\n"
-    for idx, mention in enumerate(all_mentions[::-1], 1):
-        response += format_mention(idx, mention)
+    # ⏳ Sélection des dernières mentions
+    recent_mentions = all_mentions[-count:]
 
-    if len(response) > 2000:
-        response = response[:1990] + "\n... (message tronqué)"
+    # 🎁 Création de l'embed
+    embed = Embed(
+        title=f"📬 Derniers pings pour <@{TARGET_ID}>",
+        description="Voici les plus récentes mentions enregistrées :",
+        color=0x5865F2
+    )
+    embed.set_footer(text=f"Total : {len(recent_mentions)} mention(s) affichée(s)")
 
-    await ctx.send(response)
+    # 🔁 Ajout des messages
+    formatted_mentions = [
+        format_mention(idx, mention)
+        for idx, mention in enumerate(reversed(recent_mentions), start=1)
+    ]
+
+    final_text = "\n".join(formatted_mentions)
+    if len(final_text) > 4000:
+        final_text = final_text[:3900] + "\n... *(message tronqué)*"
+
+    embed.description += f"\n\n{final_text}"
+
+    await ctx.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
