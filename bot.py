@@ -813,6 +813,7 @@ class InfoSelect(Select):
     async def callback(self, interaction: discord.Interaction):
         param = self.values[0]
 
+        # Création de l'embed de demande de saisie
         embed_request = discord.Embed(
             title="✏️ **Modification du paramètre**",
             description=f"Veuillez mentionner la **nouvelle valeur** pour `{param}`.\n"
@@ -822,23 +823,27 @@ class InfoSelect(Select):
         )
         embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-        await interaction.response.send_message(embed=embed_request, ephemeral=True)
+        # Envoi du message embed visible publiquement (non ephemeral)
+        embed_msg = await interaction.channel.send(embed=embed_request)
 
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
 
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
-            await response.delete()
+            await response.delete()  # Supprime la réponse de l'utilisateur (facultatif)
+            await embed_msg.delete()  # Supprime le message embed de demande
         except asyncio.TimeoutError:
+            await embed_msg.delete()
             embed_timeout = discord.Embed(
                 title="⏳ **Temps écoulé**",
                 description="Aucune modification effectuée.",
                 color=discord.Color.red()
             )
-            return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
+            return await interaction.channel.send(embed=embed_timeout, delete_after=10)
 
         new_value = None
+        content = response.content.strip()
 
         if param == "owner":
             new_value = response.mentions[0].id if response.mentions else None
@@ -855,10 +860,8 @@ class InfoSelect(Select):
             )
             self.view_ctx.guild_data[param] = str(new_value)
 
-            # ✅ Notification au propriétaire du serveur
             await self.view_ctx.notify_guild_owner(interaction, param, new_value)
 
-            # ✅ Embed de confirmation
             embed_success = discord.Embed(
                 title="✅ **Modification enregistrée !**",
                 description=f"Le paramètre `{param}` a été mis à jour avec succès.",
@@ -868,7 +871,7 @@ class InfoSelect(Select):
             embed_success.add_field(name="🆕 Nouvelle valeur :", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
             embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
-            await interaction.followup.send(embed=embed_success, ephemeral=True)
+            await interaction.channel.send(embed=embed_success)
             await self.view_ctx.update_embed("gestion")
         else:
             embed_error = discord.Embed(
@@ -876,7 +879,8 @@ class InfoSelect(Select):
                 description="La valeur mentionnée est invalide. Veuillez réessayer en mentionnant un rôle, un salon ou un utilisateur valide.",
                 color=discord.Color.red()
             )
-            await interaction.followup.send(embed=embed_error, ephemeral=True)
+            await interaction.channel.send(embed=embed_error)
+
 
 class AntiSelect(Select):
     def __init__(self, view):
