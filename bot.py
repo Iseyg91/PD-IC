@@ -892,12 +892,12 @@ class AntiSelect(Select):
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
 
-    async def callback(self, interaction: discord.Interaction):
-        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
-        await interaction.response.defer(thinking=True)
+async def callback(self, interaction: discord.Interaction):
+    print(f"Interaction received: {interaction}")  # ✅ Debug
+    await interaction.response.defer(thinking=True)
 
-        try:
-            param = self.values[0]
+    try:
+        param = self.values[0]
 
         embed_request = discord.Embed(
             title="⚙️ **Modification d'une protection**",
@@ -915,18 +915,10 @@ class AntiSelect(Select):
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
 
-        try:
-            response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
-            await response.delete()
-            await embed_msg.delete()
-        except asyncio.TimeoutError:
-            embed_timeout = discord.Embed(
-                title="⏳ **Temps écoulé**",
-                description="Aucune modification effectuée.",
-                color=discord.Color.red()
-            )
-            return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
-
+        response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
+        await response.delete()
+        await embed_msg.delete()
+        
         response_content = response.content.lower()
 
         if response_content == "cancel":
@@ -969,6 +961,7 @@ class AntiSelect(Select):
 
     except Exception as e:
         print(f"Erreur dans AntiSelect: {e}")
+        import traceback
         traceback.print_exc()
         await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
 
