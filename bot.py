@@ -1074,27 +1074,36 @@ sensitive_words = [
     "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", "séparatiste"
 ]
 
-ADMIN_ID = 792755123587645461  # Remplace avec l'ID de ton Owner
-
-# Dictionnaire pour suivre les messages d'un utilisateur pour l'anti-spam
-user_messages = {}
-
 @bot.event
 async def on_message(message):
     if message.author.bot:
-        return  # Ignore les messages du bot
+        return
 
-    # 🔹 Détection des mots sensibles (toujours active)
+    # 🔹 Détection des mots sensibles
     for word in sensitive_words:
         if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
             print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
             asyncio.create_task(send_alert_to_admin(message, word))
-            break  # On arrête la boucle dès qu'un mot interdit est trouvé
+            break
 
-    # Récupère la configuration du serveur depuis la base de données
-    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
+    # 🔹 Fonction 1 : Stocke les messages si quelqu'un mentionne TARGET_ID
+    if TARGET_ID in [user.id for user in message.mentions]:
+        guild_id = str(message.guild.id) if message.guild else "DM"
+        channel_id = str(message.channel.id)
 
-    # 🔹 Réponse à la mention du bot (avant de traiter les autres règles)
+        if guild_id not in mentions_dict:
+            mentions_dict[guild_id] = {}
+        if channel_id not in mentions_dict[guild_id]:
+            mentions_dict[guild_id][channel_id] = []
+
+        mentions_dict[guild_id][channel_id].append({
+            "author": str(message.author),
+            "content": message.content,
+            "channel": message.channel.name,
+            "server": message.guild.name if message.guild else "DM"
+        })
+
+    # 🔹 Fonction 2 : Répond si le bot est mentionné directement
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
         embed = discord.Embed(
             title="👋 Besoin d’aide ?",
@@ -1106,7 +1115,7 @@ async def on_message(message):
         )
         embed.set_thumbnail(url=bot.user.avatar.url)
         embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
-        
+
         view = View()
         button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
 
@@ -1119,56 +1128,52 @@ async def on_message(message):
         view.add_item(button)
 
         await message.channel.send(embed=embed, view=view)
-        return  # Retourne pour éviter de faire le reste du traitement si c'est une mention
+        return  # On arrête ici pour ne pas faire d'autres traitements
 
-    # Si le serveur n'a pas de configuration, on ne fait rien d'autre
+    # 🔹 Récupération de la configuration du serveur
+    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     if not guild_data:
-        await bot.process_commands(message)  # Traite les commandes en préfixe
+        await bot.process_commands(message)
         return
 
-    # 🔹 Anti-Lien (uniquement si activé dans la configuration du serveur)
+    # 🔹 Anti-lien
     if guild_data.get("anti_link", False):
         if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
             await message.delete()
             await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
             return
 
-    # 🔹 Anti-Spam (uniquement si activé dans la configuration du serveur)
+    # 🔹 Anti-spam
     if guild_data.get("anti_spam_limit", False):
         now = time.time()
         user_id = message.author.id
 
-        # Si l'utilisateur n'a pas encore de liste, initialise-la
         if user_id not in user_messages:
             user_messages[user_id] = []
-
-        # Ajoute l'heure du message dans la liste de l'utilisateur
         user_messages[user_id].append(now)
 
-        # Ne garde que les messages des 5 dernières secondes
         recent_messages = [t for t in user_messages[user_id] if t > now - 5]
         user_messages[user_id] = recent_messages
 
-        if len(recent_messages) > 10:  # Plus de 10 messages en 5 secondes → BAN
+        if len(recent_messages) > 10:
             await message.guild.ban(message.author, reason="Spam excessif")
             return
 
-        # Vérifie le spam sur 60 secondes
         spam_messages = [t for t in user_messages[user_id] if t > now - 60]
         if len(spam_messages) > guild_data["anti_spam_limit"]:
             await message.delete()
             await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
             return
 
-    # 🔹 Anti-Everyone (uniquement si activé dans la configuration du serveur)
+    # 🔹 Anti-everyone
     if guild_data.get("anti_everyone", False):
         if "@everyone" in message.content or "@here" in message.content:
             await message.delete()
             await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
             return
 
-    # Traite les commandes en préfixe
-    await bot.process_commands(message)  # Traite les commandes en préfixe après tout le reste
+    # 🔹 Exécution des commandes
+    await bot.process_commands(message)
 
 async def send_alert_to_admin(message, detected_word):
     """Envoie une alerte privée à l'admin en cas de mot interdit détecté."""
@@ -1445,6 +1450,37 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
+#---------------------------------------------------------------------------- Snipe Isey:
+
+# Commande pour afficher les pings
+@bot.command(name="isey")
+async def isey(ctx, count: int = 1):
+    if count < 1:
+        await ctx.send("Le nombre doit être supérieur à 0 🧐")
+        return
+    if count > 25:
+        count = 25
+
+    all_mentions = []
+
+    for guild in mentions_dict.values():
+        for channel_msgs in guild.values():
+            all_mentions.extend(channel_msgs)
+
+    all_mentions = all_mentions[-count:]  # on prend les derniers
+
+    if not all_mentions:
+        await ctx.send("Aucune mention trouvée 😶")
+        return
+
+    response = f"📬 **Derniers pings pour <@{TARGET_ID}> ({len(all_mentions)})** :\n\n"
+    for idx, mention in enumerate(all_mentions[::-1], 1):
+        response += format_mention(idx, mention)
+
+    if len(response) > 2000:
+        response = response[:1990] + "\n... (message tronqué)"
+
+    await ctx.send(response)
 
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
