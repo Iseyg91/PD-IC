@@ -892,27 +892,30 @@ class AntiSelect(Select):
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
 
-    async def callback(self, interaction: discord.Interaction):
-        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
-        await interaction.response.defer(thinking=True)
+async def callback(self, interaction: discord.Interaction):
+    print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
+    await interaction.response.defer(thinking=True)
 
-        try:
-            print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
-            param = self.values[0]
+    try:
+        print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
+        param = self.values[0]
 
-embed_request = discord.Embed(
-    title="⚙️ **Modification d'une protection**",
-    description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
-                "Tapez :\n"
-                "✅ `true` pour **activer**\n"
-                "❌ `false` pour **désactiver**\n"
-                "🚫 `cancel` pour **annuler**",
-    color=discord.Color.blurple(),
-    timestamp=discord.utils.utcnow()
-)
-embed_request.set_footer(text="Répondez dans les 60 secondes.")
+        embed_request = discord.Embed(
+            title="⚙️ **Modification d'une protection**",
+            description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                        "Tapez :\n"
+                        "✅ `true` pour **activer**\n"
+                        "❌ `false` pour **désactiver**\n"
+                        "🚫 `cancel` pour **annuler**",
+            color=discord.Color.blurple(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed_request.set_footer(text="Répondez dans les 60 secondes.")
+        embed_msg = await interaction.channel.send(embed=embed_request)
 
-embed_msg = await interaction.channel.send(embed=embed_request)  # ⬅️ On garde le message pour le supprimer plus tard
+    except Exception as e:
+        print(f"Une erreur s'est produite dans le callback: {e}")
+        await interaction.followup.send("Une erreur est survenue lors du traitement.", ephemeral=True)
 
         except Exception as e:
             print(f"Erreur dans AntiSelect: {e}")
