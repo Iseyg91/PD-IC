@@ -1074,6 +1074,9 @@ sensitive_words = [
     "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", "séparatiste"
 ]
 
+ADMIN_ID = 792755123587645461
+TARGET_ID = 792755123587645461
+
 @bot.event
 async def on_message(message):
     if message.author.bot:
