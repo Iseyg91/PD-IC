@@ -913,22 +913,13 @@ async def callback(self, interaction: discord.Interaction):
         embed_request.set_footer(text="Répondez dans les 60 secondes.")
         embed_msg = await interaction.channel.send(embed=embed_request)
 
-    except Exception as e:
-        print(f"Une erreur s'est produite dans le callback: {e}")
-        await interaction.followup.send("Une erreur est survenue lors du traitement.", ephemeral=True)
-
-        except Exception as e:
-            print(f"Erreur dans AntiSelect: {e}")
-            traceback.print_exc()
-            await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
-
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
 
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
             await response.delete()
-            await embed_msg.delete()  # ⬅️ On supprime le message d'instruction ici
+            await embed_msg.delete()
         except asyncio.TimeoutError:
             embed_timeout = discord.Embed(
                 title="⏳ **Temps écoulé**",
@@ -964,10 +955,8 @@ async def callback(self, interaction: discord.Interaction):
             upsert=True
         )
 
-        # ✅ Notification au propriétaire du serveur
         await self.view_ctx.notify_guild_owner(interaction, param, new_value)
 
-        # ✅ Embed de confirmation
         embed_success = discord.Embed(
             title="✅ **Modification enregistrée !**",
             description=f"La protection `{param}` est maintenant **{'activée' if new_value else 'désactivée'}**.",
@@ -976,8 +965,14 @@ async def callback(self, interaction: discord.Interaction):
         )
         embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
-        await interaction.channel.send(embed=embed_success)  # ⬅️ Message visible publiquement comme dans InfoSelect
+        await interaction.channel.send(embed=embed_success)
         await self.view_ctx.update_embed("anti")
+
+    except Exception as e:
+        print(f"Erreur dans AntiSelect: {e}")
+        traceback.print_exc()
+        await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
+
 
 async def notify_guild_owner(self, interaction, param, new_value):
     guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
