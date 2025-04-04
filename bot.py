@@ -745,24 +745,13 @@ class SetupView(View):
         elif category == "anti":
             embed.title = "🛡️ **Sécurité & Anti-Raid**"
             embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver !**"
-            
             embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
             embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
             embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="⛔ Anti-MassBan :", value=f"{'✅ Activé' if self.guild_data.get('anti_massban', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="⛔ Anti-MassKick :", value=f"{'✅ Activé' if self.guild_data.get('anti_masskick', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="🤖 Anti-Bot :", value=f"{'✅ Activé' if self.guild_data.get('anti_bot', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="📂 Anti-CreateChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_createchannel', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="🗑️ Anti-DeleteChannel :", value=f"{'✅ Activé' if self.guild_data.get('anti_deletechannel', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="📌 Anti-CreateRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_createrole', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="🗑️ Anti-DeleteRole :", value=f"{'✅ Activé' if self.guild_data.get('anti_deleterole', False) else '❌ Désactivé'}", inline=True)
 
-    for name, key in protections.items():
-        embed.add_field(name=name, value=f"{'✅ Activé' if self.guild_data.get(key, False) else '❌ Désactivé'}", inline=True)
-
-    self.clear_items()
-    self.add_item(AntiSelect(self))
-    self.add_item(ReturnButton(self))
+            self.clear_items()
+            self.add_item(AntiSelect(self))
+            self.add_item(ReturnButton(self))
 
         # Vérifier que embed_message est valide avant de tenter de modifier
         if self.embed_message:
@@ -895,17 +884,9 @@ class AntiSelect(Select):
             discord.SelectOption(label="🔗 Anti-lien", value="anti_link"),
             discord.SelectOption(label="💬 Anti-Spam", value="anti_spam"),
             discord.SelectOption(label="🚫 Anti-Everyone", value="anti_everyone"),
-            discord.SelectOption(label="⛔ Anti-MassBan", value="anti_massban"),
-            discord.SelectOption(label="⛔ Anti-MassKick", value="anti_masskick"),
-            discord.SelectOption(label="🤖 Anti-Bot", value="anti_bot"),
-            discord.SelectOption(label="📂 Anti-CreateChannel", value="anti_createchannel"),
-            discord.SelectOption(label="🗑️ Anti-DeleteChannel", value="anti_deletechannel"),
-            discord.SelectOption(label="📌 Anti-CreateRole", value="anti_createrole"),
-            discord.SelectOption(label="🗑️ Anti-DeleteRole", value="anti_deleterole"),
         ]
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
-
 
     async def callback(self, interaction: discord.Interaction):
         print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
@@ -1053,6 +1034,7 @@ async def setup(ctx):
     view = SetupView(ctx, guild_data, collection)
     view.embed_message = await ctx.send(embed=embed, view=view)  # Vérification que l'embed est envoyé
     print("Message d'embed envoyé.")
+
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 # Liste des mots sensibles
 sensitive_words = [
