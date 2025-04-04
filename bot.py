@@ -900,19 +900,20 @@ class AntiSelect(Select):
             print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
             param = self.values[0]
 
-            embed_request = discord.Embed(
-                title="⚙️ **Modification d'une protection**",
-                description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
-                            "Tapez :\n"
-                            "✅ `true` pour **activer**\n"
-                            "❌ `false` pour **désactiver**\n"
-                            "🚫 `cancel` pour **annuler**",
-                color=discord.Color.blurple(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed_request.set_footer(text="Répondez dans les 60 secondes.")
+embed_request = discord.Embed(
+    title="⚙️ **Modification d'une protection**",
+    description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                "Tapez :\n"
+                "✅ `true` pour **activer**\n"
+                "❌ `false` pour **désactiver**\n"
+                "🚫 `cancel` pour **annuler**",
+    color=discord.Color.blurple(),
+    timestamp=discord.utils.utcnow()
+)
+embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-            await interaction.followup.send(embed=embed_request, ephemeral=True)
+embed_msg = await interaction.channel.send(embed=embed_request)  # ⬅️ On garde le message pour le supprimer plus tard
+
         except Exception as e:
             print(f"Erreur dans AntiSelect: {e}")
             traceback.print_exc()
@@ -924,6 +925,7 @@ class AntiSelect(Select):
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
             await response.delete()
+            await embed_msg.delete()  # ⬅️ On supprime le message d'instruction ici
         except asyncio.TimeoutError:
             embed_timeout = discord.Embed(
                 title="⏳ **Temps écoulé**",
@@ -971,7 +973,7 @@ class AntiSelect(Select):
         )
         embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
-        await interaction.followup.send(embed=embed_success, ephemeral=True)
+        await interaction.channel.send(embed=embed_success)  # ⬅️ Message visible publiquement comme dans InfoSelect
         await self.view_ctx.update_embed("anti")
 
 async def notify_guild_owner(self, interaction, param, new_value):
