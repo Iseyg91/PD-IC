@@ -1465,11 +1465,39 @@ def format_mention(index, msg):
         f"(*{msg['server']}*)\n> {msg['content']}\n"
     )
 
+# 🔄 Fonction de pagination avec vue interactive
+class PaginationView(View):
+    def __init__(self, embeds, timeout=60):
+        super().__init__(timeout=timeout)
+        self.embeds = embeds
+        self.current_page = 0
+        self.max_pages = len(embeds) - 1
+
+    @discord.ui.button(label="⏮️ Précédent", style=discord.ButtonStyle.primary)
+    async def previous(self, button: Button, interaction: discord.Interaction):
+        if self.current_page > 0:
+            self.current_page -= 1
+            await interaction.response.edit_message(embed=self.embeds[self.current_page])
+            await interaction.message.edit(view=self)
+
+    @discord.ui.button(label="Suivant ⏭️", style=discord.ButtonStyle.primary)
+    async def next(self, button: Button, interaction: discord.Interaction):
+        if self.current_page < self.max_pages:
+            self.current_page += 1
+            await interaction.response.edit_message(embed=self.embeds[self.current_page])
+            await interaction.message.edit(view=self)
+
+    async def on_timeout(self):
+        for button in self.children:
+            button.disabled = True
+        await self.message.edit(view=self)
+
+# 📩 Commande protégée
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
     try:
         AUTHORISED_ID = 792755123587645461
-        TARGET_ID = 123456789012345678  # À remplacer si nécessaire
+        TARGET_ID = 123456789012345678  # Remplace-le par l'ID à surveiller
 
         if ctx.author.id != AUTHORISED_ID:
             return await ctx.send("⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
@@ -1490,29 +1518,35 @@ async def isey(ctx, count: int = 1):
 
         recent_mentions = all_mentions[-count:]
 
-        # 🧾 Formatage
+        # 🎨 Formatage
         formatted_mentions = [
             format_mention(idx, mention)
             for idx, mention in enumerate(reversed(recent_mentions), 1)
         ]
         full_text = "\n".join(formatted_mentions)
 
-        if len(full_text) > 1024:
-            full_text = full_text[:1010] + "\n... *(message tronqué)*"
+        # Diviser le texte en pages si trop long
+        max_chars_per_page = 1024
+        embeds = []
+        while full_text:
+            page = full_text[:max_chars_per_page]
+            embeds.append(discord.Embed(
+                title=f"📬 Derniers pings pour <@{TARGET_ID}>",
+                description=page,
+                color=0x5865F2
+            ).set_footer(text=f"Page {len(embeds)} sur {len(embeds)}"))
+            full_text = full_text[max_chars_per_page:]
 
-        # 🧾 Embed
-        embed = Embed(
-            title=f"📬 Derniers pings pour <@{TARGET_ID}>",
-            color=0x5865F2
-        )
-        embed.set_footer(text=f"{len(recent_mentions)} mention(s) affichée(s)")
-        embed.add_field(name="Mentions", value=full_text, inline=False)
-
-        await ctx.send(embed=embed)
+        if len(embeds) > 1:
+            view = PaginationView(embeds)
+            message = await ctx.send(embed=embeds[0], view=view)
+            view.message = message
+        else:
+            await ctx.send(embed=embeds[0])
 
     except Exception as e:
         await ctx.send(f"❌ Une erreur est survenue : `{type(e).__name__}` - {e}")
-        raise  # Pour aussi l'afficher dans la console
+        raise
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
