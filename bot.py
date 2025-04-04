@@ -892,13 +892,12 @@ class AntiSelect(Select):
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
 
-async def callback(self, interaction: discord.Interaction):
-    print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
-    await interaction.response.defer(thinking=True)
+    async def callback(self, interaction: discord.Interaction):
+        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
+        await interaction.response.defer(thinking=True)
 
-    try:
-        print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
-        param = self.values[0]
+        try:
+            param = self.values[0]
 
         embed_request = discord.Embed(
             title="⚙️ **Modification d'une protection**",
@@ -1036,7 +1035,7 @@ async def setup(ctx):
 
     print("Embed créé, envoi en cours...")
     view = SetupView(ctx, guild_data, collection)
-    view.embed_message = await ctx.send(embed=embed, view=view)  # Vérification que l'embed est envoyé
+    await view.start()
     print("Message d'embed envoyé.")
 
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
