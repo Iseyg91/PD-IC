@@ -3402,7 +3402,7 @@ async def bounty(ctx, member: discord.Member, prize: int):
         }
 
         # Insérer ou mettre à jour la prime
-        bounty_collection.update_one(
+        collection3.update_one(
             {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
             {"$set": bounty_data},
             upsert=True  # Créer un nouveau document si l'utilisateur n'a pas de prime
@@ -3420,7 +3420,7 @@ async def bounty(ctx, member: discord.Member, prize: int):
 async def capture(ctx, target: discord.Member):
     """Déclenche un duel pour capturer un joueur avec une prime"""
     # Récupérer la prime directement depuis la base de données
-    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(target.id)})
+    bounty_data = collection3.find_one({"guild_id": str(ctx.guild.id), "user_id": str(target.id)})
     if not bounty_data:
         await ctx.send("Ce joueur n'a pas de prime sur sa tête !")
         return
@@ -3435,7 +3435,7 @@ async def capture(ctx, target: discord.Member):
 async def ptop(ctx):
     """Affiche le classement des primes en ordre décroissant"""
     # Récupérer toutes les primes depuis la base de données
-    bounties_data = bounty_collection.find({"guild_id": str(ctx.guild.id)})
+    bounties_data = collection3.find({"guild_id": str(ctx.guild.id)})
     if not bounties_data:
         await ctx.send("📉 Il n'y a actuellement aucune prime en cours.")
         return
@@ -3457,7 +3457,7 @@ async def prime(ctx, member: discord.Member = None):
     member = member or ctx.author  # Par défaut, on affiche la prime du commanditaire
 
     # Récupérer les données de la base de données
-    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
+    bounty_data = collection3.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
 
     if not bounty_data:
         embed = discord.Embed(title="📉 Aucune prime !", description=f"Aucune prime n'est actuellement placée sur **{member.mention}**.", color=discord.Color.red())
@@ -3476,7 +3476,7 @@ async def rewards(ctx, member: discord.Member = None):
     member = member or ctx.author  # Si aucun membre n'est spécifié, on affiche pour l'auteur
 
     # Récupérer les récompenses du joueur depuis la base de données
-    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
+    bounty_data = collection3.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
 
     if bounty_data:
         reward = bounty_data.get("reward", 0)
