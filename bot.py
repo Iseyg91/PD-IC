@@ -778,6 +778,7 @@ class SetupView(View):
         embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
         embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
+        # Vérification de la catégorie et mise à jour du contenu
         if category == "accueil":
             embed.title = "⚙️ **Configuration du Serveur**"
             embed.description = """
