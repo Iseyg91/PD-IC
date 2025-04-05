@@ -1090,7 +1090,11 @@ async def setup(ctx):
     await view.start()
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
+# Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
+protection_settings = {}
+
 AUTHORIZED_USER_ID = 792755123587645461
+
 @bot.command()
 async def protection(ctx):
     if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
@@ -1098,11 +1102,19 @@ async def protection(ctx):
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
-
     guild_id = str(ctx.guild.id)
     
-    # Charger les données de protection
-    protection_data = load_protection_settings(guild_id)
+    # Charger les données de protection depuis le dictionnaire
+    protection_data = protection_settings.get(guild_id, {
+        "anti_massban": "Non configuré",
+        "anti_masskick": "Non configuré",
+        "anti_bot": "Non configuré",
+        "anti_createchannel": "Non configuré",
+        "anti_deletechannel": "Non configuré",
+        "anti_createrole": "Non configuré",
+        "anti_deleterole": "Non configuré",
+        "whitelist": "Non configuré"
+    })
 
     # Créer un embed qui explique les protections
     embed = discord.Embed(
@@ -1151,8 +1163,12 @@ async def protection(ctx):
         msg = await bot.wait_for('message', check=check)
         new_value = msg.content.lower()
 
-        # Mise à jour de la protection dans la base de données
-        update_protection(guild_id, selected_value, new_value)
+        # Mise à jour du dictionnaire avec la nouvelle valeur
+        protection_data[selected_value] = new_value
+
+        # Sauvegarder les modifications dans le dictionnaire global protection_settings
+        protection_settings[guild_id] = protection_data
+
         await interaction.followup.send(f"La protection {selected_value} a été mise à jour à {new_value}.")
 
     # Ajouter la fonctionnalité du menu au bot
@@ -1163,11 +1179,17 @@ async def protection(ctx):
     # Envoi de l'embed avec le menu
     await ctx.send(embed=embed, view=view)
 #------------------------------------------------------------------------- Code Protection:
+# Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
+protection_settings = {}
+ban_times = {}  # Dictionnaire pour stocker les temps de bans
+kick_times = {}  # Dictionnaire pour stocker les temps de kicks
+
 # Détection d'un massban (2 bans en moins de 10 secondes)
 @bot.event
 async def on_member_ban(guild, user):
     guild_id = str(guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_massban": "Non configuré"})
+    
     if protection_data.get("anti_massban") == "activer":
         # Vérifier s'il y a déjà eu un ban récent
         if guild.id not in ban_times:
@@ -1190,7 +1212,8 @@ async def on_member_ban(guild, user):
 @bot.event
 async def on_member_remove(member):
     guild_id = str(member.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_masskick": "Non configuré"})
+    
     if protection_data.get("anti_masskick") == "activer":
         # Vérifier s'il y a déjà eu un kick récent
         if guild_id not in kick_times:
@@ -1208,11 +1231,12 @@ async def on_member_remove(member):
             await member.guild.text_channels[0].send(f"Le masskick a été détecté ! Le kick de {member.name} a été annulé.")
             print(f"Masskick détecté pour {member.name}, kick annulé.")
             return
+
 # Protection anti-createchannel (empêche la création de salon)
 @bot.event
 async def on_guild_channel_create(channel):
     guild_id = str(channel.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_createchannel": "Non configuré"})
 
     if protection_data.get("anti_createchannel") == "activer":
         if not any(role.permissions.manage_channels for role in channel.guild.me.roles):
@@ -1223,7 +1247,7 @@ async def on_guild_channel_create(channel):
 @bot.event
 async def on_guild_channel_delete(channel):
     guild_id = str(channel.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_deletechannel": "Non configuré"})
 
     if protection_data.get("anti_deletechannel") == "activer":
         await channel.guild.create_text_channel(channel.name)  # Crée un salon avec le même nom
@@ -1233,7 +1257,7 @@ async def on_guild_channel_delete(channel):
 @bot.event
 async def on_guild_role_create(role):
     guild_id = str(role.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_createrole": "Non configuré"})
 
     if protection_data.get("anti_createrole") == "activer":
         await role.delete(reason="Protection anti-création de rôle activée.")
@@ -1243,24 +1267,34 @@ async def on_guild_role_create(role):
 @bot.event
 async def on_guild_role_delete(role):
     guild_id = str(role.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"anti_deleterole": "Non configuré"})
 
     if protection_data.get("anti_deleterole") == "activer":
         await role.guild.create_role(name=role.name)  # Crée le rôle à nouveau
         print(f"Le rôle {role.name} a été recréé à cause de la protection.")
 #------------------------------------------------------------------------- wl:
 
+# Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
+protection_settings = {}
+
+AUTHORIZED_USER_ID = 792755123587645461
+
 # Commande pour ajouter à la whitelist
 @bot.command()
 async def addwl(ctx, member: discord.Member):
     guild_id = str(ctx.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    
+    # Charger les données de protection depuis le dictionnaire
+    protection_data = protection_settings.get(guild_id, {
+        "whitelist": []
+    })
     
     # Ajouter à la whitelist
-    whitelist = protection_data.get("whitelist", [])
+    whitelist = protection_data["whitelist"]
     if member.id not in whitelist:
         whitelist.append(member.id)
-        update_protection(guild_id, "whitelist", whitelist)
+        # Sauvegarder les modifications dans le dictionnaire global protection_settings
+        protection_settings[guild_id] = protection_data
         await ctx.send(f"{member} a été ajouté à la whitelist.")
     else:
         await ctx.send(f"{member} est déjà dans la whitelist.")
@@ -1269,13 +1303,18 @@ async def addwl(ctx, member: discord.Member):
 @bot.command()
 async def removewl(ctx, member: discord.Member):
     guild_id = str(ctx.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    
+    # Charger les données de protection depuis le dictionnaire
+    protection_data = protection_settings.get(guild_id, {
+        "whitelist": []
+    })
     
     # Retirer de la whitelist
-    whitelist = protection_data.get("whitelist", [])
+    whitelist = protection_data["whitelist"]
     if member.id in whitelist:
         whitelist.remove(member.id)
-        update_protection(guild_id, "whitelist", whitelist)
+        # Sauvegarder les modifications dans le dictionnaire global protection_settings
+        protection_settings[guild_id] = protection_data
         await ctx.send(f"{member} a été retiré de la whitelist.")
     else:
         await ctx.send(f"{member} n'est pas dans la whitelist.")
@@ -1284,10 +1323,14 @@ async def removewl(ctx, member: discord.Member):
 @bot.command()
 async def listwl(ctx):
     guild_id = str(ctx.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    
+    # Charger les données de protection depuis le dictionnaire
+    protection_data = protection_settings.get(guild_id, {
+        "whitelist": []
+    })
     
     # Récupérer la whitelist
-    whitelist = protection_data.get("whitelist", [])
+    whitelist = protection_data["whitelist"]
     
     if whitelist:
         # Récupérer les membres de la whitelist
@@ -1590,15 +1633,16 @@ async def send_economy_info(user: discord.Member):
         print(f"Impossible d'envoyer un MP à {user.name} ({user.id})")
 
 # Protection anti-bot (empêche l'ajout de bots)
+# Événement lorsqu'un membre rejoint le serveur
 @bot.event
 async def on_member_join(member):
     guild_id = str(member.guild.id)
-    protection_data = load_protection_settings(guild_id)
+    protection_data = protection_settings.get(guild_id, {"whitelist": [], "anti_bot": "Non configuré"})
     whitelist = protection_data.get("whitelist", [])
 
     # Vérifier si l'utilisateur est dans la whitelist
     if member.id in whitelist:
-        return  # L'utilisateur est exempté
+        return  # L'utilisateur est exempté de la protection
 
     # Vérifier si la protection anti-bot est activée pour ce serveur
     if protection_data.get("anti_bot") == "activer":
