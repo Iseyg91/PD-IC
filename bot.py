@@ -904,17 +904,24 @@ class InfoSelect(Select):
             )
             return await interaction.channel.send(embed=embed_timeout, delete_after=10)
 
-        new_value = None
         content = response.content.strip()
 
-        if param == "owner":
-            new_value = int(content.replace("<@", "").replace(">", "").replace("!", ""))
-        elif param in ["admin_role", "staff_role"]:
-            new_value = int(content.replace("<@&", "").replace(">", ""))
-        elif param in ["sanctions_channel", "reports_channel"]:
-            new_value = int(content.replace("<#", "").replace(">", ""))
-        else:
-            new_value = content  # Cas par défaut, si jamais
+        try:
+            if param == "owner":
+                new_value = int(content.replace("<@", "").replace(">", "").replace("!", ""))
+            elif param in ["admin_role", "staff_role"]:
+                new_value = int(content.replace("<@&", "").replace(">", ""))
+            elif param in ["sanctions_channel", "reports_channel"]:
+                new_value = int(content.replace("<#", "").replace(">", ""))
+            else:
+                new_value = content  # Cas par défaut
+        except ValueError:
+            embed_error = discord.Embed(
+                title="❌ **Erreur de saisie**",
+                description="La valeur mentionnée est invalide. Veuillez réessayer en mentionnant un rôle, un salon ou un utilisateur valide.",
+                color=discord.Color.red()
+            )
+            return await interaction.channel.send(embed=embed_error, delete_after=10)
 
         # Mise à jour de la base de données
         self.view_ctx.collection.update_one(
@@ -937,15 +944,6 @@ class InfoSelect(Select):
 
         # Recharge l'embed pour refléter les changements
         await self.view_ctx.update_embed("gestion")
-
-        else:
-            embed_error = discord.Embed(
-                title="❌ **Erreur de saisie**",
-                description="La valeur mentionnée est invalide. Veuillez réessayer en mentionnant un rôle, un salon ou un utilisateur valide.",
-                color=discord.Color.red()
-            )
-            await interaction.channel.send(embed=embed_error)
-
 
 class AntiSelect(Select):
     def __init__(self, view):
