@@ -1472,8 +1472,6 @@ async def guide_command(interaction: discord.Interaction):
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
 #---------------------------------------------------------------------------- Snipe Isey:
-
-
 # 📦 Dictionnaire de stockage des mentions
 mentions_dict = {}
 
@@ -1554,7 +1552,7 @@ async def isey(ctx, count: int = 1):
                 color=0x2F3136,  # Couleur de fond de l'embed
             )
             .set_footer(text=f"Page {len(embeds)} sur {len(embeds)}")
-            .set_thumbnail(url="https://i.imgur.com/8lXm7zj.png")  # Image de bannière
+            .set_thumbnail(url="https://github.com/Iseyg91/Etherya/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Image de bannière
             .set_author(name="Commandes de Pings", icon_url="https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Icône d'auteur
             )
             full_text = full_text[max_chars_per_page:]
