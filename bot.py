@@ -99,7 +99,7 @@ def load_guild_settings(guild_id):
     combined_data = {
         "setup": setup_data,
         "setup_premium": setup_premium_data,
-        "bounty": bounty_data
+        "bounty": bounty_data,
         "protection": protection_data
     }
     
