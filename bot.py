@@ -761,28 +761,30 @@ class SetupView(View):
         self.embed_message = None
         self.add_item(MainSelect(self))
 
-    async def start(self):
+# Envoie du message initial et affectation à embed_message
+async def start(self):
     """Envoie un message initial pour la configuration."""
     embed = discord.Embed(
         title="⚙️ **Configuration du Serveur**",
-            embed.description = """
-            🎉 **Bienvenue dans le menu de configuration !**  
-            Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+        description="""
+        🎉 **Bienvenue dans le menu de configuration !**  
+        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
 
-            🔽 **Sélectionnez une catégorie pour commencer !**
-            """
+        🔽 **Sélectionnez une catégorie pour commencer !**
+        """,
         color=discord.Color.blurple()
     )
 
+    try:
         # Envoi du message initial et affectation à embed_message
-        try:
-            self.embed_message = await self.ctx.send(embed=embed, view=self)
-            print(f"Message initial envoyé: {self.embed_message}")
-        except Exception as e:
-            print(f"Erreur lors de l'envoi du message initial : {e}")
+        self.embed_message = await self.ctx.send(embed=embed, view=self)
+        print(f"Message initial envoyé: {self.embed_message}")
+    except Exception as e:
+        print(f"Erreur lors de l'envoi du message initial : {e}")
+
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
@@ -853,7 +855,7 @@ class MainSelect(Select):
         self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
+        print(f"Interaction reçue: {interaction}")  # Debug: Vérifie si l'interaction est reçue
         await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
         # Vérification de view_ctx avant d'appeler la mise à jour
