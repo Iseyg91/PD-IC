@@ -908,33 +908,36 @@ class InfoSelect(Select):
         content = response.content.strip()
 
         if param == "owner":
-            new_value = response.mentions[0].id if response.mentions else None
+            new_value = int(content.replace("<@", "").replace(">", "").replace("!", ""))
         elif param in ["admin_role", "staff_role"]:
-            new_value = response.role_mentions[0].id if response.role_mentions else None
+            new_value = int(content.replace("<@&", "").replace(">", ""))
         elif param in ["sanctions_channel", "reports_channel"]:
-            new_value = response.channel_mentions[0].id if response.channel_mentions else None
+            new_value = int(content.replace("<#", "").replace(">", ""))
+        else:
+            new_value = content  # Cas par défaut, si jamais
 
-        if new_value:
-            self.view_ctx.collection.update_one(
-                {"guild_id": str(self.view_ctx.ctx.guild.id)},
-                {"$set": {param: str(new_value)}},
-                upsert=True
-            )
-            self.view_ctx.guild_data[param] = str(new_value)
+        # Mise à jour de la base de données
+        self.view_ctx.collection.update_one(
+            {"guild_id": self.view_ctx.ctx.guild.id},
+            {"$set": {param: new_value}},
+            upsert=True
+        )
 
-            await self.view_ctx.notify_guild_owner(interaction, param, new_value)
+        # Met à jour la data localement pour éviter de recharger
+        self.view_ctx.guild_data[param] = new_value
 
-            embed_success = discord.Embed(
-                title="✅ **Modification enregistrée !**",
-                description=f"Le paramètre `{param}` a été mis à jour avec succès.",
-                color=discord.Color.green(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed_success.add_field(name="🆕 Nouvelle valeur :", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
-            embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+        # Feedback visuel
+        embed_success = discord.Embed(
+            title="✅ **Paramètre mis à jour !**",
+            description=f"Le paramètre `{param}` a été mis à jour avec succès.",
+            color=discord.Color.green(),
+            timestamp=discord.utils.utcnow()
+        )
+        await interaction.channel.send(embed=embed_success, delete_after=10)
 
-            await interaction.channel.send(embed=embed_success)
-            await self.view_ctx.update_embed("gestion")
+        # Recharge l'embed pour refléter les changements
+        await self.view_ctx.update_embed("gestion")
+
         else:
             embed_error = discord.Embed(
                 title="❌ **Erreur de saisie**",
