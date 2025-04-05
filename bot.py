@@ -180,7 +180,6 @@ async def on_error(event, *args, **kwargs):
     await args[0].response.send_message(embed=embed)
 
 #--------------------------------------------------------------------------- Owner Verif
-
 BOT_OWNER_ID = 792755123587645461
 
 # Vérification si l'utilisateur est l'owner du bot
@@ -1873,29 +1872,33 @@ async def isey(ctx, count: int = 1):
             text, color = format_mention(idx, mention)
             formatted_mentions.append((text, color))
 
-        full_text = "\n".join([item[0] for item in formatted_mentions])
-
         # Diviser le texte en pages si trop long
         max_chars_per_page = 1024
         embeds = []
+        full_text = "\n".join([item[0] for item in formatted_mentions])
+
+        # Si le texte dépasse la limite, le diviser en plusieurs pages
         while full_text:
             page = full_text[:max_chars_per_page]
             embed = discord.Embed(
-                title="📬 Derniers pings",
-                description=page,
-                color=0x7289DA,  # Couleur de fond dynamique pour un look moderne
+                title="📬 Derniers Pings",
+                description="**Les derniers pings sont ici.**\nUtilisez les boutons pour naviguer entre les pages.",
+                color=0x3F51B5,  # Bleu plus vibrant
             )
-            embed.set_footer(text=f"Page {len(embeds) + 1} sur {len(embeds) + 1}")
+            embed.set_footer(text=f"Page {len(embeds) + 1} sur {len(embeds) + 1}", icon_url="https://example.com/footer-icon.png")
             embed.set_author(
                 name="Commandes de Pings",
-                icon_url="https://github.com/Iseyg91/Etherya/blob/014c3bd2c1ab811c4bc82576ed80c8424668467f/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true"  # Icône d'auteur
+                icon_url="https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true"  # Icône d'auteur, à personnaliser
             )
-            embed.set_image(url="https://github.com/Iseyg91/Etherya/blob/014c3bd2c1ab811c4bc82576ed80c8424668467f/BANNER_ETHERYA-topaz.png?raw=true")  # Image de bannière en bas
-            embed.add_field(name="🔹 Détails des Pings", value=full_text, inline=False)
+            embed.set_image(url="https://github.com/Iseyg91/Etherya/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Image de bannière, à personnaliser
 
-            # Appliquer la couleur aux utilisateurs mentionnés
+            # Ajouter les détails des pings dans des champs distincts
             for idx, (text, color) in enumerate(formatted_mentions, 1):
-                embed.add_field(name=f"Ping #{idx}", value=text, inline=False)
+                embed.add_field(
+                    name=f"🔔 **Ping #{idx}**",
+                    value=text,
+                    inline=False
+                )
                 embed.color = color
 
             # Ajouter l'embed à la liste
@@ -1903,7 +1906,7 @@ async def isey(ctx, count: int = 1):
             full_text = full_text[max_chars_per_page:]
 
         if len(embeds) > 1:
-            # On crée la vue de pagination
+            # On crée la vue de pagination avec des boutons stylisés
             view = PaginationView(embeds)
             message = await ctx.send(embed=embeds[0], view=view)
             view.message = message
