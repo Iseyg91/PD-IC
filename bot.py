@@ -100,6 +100,7 @@ def load_guild_settings(guild_id):
         "setup": setup_data,
         "setup_premium": setup_premium_data,
         "bounty": bounty_data
+        "protection": protection_data
     }
     
     return combined_data
@@ -1089,14 +1090,14 @@ async def setup(ctx):
     await view.start()
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
-
-# Commande de protection
+AUTHORIZED_USER_ID = 792755123587645461
 @bot.command()
 async def protection(ctx):
     if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
+
 
     guild_id = str(ctx.guild.id)
     
@@ -1278,6 +1279,7 @@ async def removewl(ctx, member: discord.Member):
         await ctx.send(f"{member} a été retiré de la whitelist.")
     else:
         await ctx.send(f"{member} n'est pas dans la whitelist.")
+
 # Commande pour lister les membres dans la whitelist
 @bot.command()
 async def listwl(ctx):
