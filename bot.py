@@ -761,13 +761,19 @@ class SetupView(View):
         self.embed_message = None
         self.add_item(MainSelect(self))
 
-    async def start(self):
-        """Envoie un message initial pour la configuration."""
-        embed = discord.Embed(
-            title="⚙️ **Configuration du Serveur**",
-            description="Choisissez une option pour commencer.",
-            color=discord.Color.blurple()
-        )
+async def start(self):
+    """Envoie un message initial pour la configuration."""
+    embed = discord.Embed(
+        title="⚙️ **Configuration du Serveur**",
+        description="""🎉 **Bienvenue dans le menu de configuration !**  
+Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+
+📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+
+🔽 **Sélectionnez une catégorie pour commencer !**""",
+        color=discord.Color.blurple()
+    )
 
         # Envoi du message initial et affectation à embed_message
         try:
