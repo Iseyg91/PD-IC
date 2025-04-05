@@ -1506,11 +1506,13 @@ async def guide_command(interaction: discord.Interaction):
 # 📦 Dictionnaire de stockage des mentions
 mentions_dict = {}
 
-# 🎨 Formatage stylisé d'une mention
+# 🎨 Formatage stylisé d'une mention avec couleur
 def format_mention(index, msg):
+    mention_color = 0xF4B400 if 'admin' in msg['author'].lower() else 0x2F3136  # Jaune pour admins, noir pour les autres
     return (
         f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
-        f"(*{msg['server']}*)\n> {msg['content']}\n"
+        f"(*{msg['server']}*)\n> {msg['content']}\n",
+        mention_color
     )
 
 # 🔄 Fonction de pagination avec vue interactive
@@ -1566,26 +1568,38 @@ async def isey(ctx, count: int = 1):
         recent_mentions = all_mentions[-count:]
 
         # 🎨 Formatage
-        formatted_mentions = [
-            format_mention(idx, mention)
-            for idx, mention in enumerate(reversed(recent_mentions), 1)
-        ]
-        full_text = "\n".join(formatted_mentions)
+        formatted_mentions = []
+        for idx, mention in enumerate(reversed(recent_mentions), 1):
+            text, color = format_mention(idx, mention)
+            formatted_mentions.append((text, color))
+
+        full_text = "\n".join([item[0] for item in formatted_mentions])
 
         # Diviser le texte en pages si trop long
         max_chars_per_page = 1024
         embeds = []
         while full_text:
             page = full_text[:max_chars_per_page]
-            embeds.append(discord.Embed(
+            embed = discord.Embed(
                 title="📬 Derniers pings",
                 description=page,
-                color=0x2F3136,  # Couleur de fond de l'embed
+                color=0x7289DA,  # Couleur de fond dynamique pour un look moderne
             )
-            .set_footer(text=f"Page {len(embeds)} sur {len(embeds)}")
-            .set_thumbnail(url="https://github.com/Iseyg91/Etherya/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Image de bannière
-            .set_author(name="Commandes de Pings", icon_url="https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Icône d'auteur
+            embed.set_footer(text=f"Page {len(embeds) + 1} sur {len(embeds) + 1}")
+            embed.set_author(
+                name="Commandes de Pings",
+                icon_url="https://github.com/Iseyg91/Etherya/blob/014c3bd2c1ab811c4bc82576ed80c8424668467f/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true"  # Icône d'auteur
             )
+            embed.set_image(url="https://github.com/Iseyg91/Etherya/blob/014c3bd2c1ab811c4bc82576ed80c8424668467f/BANNER_ETHERYA-topaz.png?raw=true")  # Image de bannière en bas
+            embed.add_field(name="🔹 Détails des Pings", value=full_text, inline=False)
+
+            # Appliquer la couleur aux utilisateurs mentionnés
+            for idx, (text, color) in enumerate(formatted_mentions, 1):
+                embed.add_field(name=f"Ping #{idx}", value=text, inline=False)
+                embed.color = color
+
+            # Ajouter l'embed à la liste
+            embeds.append(embed)
             full_text = full_text[max_chars_per_page:]
 
         if len(embeds) > 1:
