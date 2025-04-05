@@ -631,7 +631,7 @@ async def viewpremium(interaction: discord.Interaction):
     premium_servers = [guild["guild_name"] for guild in premium_servers_data]
 
     if premium_servers:
-        premium_list = "\n".join(premium_servers)
+        premium_list = "\n".join(premium_servers)  # Crée une liste des serveurs
         embed = discord.Embed(
             title="🌟 Liste des Serveurs Premium",
             description=f"Les serveurs premium activés sont :\n{premium_list}",
@@ -655,12 +655,55 @@ async def viewpremium(interaction: discord.Interaction):
         embed.set_footer(text="Rejoignez notre programme premium.")
         
         # Ajout d'un bouton pour rejoindre le programme premium
-        join_button = Button(label="Rejoindre Premium", style=discord.ButtonStyle.green, url="https://votre-lien-premium.com")
+        join_button = discord.ui.Button(label="Rejoindre Premium", style=discord.ButtonStyle.green, url="https://votre-lien-premium.com")
 
-        view = View()
+        view = discord.ui.View()
         view.add_item(join_button)
 
         await interaction.response.send_message(embed=embed, view=view)
+
+@bot.tree.command(name="devenirpremium")
+async def devenirpremium(interaction: discord.Interaction):
+    # Charger les données de ce serveur spécifique
+    data = load_guild_settings(interaction.guild.id)
+    setup_premium_data = data["setup_premium"]
+
+    if setup_premium_data:  # Si le serveur est déjà premium
+        embed = discord.Embed(
+            title="🎉 Vous êtes déjà Premium !",
+            description=f"Le serveur **{interaction.guild.name}** est déjà un serveur Premium ! 🎉",
+            color=discord.Color.green()
+        )
+        embed.add_field(
+            name="Avantages Premium",
+            value="Profitez déjà des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
+            inline=False
+        )
+        embed.set_footer(text="Merci d'utiliser nos services premium.")
+        embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
+        await interaction.response.send_message(embed=embed)
+
+    else:  # Si le serveur n'est pas encore premium
+        embed = discord.Embed(
+            title="🚀 Comment devenir Premium ?",
+            description=f"Le serveur **{interaction.guild.name}** n'est pas encore premium. Voici comment vous pouvez devenir premium :",
+            color=discord.Color.blue()
+        )
+        embed.add_field(
+            name="Étapes pour devenir Premium",
+            value="1. Entrez votre code premium avec la commande `/premium <votre_code>`.\n"
+                  "2. Un message de confirmation vous sera envoyé une fois le serveur activé.\n"
+                  "3. Profitez des fonctionnalités exclusives réservées aux serveurs Premium ! 🎁",
+            inline=False
+        )
+        embed.add_field(
+            name="Pourquoi devenir Premium ?",
+            value="Les serveurs premium ont accès à des fonctionnalités exclusives, plus de personnalisation et des options avancées.",
+            inline=False
+        )
+        embed.set_footer(text="Rejoignez notre programme Premium et profitez des avantages !")
+        embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
+        await interaction.response.send_message(embed=embed)
 
 #------------------------------------------------------------------------- Commande SETUP
 AUTHORIZED_USER_ID = 792755123587645461
