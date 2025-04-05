@@ -3366,18 +3366,18 @@ async def end_duel(self, interaction, winner, loser):
         await channel.send(embed=embed)
 
     # Vérifier si le perdant avait une prime
-    bounty_data = bounty_collection.find_one({"guild_id": str(self.ctx.guild.id), "user_id": str(loser.id)})
+    bounty_data = collection3.find_one({"guild_id": str(self.ctx.guild.id), "user_id": str(loser.id)})  # Utilisation de collection3
     if bounty_data:
         prize = bounty_data["prize"]
         if winner.id != loser.id:  # Seulement si le gagnant n'était PAS celui avec la prime
             # Ajouter la prime au chasseur
-            bounty_collection.update_one(
+            collection3.update_one(  # Utilisation de collection3
                 {"guild_id": str(self.ctx.guild.id), "user_id": str(winner.id)},
                 {"$inc": {"reward": prize}}  # Ajouter la prime à la récompense du gagnant
             )
 
         # Supprimer la prime du joueur capturé
-        bounty_collection.update_one(
+        collection3.update_one(  # Utilisation de collection3
             {"guild_id": str(self.ctx.guild.id), "user_id": str(loser.id)},
             {"$unset": {"prize": ""}}  # Enlever la prime du joueur capturé
         )
