@@ -37,6 +37,14 @@ collection = db['setup']
 collection2 = db['setup_premium']
 collection3 = db['bounty']
 
+# Fonction utilitaire pour enregistrer un serveur premium
+def add_premium_server(guild_id: int, guild_name: str):
+    collection2.update_one(
+        {"guild_id": guild_id},
+        {"$set": {"guild_name": guild_name}},
+        upsert=True
+    )
+
 def load_guild_settings(guild_id):
     # Charger les données de la collection principale
     setup_data = collection.find_one({"guild_id": guild_id}) or {}
@@ -461,9 +469,6 @@ async def on_guild_join(guild):
         await top_channel.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-# Dictionnaire pour stocker les serveurs premium
-premium_servers = {}
-
 # Code Premium valide
 valid_code = "Etherya_Iseyg=91"
 
@@ -551,17 +556,18 @@ async def get_bot_memory_usage():
     memory_usage_mb = memory_info.rss / (1024 * 1024)  # Convertir en Mo
     return round(memory_usage_mb, 2)
 
-# Commande slash /premium
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
-    await interaction.response.defer(thinking=True)  # Message d'attente pendant le traitement
+    await interaction.response.defer(thinking=True)
 
     try:
-        # Vérification si le code est valide
+        data = load_guild_settings(interaction.guild.id)
+        premium_data = data["setup_premium"]
+
         if code == valid_code:
-            # Vérification si le serveur est déjà premium
-            if interaction.guild.id in premium_servers:
+            if premium_data:
+                # Le serveur est déjà premium
                 embed = discord.Embed(
                     title="⚠️ Serveur déjà Premium",
                     description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
@@ -573,11 +579,12 @@ async def premium(interaction: discord.Interaction, code: str):
                     inline=False
                 )
                 embed.set_footer(text="Merci d'utiliser nos services premium.")
-                embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
+                embed.set_thumbnail(url=interaction.guild.icon.url)
                 await interaction.followup.send(embed=embed)
             else:
-                # Enregistrement du serveur comme premium
-                premium_servers[interaction.guild.id] = interaction.guild.name
+                # Enregistrer en tant que premium
+                add_premium_server(interaction.guild.id, interaction.guild.name)
+
                 embed = discord.Embed(
                     title="✅ Serveur Premium Activé",
                     description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
@@ -589,11 +596,10 @@ async def premium(interaction: discord.Interaction, code: str):
                     inline=False
                 )
                 embed.set_footer(text="Merci d'utiliser nos services premium.")
-                embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
+                embed.set_thumbnail(url=interaction.guild.icon.url)
                 await interaction.followup.send(embed=embed)
-
         else:
-            # Code invalide, avec des suggestions supplémentaires
+            # Code invalide
             embed = discord.Embed(
                 title="❌ Code Invalide",
                 description="Le code que vous avez entré est invalide. Veuillez vérifier votre code ou contactez le support.",
@@ -608,52 +614,33 @@ async def premium(interaction: discord.Interaction, code: str):
             )
             embed.add_field(
                 name="Code Expiré ?",
-                value="Si vous pensez que votre code devrait être valide mais ne l'est pas, il est possible qu'il ait expiré. "
-                      "Dans ce cas, veuillez contacter notre équipe de support.",
+                value="Si vous pensez que votre code devrait être valide mais ne l'est pas, il est possible qu'il ait expiré.",
                 inline=False
             )
             await interaction.followup.send(embed=embed)
-    
+
     except Exception as e:
-        # Gestion des erreurs
-        await interaction.followup.send(
-            f"Une erreur est survenue lors de la vérification du code premium : {str(e)}"
-        )
+        await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
 
-# Commande /setstatut pour définir un statut et le rôle associé
-@bot.tree.command(name="setstatut")
-@app_commands.describe(status="Entrez le statut à détecter", role="Mentionnez le rôle à attribuer")
-async def setstatut(interaction: discord.Interaction, status: str, role: discord.Role):
-    if interaction.guild.id not in premium_servers:
-        await interaction.response.send_message("Cette commande est uniquement disponible sur les serveurs premium.", ephemeral=True)
-        return
-
-    # Enregistrer le statut et le rôle dans le dictionnaire
-    status_roles[status] = role.id
-    await interaction.response.send_message(
-        f"Le statut '{status}' est maintenant associé au rôle {role.mention}.", ephemeral=True
-    )
-
-
-# Vérification des statuts des membres sur le serveur
-@bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
-    if after.guild.id not in premium_servers:
-        return  # Ignorer les serveurs non premium
-
-    # Vérifier si le statut de l'utilisateur correspond à l'un des statuts définis
-    for status, role_id in status_roles.items():
-        if status in after.activities and role_id:
-            role = after.guild.get_role(role_id)
-            if role:
-                await after.add_roles(role)
-                print(f"Rôle {role.name} attribué à {after.name} pour le statut {status}.")
-
-# Commande slash /viewpremium
 @bot.tree.command(name="viewpremium")
 async def viewpremium(interaction: discord.Interaction):
-    if not premium_servers:
-        # Embed pour indiquer qu'il n'y a aucun serveur premium
+    # Charger tous les serveurs premium de la base de données
+    premium_servers_data = collection2.find({"guild_id": {"$exists": True}})  # Rechercher les serveurs avec un champ `guild_id`
+
+    # Liste des noms des serveurs premium
+    premium_servers = [guild["guild_name"] for guild in premium_servers_data]
+
+    if premium_servers:
+        premium_list = "\n".join(premium_servers)
+        embed = discord.Embed(
+            title="🌟 Liste des Serveurs Premium",
+            description=f"Les serveurs premium activés sont :\n{premium_list}",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text="Merci pour votre soutien !")
+        await interaction.response.send_message(embed=embed)
+    else:
+        # Aucun serveur premium
         embed = discord.Embed(
             title="🔒 Aucun Serveur Premium",
             description="Aucun serveur premium n'a été activé sur ce bot.",
@@ -674,18 +661,6 @@ async def viewpremium(interaction: discord.Interaction):
         view.add_item(join_button)
 
         await interaction.response.send_message(embed=embed, view=view)
-    else:
-        # Si des serveurs premium existent, afficher la liste
-        premium_list = "\n".join([f"**{server_name}**" for server_name in premium_servers.values()])
-        
-        # Si la liste est courte, tout afficher d'un coup
-        embed = discord.Embed(
-            title="🌟 Liste des Serveurs Premium",
-            description=f"Les serveurs premium activés sont :\n{premium_list}",
-            color=discord.Color.blue()
-        )
-        embed.set_footer(text="Merci pour votre soutien !")
-        await interaction.response.send_message(embed=embed)
 
 #------------------------------------------------------------------------- Commande SETUP
 AUTHORIZED_USER_ID = 792755123587645461
