@@ -1473,6 +1473,7 @@ async def guide_command(interaction: discord.Interaction):
     await bot.process_commands(message)
 #---------------------------------------------------------------------------- Snipe Isey:
 
+
 # 📦 Dictionnaire de stockage des mentions
 mentions_dict = {}
 
@@ -1491,14 +1492,14 @@ class PaginationView(View):
         self.current_page = 0
         self.max_pages = len(embeds) - 1
 
-    @discord.ui.button(label="⏮️ Précédent", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="⬅️ Précédent", style=discord.ButtonStyle.secondary)
     async def previous(self, button: Button, interaction: discord.Interaction):
         if self.current_page > 0:
             self.current_page -= 1
             await interaction.response.edit_message(embed=self.embeds[self.current_page])
             await interaction.message.edit(view=self)
 
-    @discord.ui.button(label="Suivant ⏭️", style=discord.ButtonStyle.primary)
+    @discord.ui.button(label="Suivant ➡️", style=discord.ButtonStyle.secondary)
     async def next(self, button: Button, interaction: discord.Interaction):
         if self.current_page < self.max_pages:
             self.current_page += 1
@@ -1514,8 +1515,7 @@ class PaginationView(View):
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
     try:
-        AUTHORISED_ID = 792755123587645461
-        TARGET_ID = 123456789012345678  # Remplace-le par l'ID à surveiller
+        AUTHORISED_ID = 792755123587645461  # ID autorisé à utiliser la commande
 
         if ctx.author.id != AUTHORISED_ID:
             return await ctx.send("⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
@@ -1549,17 +1549,23 @@ async def isey(ctx, count: int = 1):
         while full_text:
             page = full_text[:max_chars_per_page]
             embeds.append(discord.Embed(
-                title=f"📬 Derniers pings pour <@{TARGET_ID}>",
+                title="📬 Derniers pings",
                 description=page,
-                color=0x5865F2
-            ).set_footer(text=f"Page {len(embeds)} sur {len(embeds)}"))
+                color=0x2F3136,  # Couleur de fond de l'embed
+            )
+            .set_footer(text=f"Page {len(embeds)} sur {len(embeds)}")
+            .set_thumbnail(url="https://i.imgur.com/8lXm7zj.png")  # Image de bannière
+            .set_author(name="Commandes de Pings", icon_url="https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Icône d'auteur
+            )
             full_text = full_text[max_chars_per_page:]
 
         if len(embeds) > 1:
+            # On crée la vue de pagination
             view = PaginationView(embeds)
             message = await ctx.send(embed=embeds[0], view=view)
             view.message = message
         else:
+            # Si une seule page, pas de pagination
             await ctx.send(embed=embeds[0])
 
     except Exception as e:
