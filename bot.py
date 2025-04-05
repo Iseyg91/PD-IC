@@ -29,15 +29,25 @@ client = discord.Client(intents=intents)
 bot = commands.Bot(command_prefix="+", intents=intents)
 
 # Connexion MongoDB
-mongo_uri = os.getenv("MONGO_DB")
+mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
 print("Mongo URI :", mongo_uri)  # Cela affichera l'URI de connexion (assure-toi de ne pas laisser cela en prod)
 client = MongoClient(mongo_uri)
 db = client['Cass-Eco2']
-collection = db['setup']
-collection2 = db['setup_premium']
-collection3 = db['bounty']
 
-# Fonction utilitaire pour enregistrer un serveur premium
+# Collections
+collection = db['setup']  # Configuration générale
+collection2 = db['setup_premium']  # Serveurs premium
+collection3 = db['bounty']  # Primes et récompenses des joueurs
+
+# Exemple de structure de la base de données pour la collection bounty
+# {
+#   "guild_id": str,  # ID du serveur
+#   "user_id": str,   # ID du joueur
+#   "prize": int,     # Prime actuelle
+#   "reward": int     # Récompenses accumulées
+# }
+
+# Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
     collection2.update_one(
         {"guild_id": guild_id},
@@ -45,6 +55,27 @@ def add_premium_server(guild_id: int, guild_name: str):
         upsert=True
     )
 
+# Fonction pour ajouter ou mettre à jour une prime
+def set_bounty(guild_id: int, user_id: int, prize: int):
+    # Vérifie si le joueur a déjà une prime
+    bounty_data = collection3.find_one({"guild_id": guild_id, "user_id": user_id})
+    
+    if bounty_data:
+        # Si une prime existe déjà, on met à jour la prime et les récompenses
+        collection3.update_one(
+            {"guild_id": guild_id, "user_id": user_id},
+            {"$set": {"prize": prize}},
+        )
+    else:
+        # Sinon, on crée un nouveau document pour ce joueur
+        collection3.insert_one({
+            "guild_id": guild_id,
+            "user_id": user_id,
+            "prize": prize,
+            "reward": 0  # Initialisation des récompenses à 0
+        })
+
+# Fonction pour charger les paramètres de serveur, primes et récompenses
 def load_guild_settings(guild_id):
     # Charger les données de la collection principale
     setup_data = collection.find_one({"guild_id": guild_id}) or {}
@@ -52,9 +83,9 @@ def load_guild_settings(guild_id):
     # Charger les données de la collection premium
     setup_premium_data = collection2.find_one({"guild_id": guild_id}) or {}
     
-    # Charger les données de la collection bounty
+    # Charger les données de la collection bounty (primes et récompenses)
     bounty_data = collection3.find_one({"guild_id": guild_id}) or {}
-    
+
     # Combiner les données dans un dictionnaire
     combined_data = {
         "setup": setup_data,
