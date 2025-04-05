@@ -3291,12 +3291,12 @@ PRIME_IMAGE_URL = "https://cdn.gamma.app/m6u5udkwwfl3cxy/generated-images/MUnIIu
 
 class DuelView(discord.ui.View):
     def __init__(self, player1, player2, prize, ctx):
-        super().__init__(timeout=60)
+        super().__init__(timeout=120)  # Augmenter le timeout à 120 secondes
         self.player1 = player1
         self.player2 = player2
         self.hp1 = 100
         self.hp2 = 100
-        self.turn = player1  # Le joueur 1 commence
+        self.turn = player1
         self.prize = prize
         self.ctx = ctx
         self.winner = None
@@ -3392,38 +3392,64 @@ async def bounty(ctx, member: discord.Member, prize: int):
         await ctx.send("Tu n'as pas la permission d'exécuter cette commande.")
         return
 
-    # Mise à jour de la prime dans la base de données
-    bounty_data = {
-        "guild_id": str(ctx.guild.id),
-        "user_id": str(member.id),
-        "prize": prize,
-        "reward": 0  # Initialiser les récompenses à 0
-    }
+    try:
+        # Mise à jour de la prime dans la base de données
+        bounty_data = {
+            "guild_id": str(ctx.guild.id),
+            "user_id": str(member.id),
+            "prize": prize,
+            "reward": 0  # Initialiser les récompenses à 0
+        }
 
-    # Insérer ou mettre à jour la prime
-    bounty_collection.update_one(
-        {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
-        {"$set": bounty_data},
-        upsert=True  # Créer un nouveau document si l'utilisateur n'a pas de prime
-    )
+        # Insérer ou mettre à jour la prime
+        bounty_collection.update_one(
+            {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
+            {"$set": bounty_data},
+            upsert=True  # Créer un nouveau document si l'utilisateur n'a pas de prime
+        )
 
-    embed = discord.Embed(title="📜 Nouvelle Prime !", description=f"Une prime de {prize} Ezryn Coins a été placée sur {member.mention} !", color=discord.Color.gold())
-    embed.set_image(url=PRIME_IMAGE_URL)
-    await ctx.send(embed=embed)
+        embed = discord.Embed(title="📜 Nouvelle Prime !", description=f"Une prime de {prize} Ezryn Coins a été placée sur {member.mention} !", color=discord.Color.gold())
+        embed.set_image(url=PRIME_IMAGE_URL)
+        await ctx.send(embed=embed)
+    except Exception as e:
+        await ctx.send(f"Erreur lors de la mise à jour de la prime : {e}")
 
 
+# Remplacer l'utilisation de bounties par la récupération depuis la base de données.
 @bot.command()
 async def capture(ctx, target: discord.Member):
     """Déclenche un duel pour capturer un joueur avec une prime"""
-    if target.id not in bounties:
+    # Récupérer la prime directement depuis la base de données
+    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(target.id)})
+    if not bounty_data:
         await ctx.send("Ce joueur n'a pas de prime sur sa tête !")
         return
 
-    prize = bounties[target.id]
+    prize = bounty_data["prize"]
     view = DuelView(ctx.author, target, prize, ctx)
     embed = discord.Embed(title="🎯 Chasse en cours !", description=f"{ctx.author.mention} tente de capturer {target.mention} ! Un duel commence !", color=discord.Color.orange())
     await ctx.send(embed=embed, view=view)
 
+
+@bot.command()
+async def ptop(ctx):
+    """Affiche le classement des primes en ordre décroissant"""
+    # Récupérer toutes les primes depuis la base de données
+    bounties_data = bounty_collection.find({"guild_id": str(ctx.guild.id)})
+    if not bounties_data:
+        await ctx.send("📉 Il n'y a actuellement aucune prime en cours.")
+        return
+
+    sorted_bounties = sorted(bounties_data, key=lambda x: x['prize'], reverse=True)
+    embed = discord.Embed(title="🏆 Classement des Primes", color=discord.Color.gold())
+
+    for index, bounty in enumerate(sorted_bounties, start=1):
+        member = ctx.guild.get_member(int(bounty['user_id']))
+        if member:
+            embed.add_field(name=f"#{index} - {member.display_name}", value=f"💰 **{bounty['prize']} Ezryn Coins**", inline=False)
+
+    embed.set_thumbnail(url=PRIME_IMAGE_URL)
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def prime(ctx, member: discord.Member = None):
@@ -3442,28 +3468,6 @@ async def prime(ctx, member: discord.Member = None):
         embed = discord.Embed(title="💰 Prime actuelle", description=f"La prime sur **{member.mention}** est de **{prize} Ezryn Coins**.", color=discord.Color.green())
         embed.set_thumbnail(url=member.avatar.url)
         await ctx.send(embed=embed)
-
-
-@bot.command()
-async def rewards(ctx, member: discord.Member = None):
-    """Affiche les récompenses accumulées par un joueur ou par soi-même"""
-    member = member or ctx.author  # Si aucun membre n'est spécifié, on affiche pour l'auteur
-
-    # Récupérer les récompenses du joueur depuis la base de données
-    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
-
-    if bounty_data:
-        reward = bounty_data.get("reward", 0)
-    else:
-        reward = 0
-
-    embed = discord.Embed(
-        title="🏅 Récompenses de chasse",
-        description=f"💰 **{member.mention}** possède **{reward} Ezryn Coins** en récompenses.",
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url=member.avatar.url)
-    await ctx.send(embed=embed)
 
 
 @bot.command()
@@ -3486,22 +3490,25 @@ async def rrewards(ctx, target: discord.Member, amount: int):
     embed.set_thumbnail(url=target.avatar.url)
     await ctx.send(embed=embed)
 
+
 @bot.command()
-async def ptop(ctx):
-    """Affiche le classement des primes en ordre décroissant"""
-    if not bounties:
-        await ctx.send("📉 Il n'y a actuellement aucune prime en cours.")
+async def rrewards(ctx, target: discord.Member, amount: int):
+    """Commande réservée aux admins pour retirer des récompenses à un joueur"""
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.send("🚫 Tu n'as pas la permission d'utiliser cette commande.")
         return
 
-    sorted_bounties = sorted(bounties.items(), key=lambda x: x[1], reverse=True)
-    embed = discord.Embed(title="🏆 Classement des Primes", color=discord.Color.gold())
-    
-    for index, (user_id, prize) in enumerate(sorted_bounties, start=1):
-        member = ctx.guild.get_member(user_id)
-        if member:
-            embed.add_field(name=f"#{index} - {member.display_name}", value=f"💰 **{prize} Ezryn Coins**", inline=False)
+    if target.id not in hunter_rewards or hunter_rewards[target.id] < amount:
+        await ctx.send(f"❌ **{target.mention}** n'a pas assez de récompenses.")
+        return
 
-    embed.set_thumbnail(url=PRIME_IMAGE_URL)
+    hunter_rewards[target.id] -= amount
+    embed = discord.Embed(
+        title="⚠️ Récompenses modifiées",
+        description=f"🔻 **{amount}** Ezryn Coins retirés à **{target.mention}**.\n💰 Nouveau solde : **{hunter_rewards[target.id]}**.",
+        color=discord.Color.orange()
+    )
+    embed.set_thumbnail(url=target.avatar.url)
     await ctx.send(embed=embed)
 
 
