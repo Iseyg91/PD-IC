@@ -3381,8 +3381,9 @@ async def end_duel(self, interaction, winner, loser):
             {"guild_id": str(self.ctx.guild.id), "user_id": str(loser.id)},
             {"$unset": {"prize": ""}}  # Enlever la prime du joueur capturé
         )
-            # Supprimer la prime du joueur capturé
-            del bounties[loser.id]
+
+        # Supprimer la prime du joueur capturé (cette ligne ne doit pas être indentée davantage)
+        del bounties[loser.id]
 
 @bot.command()
 async def bounty(ctx, member: discord.Member, prize: int):
