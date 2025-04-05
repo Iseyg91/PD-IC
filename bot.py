@@ -3471,23 +3471,24 @@ async def prime(ctx, member: discord.Member = None):
 
 
 @bot.command()
-async def rrewards(ctx, target: discord.Member, amount: int):
-    """Commande réservée aux admins pour retirer des récompenses à un joueur"""
-    if not ctx.author.guild_permissions.administrator:
-        await ctx.send("🚫 Tu n'as pas la permission d'utiliser cette commande.")
-        return
+async def rewards(ctx, member: discord.Member = None):
+    """Affiche les récompenses accumulées par un joueur ou par soi-même"""
+    member = member or ctx.author  # Si aucun membre n'est spécifié, on affiche pour l'auteur
 
-    if target.id not in hunter_rewards or hunter_rewards[target.id] < amount:
-        await ctx.send(f"❌ **{target.mention}** n'a pas assez de récompenses.")
-        return
+    # Récupérer les récompenses du joueur depuis la base de données
+    bounty_data = bounty_collection.find_one({"guild_id": str(ctx.guild.id), "user_id": str(member.id)})
 
-    hunter_rewards[target.id] -= amount
+    if bounty_data:
+        reward = bounty_data.get("reward", 0)
+    else:
+        reward = 0
+
     embed = discord.Embed(
-        title="⚠️ Récompenses modifiées",
-        description=f"🔻 **{amount}** Ezryn Coins retirés à **{target.mention}**.\n💰 Nouveau solde : **{hunter_rewards[target.id]}**.",
-        color=discord.Color.orange()
+        title="🏅 Récompenses de chasse",
+        description=f"💰 **{member.mention}** possède **{reward} Ezryn Coins** en récompenses.",
+        color=discord.Color.blue()
     )
-    embed.set_thumbnail(url=target.avatar.url)
+    embed.set_thumbnail(url=member.avatar.url)
     await ctx.send(embed=embed)
 
 
