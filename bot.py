@@ -785,7 +785,6 @@ async def start(self):
     except Exception as e:
         print(f"Erreur lors de l'envoi du message initial : {e}")
 
-
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
         embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
