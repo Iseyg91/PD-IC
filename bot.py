@@ -1045,11 +1045,16 @@ async def callback(self, interaction: discord.Interaction):
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
     if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
-        print("Utilisateur non autorisé.")
+        print("Utilisateur non autorisé.")  # Log de débogage
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
+    # Si l'utilisateur est autorisé
+    print("Utilisateur autorisé.")  # Log de débogage
     guild_data = collection.find_one({"guild_id": str(ctx.guild.id)}) or {}
+
+    # Crée et envoie l'embed
+    await send_initial_setup_message(ctx, guild_data)
 
     embed = discord.Embed(
         title="⚙️ **Configuration du Serveur**",
@@ -4466,7 +4471,7 @@ class GiveawayView(discord.ui.View):
     def __init__(self, ctx):
         super().__init__(timeout=180)
         self.ctx = ctx
-        self.prize = "🎁 Un cadeau mystère"
+        self.prize = " !!Giveaway !!"
         self.duration = 60  # En secondes
         self.duration_text = "60 secondes"
         self.emoji = "🎉"
