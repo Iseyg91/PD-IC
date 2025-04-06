@@ -895,25 +895,27 @@ class ProtectionSelect(Select):
 
 @bot.command(name="config")
 async def config(ctx):
-    # Vérification des permissions
-    if not ctx.author.guild_permissions.administrator and ctx.author.id != 792755123587645461:
-        return await ctx.send("❌ Vous n'avez pas la permission d'utiliser cette commande.")
+    try:
+        if not ctx.author.guild_permissions.administrator and ctx.author.id != 792755123587645461:
+            return await ctx.send("❌ Vous n'avez pas la permission d'utiliser cette commande.")
 
-    view = ConfigSelectView(ctx)
-    embed = discord.Embed(
-        title="⚙️ Configuration du Serveur",
-        description=(
-            "🎉 Bienvenue dans le menu de configuration !\n"
-            "Personnalisez votre serveur facilement grâce aux options ci-dessous.\n\n"
-            "📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.\n"
-            "🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.\n\n"
-            "🔽 Sélectionnez une catégorie pour commencer !"
-        ),
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=f"Serveur : {ctx.guild.name} | {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}")
-
-    await ctx.send(embed=embed, view=view)
+        view = ConfigMenu(ctx.guild.id)  # corrigé ici
+        embed = discord.Embed(
+            title="⚙️ Configuration du Serveur",
+            description=(
+                "🎉 Bienvenue dans le menu de configuration !\n"
+                "Personnalisez votre serveur facilement grâce aux options ci-dessous.\n\n"
+                "📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.\n"
+                "🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.\n\n"
+                "🔽 Sélectionnez une catégorie pour commencer !"
+            ),
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text=f"Serveur : {ctx.guild.name} | {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}")
+        await ctx.send(embed=embed, view=view)
+    except Exception as e:
+        await ctx.send(f"❌ Une erreur est survenue : `{type(e).__name__}` - {e}")
+        raise
 #------------------------------------------------------------------------ Super Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
