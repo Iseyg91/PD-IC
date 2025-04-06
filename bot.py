@@ -791,18 +791,22 @@ class SetupView(View):
             self.clear_items()
             self.add_item(MainSelect(self))
 
-    elif category == "gestion":
-        print("✅ Entrée dans update_embed pour 'gestion'")
-        embed.title = "⚙️ **Gestion du Bot**"
-    try:
-        embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
-        embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
-        embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-        embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
-    except Exception as e:
-        print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
-        traceback.print_exc()
+        elif category == "gestion":
+            print("✅ Entrée dans update_embed pour 'gestion'")
+            embed.title = "⚙️ **Gestion du Bot**"
+            try:
+                embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
+                embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
+                embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
+                embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
+                embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
+            except Exception as e:
+                print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
+                traceback.print_exc()
+
+            self.clear_items()
+            self.add_item(InfoSelect(self))
+            self.add_item(ReturnButton(self))
 
         elif category == "anti":
             embed.title = "🛡️ **Sécurité & Anti-Raid**"
@@ -815,7 +819,7 @@ class SetupView(View):
             self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
-        # Vérifier que embed_message est valide avant de tenter de modifier
+        # Enfin, éditer le message
         if self.embed_message:
             try:
                 await self.embed_message.edit(embed=embed, view=self)
