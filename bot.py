@@ -791,17 +791,18 @@ class SetupView(View):
             self.clear_items()
             self.add_item(MainSelect(self))
 
-        elif category == "gestion":
-            embed.title = "⚙️ **Gestion du Bot**"
-            embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
-            embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
-            embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
-            embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-            embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
-
-            self.clear_items()
-            self.add_item(InfoSelect(self))
-            self.add_item(ReturnButton(self))
+    elif category == "gestion":
+        print("✅ Entrée dans update_embed pour 'gestion'")
+        embed.title = "⚙️ **Gestion du Bot**"
+    try:
+        embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
+        embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
+        embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
+        embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
+        embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
+    except Exception as e:
+        print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
+        traceback.print_exc()
 
         elif category == "anti":
             embed.title = "🛡️ **Sécurité & Anti-Raid**"
@@ -824,11 +825,23 @@ class SetupView(View):
         else:
             print("Erreur : embed_message est nul ou non défini.")
 
-# Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
-    if not id or id == "Non défini":
+    if not id or id in ["Non défini", "None", None]:
         return "❌ **Non défini**"
-    return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
+    try:
+        if not str(id).isdigit():
+            return "❌ **ID invalide**"
+        if type_mention == "user":
+            return f"<@{int(id)}>"
+        elif type_mention == "role":
+            return f"<@&{int(id)}>"
+        elif type_mention == "channel":
+            return f"<#{int(id)}>"
+        else:
+            return "❌ **Type inconnu**"
+    except Exception as e:
+        print(f"Erreur dans format_mention : {e}")
+        return "❌ **Erreur d'affichage**"
 
 class MainSelect(Select):
     def __init__(self, view):
@@ -1111,7 +1124,7 @@ async def setup(ctx):
 
     print("Embed créé, envoi en cours...")
     view = SetupView(ctx, guild_data, collection)
-    view.embed_message = await ctx.send(embed=embed, view=view)  # Vérification que l'embed est envoyé
+    await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
