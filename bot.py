@@ -791,39 +791,39 @@ class SetupView(View):
             self.clear_items()
             self.add_item(MainSelect(self))
 
-elif category == "gestion":
-    embed.title = "⚙️ **Gestion du Bot**"
-    embed.description = "🎛️ Modifiez les paramètres de gestion du bot ci-dessous :"
+            elif category == "gestion":
+                embed.title = "⚙️ **Gestion du Bot**"
+                embed.description = "🎛️ Modifiez les paramètres de gestion du bot ci-dessous :"
 
-    embed.add_field(
-        name="👑 Propriétaire :",
-        value=format_mention(self.guild_data.get('owner'), "user"),
-        inline=False
-    )
-    embed.add_field(
-        name="🛡️ Rôle Admin :",
-        value=format_mention(self.guild_data.get('admin_role'), "role"),
-        inline=False
-    )
-    embed.add_field(
-        name="👥 Rôle Staff :",
-        value=format_mention(self.guild_data.get('staff_role'), "role"),
-        inline=False
-    )
-    embed.add_field(
-        name="🚨 Salon Sanctions :",
-        value=format_mention(self.guild_data.get('sanctions_channel'), "channel"),
-        inline=False
-    )
-    embed.add_field(
-        name="📝 Salon Alerte :",
-        value=format_mention(self.guild_data.get('reports_channel'), "channel"),
-        inline=False
-    )
+                embed.add_field(
+                name="👑 Propriétaire :",
+                value=format_mention(self.guild_data.get('owner'), "user"),
+                inline=False
+            )
+                embed.add_field(
+                name="🛡️ Rôle Admin :",
+                value=format_mention(self.guild_data.get('admin_role'), "role"),
+                inline=False
+            )
+                embed.add_field(
+                name="👥 Rôle Staff :",
+                value=format_mention(self.guild_data.get('staff_role'), "role"),
+                inline=False
+            )
+                embed.add_field(
+                name="🚨 Salon Sanctions :",
+                value=format_mention(self.guild_data.get('sanctions_channel'), "channel"),
+                inline=False
+            )
+                embed.add_field(
+                name="📝 Salon Alerte :",
+                value=format_mention(self.guild_data.get('reports_channel'), "channel"),
+                inline=False
+            )
 
-    self.clear_items()
-    self.add_item(InfoSelect(self))
-    self.add_item(ReturnButton(self))
+        self.clear_items()
+        self.add_item(InfoSelect(self))
+        self.add_item(ReturnButton(self))
 
         elif category == "anti":
             embed.title = "🛡️ **Sécurité & Anti-Raid**"
