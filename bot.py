@@ -791,17 +791,39 @@ class SetupView(View):
             self.clear_items()
             self.add_item(MainSelect(self))
 
-        elif category == "gestion":
-            embed.title = "⚙️ **Gestion du Bot**"
-            embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
-            embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
-            embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
-            embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-            embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
+elif category == "gestion":
+    embed.title = "⚙️ **Gestion du Bot**"
+    embed.description = "🎛️ Modifiez les paramètres de gestion du bot ci-dessous :"
 
-            self.clear_items()
-            self.add_item(InfoSelect(self))
-            self.add_item(ReturnButton(self))
+    embed.add_field(
+        name="👑 Propriétaire :",
+        value=format_mention(self.guild_data.get('owner'), "user"),
+        inline=False
+    )
+    embed.add_field(
+        name="🛡️ Rôle Admin :",
+        value=format_mention(self.guild_data.get('admin_role'), "role"),
+        inline=False
+    )
+    embed.add_field(
+        name="👥 Rôle Staff :",
+        value=format_mention(self.guild_data.get('staff_role'), "role"),
+        inline=False
+    )
+    embed.add_field(
+        name="🚨 Salon Sanctions :",
+        value=format_mention(self.guild_data.get('sanctions_channel'), "channel"),
+        inline=False
+    )
+    embed.add_field(
+        name="📝 Salon Alerte :",
+        value=format_mention(self.guild_data.get('reports_channel'), "channel"),
+        inline=False
+    )
+
+    self.clear_items()
+    self.add_item(InfoSelect(self))
+    self.add_item(ReturnButton(self))
 
         elif category == "anti":
             embed.title = "🛡️ **Sécurité & Anti-Raid**"
@@ -824,11 +846,15 @@ class SetupView(View):
         else:
             print("Erreur : embed_message est nul ou non défini.")
 
-# Déplacer la fonction format_mention en dehors de update_embed
 def format_mention(id, type_mention):
-    if not id or id == "Non défini":
+    if not id or id in ["Non défini", "None"]:
         return "❌ **Non défini**"
-    return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
+    try:
+        return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
+    except Exception as e:
+        print(f"Erreur de format_mention avec l'id {id} et type {type_mention}: {e}")
+        return "❌ **Erreur d'affichage**"
+
 
 class MainSelect(Select):
     def __init__(self, view):
