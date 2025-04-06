@@ -749,6 +749,7 @@ async def devenirpremium(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 #------------------------------------------------------------------------- Commande SETUP
+#------------------------------------------------------------------------- Commande SETUP
 AUTHORIZED_USER_ID = 792755123587645461
 
 class SetupView(View):
@@ -874,7 +875,6 @@ class InfoSelect(Select):
     async def callback(self, interaction: discord.Interaction):
         param = self.values[0]
 
-        # Création de l'embed de demande de saisie
         embed_request = discord.Embed(
             title="✏️ **Modification du paramètre**",
             description=f"Veuillez mentionner la **nouvelle valeur** pour `{param}`.\n"
@@ -884,27 +884,23 @@ class InfoSelect(Select):
         )
         embed_request.set_footer(text="Répondez dans les 60 secondes.")
 
-        # Envoi du message embed visible publiquement (non ephemeral)
-        embed_msg = await interaction.channel.send(embed=embed_request)
+        await interaction.response.send_message(embed=embed_request, ephemeral=True)
 
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
 
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
-            await response.delete()  # Supprime la réponse de l'utilisateur (facultatif)
-            await embed_msg.delete()  # Supprime le message embed de demande
+            await response.delete()
         except asyncio.TimeoutError:
-            await embed_msg.delete()
             embed_timeout = discord.Embed(
                 title="⏳ **Temps écoulé**",
                 description="Aucune modification effectuée.",
                 color=discord.Color.red()
             )
-            return await interaction.channel.send(embed=embed_timeout, delete_after=10)
+            return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
 
         new_value = None
-        content = response.content.strip()
 
         if param == "owner":
             new_value = response.mentions[0].id if response.mentions else None
@@ -921,8 +917,10 @@ class InfoSelect(Select):
             )
             self.view_ctx.guild_data[param] = str(new_value)
 
+            # ✅ Notification au propriétaire du serveur
             await self.view_ctx.notify_guild_owner(interaction, param, new_value)
 
+            # ✅ Embed de confirmation
             embed_success = discord.Embed(
                 title="✅ **Modification enregistrée !**",
                 description=f"Le paramètre `{param}` a été mis à jour avec succès.",
@@ -932,7 +930,7 @@ class InfoSelect(Select):
             embed_success.add_field(name="🆕 Nouvelle valeur :", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
             embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
-            await interaction.channel.send(embed=embed_success)
+            await interaction.followup.send(embed=embed_success, ephemeral=True)
             await self.view_ctx.update_embed("gestion")
         else:
             embed_error = discord.Embed(
@@ -940,8 +938,7 @@ class InfoSelect(Select):
                 description="La valeur mentionnée est invalide. Veuillez réessayer en mentionnant un rôle, un salon ou un utilisateur valide.",
                 color=discord.Color.red()
             )
-            await interaction.channel.send(embed=embed_error)
-
+            await interaction.followup.send(embed=embed_error, ephemeral=True)
 
 class AntiSelect(Select):
     def __init__(self, view):
@@ -953,26 +950,31 @@ class AntiSelect(Select):
         super().__init__(placeholder="🛑 Sélectionnez une protection à configurer", options=options)
         self.view_ctx = view
 
-async def callback(self, interaction: discord.Interaction):
-    print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
-    await interaction.response.defer(thinking=True)
+    async def callback(self, interaction: discord.Interaction):
+        print(f"Interaction received: {interaction}")  # ✅ Ajouté pour afficher l'interaction
+        await interaction.response.defer(thinking=True)
 
-    try:
-        print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
-        param = self.values[0]
+        try:
+            print(f"AntiSelect callback started. Values: {self.values}")  # Log des valeurs envoyées
+            param = self.values[0]
 
-        embed_request = discord.Embed(
-            title="⚙️ **Modification d'une protection**",
-            description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
-                        "Tapez :\n"
-                        "✅ `true` pour **activer**\n"
-                        "❌ `false` pour **désactiver**\n"
-                        "🚫 `cancel` pour **annuler**",
-            color=discord.Color.blurple(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed_request.set_footer(text="Répondez dans les 60 secondes.")
-        embed_msg = await interaction.channel.send(embed=embed_request)
+            embed_request = discord.Embed(
+                title="⚙️ **Modification d'une protection**",
+                description=f"🛑 **Protection sélectionnée :** `{param}`\n\n"
+                            "Tapez :\n"
+                            "✅ `true` pour **activer**\n"
+                            "❌ `false` pour **désactiver**\n"
+                            "🚫 `cancel` pour **annuler**",
+                color=discord.Color.blurple(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed_request.set_footer(text="Répondez dans les 60 secondes.")
+
+            await interaction.followup.send(embed=embed_request, ephemeral=True)
+        except Exception as e:
+            print(f"Erreur dans AntiSelect: {e}")
+            traceback.print_exc()
+            await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
 
         def check(msg):
             return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
@@ -980,7 +982,6 @@ async def callback(self, interaction: discord.Interaction):
         try:
             response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
             await response.delete()
-            await embed_msg.delete()
         except asyncio.TimeoutError:
             embed_timeout = discord.Embed(
                 title="⏳ **Temps écoulé**",
@@ -1016,8 +1017,10 @@ async def callback(self, interaction: discord.Interaction):
             upsert=True
         )
 
+        # ✅ Notification au propriétaire du serveur
         await self.view_ctx.notify_guild_owner(interaction, param, new_value)
 
+        # ✅ Embed de confirmation
         embed_success = discord.Embed(
             title="✅ **Modification enregistrée !**",
             description=f"La protection `{param}` est maintenant **{'activée' if new_value else 'désactivée'}**.",
@@ -1026,17 +1029,14 @@ async def callback(self, interaction: discord.Interaction):
         )
         embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
 
-        await interaction.channel.send(embed=embed_success)
+        await interaction.followup.send(embed=embed_success, ephemeral=True)
         await self.view_ctx.update_embed("anti")
-
-    except Exception as e:
-        print(f"Erreur dans AntiSelect: {e}")
-        traceback.print_exc()
-        await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
-
 
 async def notify_guild_owner(self, interaction, param, new_value):
     guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
+    
+    print(f"🔍 Vérification : Propriétaire du serveur = {guild_owner}")  # Log pour voir si l'owner est bien récupéré
+    
     if guild_owner:  # Vérifie si le propriétaire existe
         embed = discord.Embed(
             title="🔔 **Mise à jour de la configuration**",
@@ -1051,25 +1051,33 @@ async def notify_guild_owner(self, interaction, param, new_value):
         embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
 
         try:
+            # Vérification avant l'envoi du MP
+            print(f"📩 Tentative d'envoi d'un MP à {guild_owner.name}...")
+
             # Envoie de l'embed au propriétaire
             await guild_owner.send(embed=embed)
-            print(f"Message privé envoyé au propriétaire {guild_owner.name}.")  # Log pour confirmer l'envoi
+            print(f"✅ Message privé envoyé avec succès à {guild_owner.name}.")  # Log de confirmation
 
         except discord.Forbidden:
-            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")  # Log si l'envoi échoue
+            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")
 
-            # Tentons d'envoyer un message simple au propriétaire pour tester la permission
+            # Tentative d'envoi d'un message texte simple pour voir si le problème est lié aux embeds
             try:
                 await guild_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
-                print("Le message de test a été envoyé avec succès.")
+                print("✅ Le message de test a été envoyé avec succès.")
             except discord.Forbidden:
-                print("⚠️ Le message de test a échoué. Le problème vient probablement des paramètres de confidentialité du propriétaire.")
+                print("❌ Le message de test a échoué. Vérifie les paramètres de confidentialité du propriétaire.")
 
-            # Avertir l'utilisateur via le suivi
-            await interaction.followup.send(
-                "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
-                ephemeral=True
-            )
+            # Avertir l'utilisateur dans le serveur
+            try:
+                await interaction.followup.send(
+                    "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
+                    ephemeral=True
+                )
+                print("📢 Notification envoyée à l'utilisateur dans le serveur.")
+            except Exception as e:
+                print(f"❌ Erreur lors de l'envoi du message de suivi : {e}")
+
 
 @bot.command(name="setup")
 async def setup(ctx):
