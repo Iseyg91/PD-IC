@@ -757,39 +757,26 @@ class SetupView(View):
         self.ctx = ctx
         self.guild_data = guild_data or {}
         self.collection = collection
-        self.embed_message = None
+        self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-# Envoie du message initial et affectation à embed_message
-async def start(self):
-    """Envoie un message initial pour la configuration."""
-    embed = discord.Embed(
-        title="⚙️ **Configuration du Serveur**",
-        description="""
-        🎉 **Bienvenue dans le menu de configuration !**  
-        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+    async def start(self):
+        """Envoie un message initial pour la configuration."""
+        embed = discord.Embed(
+            title="⚙️ **Configuration du Serveur**",
+            description="Choisissez une option pour commencer.",
+            color=discord.Color.blurple()
+        )
 
-        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
-
-        🔽 **Sélectionnez une catégorie pour commencer !**
-        """,
-        color=discord.Color.blurple()
-    )
-
-    try:
         # Envoi du message initial et affectation à embed_message
         self.embed_message = await self.ctx.send(embed=embed, view=self)
         print(f"Message initial envoyé: {self.embed_message}")
-    except Exception as e:
-        print(f"Erreur lors de l'envoi du message initial : {e}")
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
         embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
         embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
-        # Messages pour chaque catégorie
         if category == "accueil":
             embed.title = "⚙️ **Configuration du Serveur**"
             embed.description = """
@@ -853,7 +840,7 @@ class MainSelect(Select):
         self.view_ctx = view
 
     async def callback(self, interaction: discord.Interaction):
-        print(f"Interaction reçue: {interaction}")  # Debug: Vérifie si l'interaction est reçue
+        print("Interaction reçue.")  # Debug: Vérifie si l'interaction est reçue
         await interaction.response.defer()  # Avertir Discord que la réponse est en cours
 
         # Vérification de view_ctx avant d'appeler la mise à jour
@@ -916,46 +903,45 @@ class InfoSelect(Select):
             )
             return await interaction.channel.send(embed=embed_timeout, delete_after=10)
 
+        new_value = None
         content = response.content.strip()
 
-        try:
-            if param == "owner":
-                new_value = int(content.replace("<@", "").replace(">", "").replace("!", ""))
-            elif param in ["admin_role", "staff_role"]:
-                new_value = int(content.replace("<@&", "").replace(">", ""))
-            elif param in ["sanctions_channel", "reports_channel"]:
-                new_value = int(content.replace("<#", "").replace(">", ""))
-            else:
-                new_value = content  # Cas par défaut
-        except ValueError:
+        if param == "owner":
+            new_value = response.mentions[0].id if response.mentions else None
+        elif param in ["admin_role", "staff_role"]:
+            new_value = response.role_mentions[0].id if response.role_mentions else None
+        elif param in ["sanctions_channel", "reports_channel"]:
+            new_value = response.channel_mentions[0].id if response.channel_mentions else None
+
+        if new_value:
+            self.view_ctx.collection.update_one(
+                {"guild_id": str(self.view_ctx.ctx.guild.id)},
+                {"$set": {param: str(new_value)}},
+                upsert=True
+            )
+            self.view_ctx.guild_data[param] = str(new_value)
+
+            await self.view_ctx.notify_guild_owner(interaction, param, new_value)
+
+            embed_success = discord.Embed(
+                title="✅ **Modification enregistrée !**",
+                description=f"Le paramètre `{param}` a été mis à jour avec succès.",
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed_success.add_field(name="🆕 Nouvelle valeur :", value=f"<@{new_value}>" if param == "owner" else f"<@&{new_value}>" if "role" in param else f"<#{new_value}>", inline=False)
+            embed_success.set_footer(text=f"Modifié par {interaction.user.display_name}", icon_url=interaction.user.avatar.url if interaction.user.avatar else None)
+
+            await interaction.channel.send(embed=embed_success)
+            await self.view_ctx.update_embed("gestion")
+        else:
             embed_error = discord.Embed(
                 title="❌ **Erreur de saisie**",
                 description="La valeur mentionnée est invalide. Veuillez réessayer en mentionnant un rôle, un salon ou un utilisateur valide.",
                 color=discord.Color.red()
             )
-            return await interaction.channel.send(embed=embed_error, delete_after=10)
+            await interaction.channel.send(embed=embed_error)
 
-        # Mise à jour de la base de données
-        self.view_ctx.collection.update_one(
-            {"guild_id": self.view_ctx.ctx.guild.id},
-            {"$set": {param: new_value}},
-            upsert=True
-        )
-
-        # Met à jour la data localement pour éviter de recharger
-        self.view_ctx.guild_data[param] = new_value
-
-        # Feedback visuel
-        embed_success = discord.Embed(
-            title="✅ **Paramètre mis à jour !**",
-            description=f"Le paramètre `{param}` a été mis à jour avec succès.",
-            color=discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        await interaction.channel.send(embed=embed_success, delete_after=10)
-
-        # Recharge l'embed pour refléter les changements
-        await self.view_ctx.update_embed("gestion")
 
 class AntiSelect(Select):
     def __init__(self, view):
@@ -1040,20 +1026,52 @@ async def callback(self, interaction: discord.Interaction):
         traceback.print_exc()
         await interaction.followup.send("❌ Une erreur s'est produite.", ephemeral=True)
 
+
+async def notify_guild_owner(self, interaction, param, new_value):
+    guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
+    if guild_owner:  # Vérifie si le propriétaire existe
+        embed = discord.Embed(
+            title="🔔 **Mise à jour de la configuration**",
+            description=f"⚙️ **Une modification a été effectuée sur votre serveur `{interaction.guild.name}`.**",
+            color=discord.Color.orange(),
+            timestamp=discord.utils.utcnow()
+        )
+        embed.add_field(name="👤 **Modifié par**", value=interaction.user.mention, inline=True)
+        embed.add_field(name="🔧 **Paramètre modifié**", value=f"`{param}`", inline=True)
+        embed.add_field(name="🆕 **Nouvelle valeur**", value=f"{new_value}", inline=False)
+        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
+        embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
+
+        try:
+            # Envoie de l'embed au propriétaire
+            await guild_owner.send(embed=embed)
+            print(f"Message privé envoyé au propriétaire {guild_owner.name}.")  # Log pour confirmer l'envoi
+
+        except discord.Forbidden:
+            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")  # Log si l'envoi échoue
+
+            # Tentons d'envoyer un message simple au propriétaire pour tester la permission
+            try:
+                await guild_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
+                print("Le message de test a été envoyé avec succès.")
+            except discord.Forbidden:
+                print("⚠️ Le message de test a échoué. Le problème vient probablement des paramètres de confidentialité du propriétaire.")
+
+            # Avertir l'utilisateur via le suivi
+            await interaction.followup.send(
+                "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
+                ephemeral=True
+            )
+
 @bot.command(name="setup")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
     if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
-        print("Utilisateur non autorisé.")  # Log de débogage
+        print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
-    # Si l'utilisateur est autorisé
-    print("Utilisateur autorisé.")  # Log de débogage
     guild_data = collection.find_one({"guild_id": str(ctx.guild.id)}) or {}
-
-    # Crée et envoie l'embed
-    await send_initial_setup_message(ctx, guild_data)
 
     embed = discord.Embed(
         title="⚙️ **Configuration du Serveur**",
