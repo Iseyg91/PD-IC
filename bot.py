@@ -1865,7 +1865,7 @@ mentions_dict = {}
 
 # 🎨 Formatage stylisé d'une mention avec couleur uniforme
 def format_mention(index, msg):
-    mention_color = 0x3498DB  # Couleur uniforme (bleu clair)
+    mention_color = 0x000000  # Couleur noire
     return (
         f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
         f"(*{msg['server']}*)\n> {msg['content']}\n",
