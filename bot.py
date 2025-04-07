@@ -1988,7 +1988,7 @@ async def nuke(ctx):
     
 #------------------------------------------------------------------------- Commandes d'aide : +aide, /help
 @bot.command()
-async def aide(ctx):
+async def help(ctx):
     banner_url = "https://raw.githubusercontent.com/Cass64/EtheryaBot/refs/heads/main/images_etherya/etheryaBot_banniere.png"  # URL de la bannière
     embed = discord.Embed(
         title="🏡 **Accueil Etherya Gestion**",
