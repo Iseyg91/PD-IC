@@ -822,6 +822,42 @@ class SetupView(View):
         else:
             print("Erreur : embed_message est nul ou non défini.")
 
+    async def notify_guild_owner(self, interaction, param, new_value):
+        guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
+        if guild_owner:  # Vérifie si le propriétaire existe
+            embed = discord.Embed(
+                title="🔔 **Mise à jour de la configuration**",
+                description=f"⚙️ **Une modification a été effectuée sur votre serveur `{interaction.guild.name}`.**",
+                color=discord.Color.orange(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed.add_field(name="👤 **Modifié par**", value=interaction.user.mention, inline=True)
+            embed.add_field(name="🔧 **Paramètre modifié**", value=f"`{param}`", inline=True)
+            embed.add_field(name="🆕 **Nouvelle valeur**", value=f"{new_value}", inline=False)
+            embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
+            embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
+
+            try:
+                # Envoie de l'embed au propriétaire
+                await guild_owner.send(embed=embed)
+                print(f"Message privé envoyé au propriétaire {guild_owner.name}.")  # Log pour confirmer l'envoi
+
+            except discord.Forbidden:
+                print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")  # Log si l'envoi échoue
+
+                # Tentons d'envoyer un message simple au propriétaire pour tester la permission
+                try:
+                    await guild_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
+                    print("Le message de test a été envoyé avec succès.")
+                except discord.Forbidden:
+                    print("⚠️ Le message de test a échoué. Le problème vient probablement des paramètres de confidentialité du propriétaire.")
+
+                # Avertir l'utilisateur via le suivi
+                await interaction.followup.send(
+                    "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
+                    ephemeral=True
+                )
+
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
         return "❌ **Non défini**"
@@ -1054,42 +1090,6 @@ class AntiSelect(Select):
 
         await interaction.followup.send(embed=embed_success, ephemeral=True)
         await self.view_ctx.update_embed("anti")
-
-async def notify_guild_owner(self, interaction, param, new_value):
-    guild_owner = interaction.guild.owner  # Récupère l'owner du serveur
-    if guild_owner:  # Vérifie si le propriétaire existe
-        embed = discord.Embed(
-            title="🔔 **Mise à jour de la configuration**",
-            description=f"⚙️ **Une modification a été effectuée sur votre serveur `{interaction.guild.name}`.**",
-            color=discord.Color.orange(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.add_field(name="👤 **Modifié par**", value=interaction.user.mention, inline=True)
-        embed.add_field(name="🔧 **Paramètre modifié**", value=f"`{param}`", inline=True)
-        embed.add_field(name="🆕 **Nouvelle valeur**", value=f"{new_value}", inline=False)
-        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
-        embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
-
-        try:
-            # Envoie de l'embed au propriétaire
-            await guild_owner.send(embed=embed)
-            print(f"Message privé envoyé au propriétaire {guild_owner.name}.")  # Log pour confirmer l'envoi
-
-        except discord.Forbidden:
-            print(f"⚠️ Impossible d'envoyer un MP au propriétaire du serveur {interaction.guild.name}.")  # Log si l'envoi échoue
-
-            # Tentons d'envoyer un message simple au propriétaire pour tester la permission
-            try:
-                await guild_owner.send("Test : Le bot essaie de vous envoyer un message privé.")
-                print("Le message de test a été envoyé avec succès.")
-            except discord.Forbidden:
-                print("⚠️ Le message de test a échoué. Le problème vient probablement des paramètres de confidentialité du propriétaire.")
-
-            # Avertir l'utilisateur via le suivi
-            await interaction.followup.send(
-                "⚠️ **Impossible d'envoyer un message privé au propriétaire du serveur.**",
-                ephemeral=True
-            )
 
 @bot.command(name="setup")
 async def setup(ctx):
