@@ -862,14 +862,23 @@ def format_mention(id, type_mention):
     if not id or id == "Non défini":
         return "❌ **Non défini**"
     
-    # Vérifiez si l'id est un objet de type message et que les attributs sont bien présents
+    # Si id est un Message, on traite autrement
     if isinstance(id, discord.Message):
         msg = id  # Assurez-vous que msg est bien un objet discord.Message
         author_mention = msg.author.mention if hasattr(msg, 'author') else "Auteur inconnu"
         channel_mention = msg.channel.mention if hasattr(msg, 'channel') else "Salon inconnu"
         return f"**{author_mention}** dans **#{channel_mention}**"
-
-    return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
+    
+    # Si id est un identifiant (ID d'utilisateur, rôle ou salon)
+    if type_mention == "user":
+        return f"<@{id}>"
+    elif type_mention == "role":
+        return f"<@&{id}>"
+    elif type_mention == "channel":
+        return f"<#{id}>"
+    
+    # Si aucun type spécifique, retourner une mention générique
+    return "❌ **Mention invalide**"
 
 
 class MainSelect(Select):
