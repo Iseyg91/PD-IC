@@ -760,17 +760,24 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-    async def start(self):
-        """Envoie un message initial pour la configuration."""
-        embed = discord.Embed(
-            title="⚙️ **Configuration du Serveur**",
-            description="Choisissez une option pour commencer.",
-            color=discord.Color.blurple()
-        )
+async def start(self):
+    """Envoie un message initial pour la configuration."""
+    embed = discord.Embed(
+        title="⚙️ **Configuration du Serveur**",
+        description="""
+🔧 **Bienvenue dans le setup !**  
+Configurez votre serveur facilement en quelques clics !
 
-        # Envoi du message initial et affectation à embed_message
-        self.embed_message = await self.ctx.send(embed=embed, view=self)
-        print(f"Message initial envoyé: {self.embed_message}")
+📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.
+
+🔽 **Sélectionnez une option pour commencer !**
+        """,
+        color=discord.Color.blurple()
+    )
+
+    self.embed_message = await self.ctx.send(embed=embed, view=self)
+    print(f"Message initial envoyé: {self.embed_message}")
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
