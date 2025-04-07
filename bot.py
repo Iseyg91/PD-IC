@@ -1862,9 +1862,9 @@ async def guide_command(interaction: discord.Interaction):
 # 📦 Dictionnaire de stockage des mentions
 mentions_dict = {}
 
-# 🎨 Formatage stylisé d'une mention avec couleur
+# 🎨 Formatage stylisé d'une mention avec couleur uniforme
 def format_mention(index, msg):
-    mention_color = 0xF4B400 if 'admin' in msg['author'].lower() else 0x2F3136  # Jaune pour admins, noir pour les autres
+    mention_color = 0x3498DB  # Couleur uniforme (bleu clair)
     return (
         f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
         f"(*{msg['server']}*)\n> {msg['content']}\n",
