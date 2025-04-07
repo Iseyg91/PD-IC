@@ -832,7 +832,16 @@ class SetupView(View):
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
         return "❌ **Non défini**"
+    
+    # Vérifiez si l'id est un objet de type message et que les attributs sont bien présents
+    if isinstance(id, discord.Message):
+        msg = id  # Assurez-vous que msg est bien un objet discord.Message
+        author_mention = msg.author.mention if hasattr(msg, 'author') else "Auteur inconnu"
+        channel_mention = msg.channel.mention if hasattr(msg, 'channel') else "Salon inconnu"
+        return f"**{author_mention}** dans **#{channel_mention}**"
+
     return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
+
 
 class MainSelect(Select):
     def __init__(self, view):
