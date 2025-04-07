@@ -786,6 +786,8 @@ class SetupView(View):
 
         elif category == "gestion":
             print("✅ Entrée dans update_embed pour 'gestion'")
+            # ⬇️ Ajoute ce debug ici
+            print("DEBUG owner:", self.guild_data.get('owner'))
             embed.title = "⚙️ **Gestion du Bot**"
             try:
                 embed.add_field(name="👑 Propriétaire :", value=format_mention(self.guild_data.get('owner', 'Non défini'), "user"), inline=False)
@@ -861,28 +863,30 @@ class SetupView(View):
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
         return "❌ **Non défini**"
-    
-    # Si id est un Message, on traite autrement
+
+    # Cas où c’est un int ou une string d’ID valide
+    if isinstance(id, int) or (isinstance(id, str) and id.isdigit()):
+        if type_mention == "user":
+            return f"<@{id}>"
+        elif type_mention == "role":
+            return f"<@&{id}>"
+        elif type_mention == "channel":
+            return f"<#{id}>"
+        return "❌ **Mention invalide**"
+
+    # Cas spécial : objet discord.Message
     if isinstance(id, discord.Message):
         try:
-            msg = id  # Assurez-vous que msg est bien un objet discord.Message
-            author_mention = msg.author.mention if hasattr(msg, 'author') else "Auteur inconnu"
-            channel_mention = msg.channel.mention if hasattr(msg, 'channel') else "Salon inconnu"
-            return f"**{author_mention}** dans **#{channel_mention}**"
+            author_mention = id.author.mention if hasattr(id, 'author') else "Auteur inconnu"
+            channel_mention = id.channel.mention if hasattr(id, 'channel') else "Salon inconnu"
+            return f"**{author_mention}** dans **{channel_mention}**"
         except Exception as e:
-            print(f"Erreur lors du formatage du message: {e}")
-            return "❌ **Erreur lors du formatage du message**"
-    
-    # Si id est un identifiant (ID d'utilisateur, rôle ou salon)
-    if type_mention == "user":
-        return f"<@{id}>"
-    elif type_mention == "role":
-        return f"<@&{id}>"
-    elif type_mention == "channel":
-        return f"<#{id}>"
-    
-    # Si aucun type spécifique, retourner une mention générique
-    return "❌ **Mention invalide**"
+            print(f"Erreur formatage Message : {e}")
+            return "❌ **Erreur formatage message**"
+
+    # Cas inconnu
+    print(f"⚠️ format_mention: type inattendu pour id = {id} ({type(id)})")
+    return "❌ **Format invalide**"
 
 class MainSelect(Select):
     def __init__(self, view):
