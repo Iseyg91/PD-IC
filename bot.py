@@ -760,15 +760,17 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-async def start(self):
-    """Démarre la vue de setup avec l'embed d'accueil."""
-    
-    # Génère ou récupère l'embed d'accueil
-    embed = await self.update_embed("accueil")
+    async def start(self):
+        """Envoie un message initial pour la configuration."""
+        embed = discord.Embed(
+            title="⚙️ **Configuration du Serveur**",
+            description="Choisissez une option pour commencer.",
+            color=discord.Color.blurple()
+        )
 
-    # Envoi du message initial et affectation à embed_message
-    self.embed_message = await self.ctx.send(embed=embed, view=self)
-    print(f"Message initial envoyé: {self.embed_message}")
+        # Envoi du message initial et affectation à embed_message
+        self.embed_message = await self.ctx.send(embed=embed, view=self)
+        print(f"Message initial envoyé: {self.embed_message}")
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
@@ -1126,7 +1128,7 @@ async def setup(ctx):
 
     print("Embed créé, envoi en cours...")
     view = SetupView(ctx, guild_data, collection)
-    await view.start()
+    await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
