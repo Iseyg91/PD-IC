@@ -475,38 +475,68 @@ async def iseyg(ctx):
 #-------------------------------------------------------------------------- Bot Join:
 @bot.event
 async def on_guild_join(guild):
-    # Vérifie si le bot a bien des salons textuels où il peut écrire
+    isey = await bot.fetch_user(ISEY_ID)
+
+    # --- Embed privé pour Isey ---
+    isey_embed = discord.Embed(
+        title="✨ Nouveau serveur rejoint !",
+        description=f"Le bot a été ajouté sur un serveur.",
+        color=discord.Color.green(),
+        timestamp=datetime.utcnow()
+    )
+    isey_embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    isey_embed.add_field(name="📛 Nom", value=guild.name, inline=True)
+    isey_embed.add_field(name="🆔 ID", value=guild.id, inline=True)
+    isey_embed.add_field(name="👥 Membres", value=str(guild.member_count), inline=True)
+    isey_embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
+    isey_embed.add_field(name="🌍 Région", value=guild.preferred_locale, inline=True)
+    isey_embed.set_footer(text="Ajouté le")
+
+    await isey.send(embed=isey_embed)
+
+    # --- Embed public pour le salon du serveur ---
     text_channels = [channel for channel in guild.text_channels if channel.permissions_for(guild.me).send_messages]
     
     if text_channels:
-        # Trier les salons par position et prendre le plus haut
         top_channel = sorted(text_channels, key=lambda x: x.position)[0]
 
-        # Créer un embed avec des informations utiles
-        embed = discord.Embed(
+        public_embed = discord.Embed(
             title="🎉 **Bienvenue sur le serveur !** 🎉",
             description="Salut à tous ! Je suis **EtheryaBot**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
             color=discord.Color.blurple()
         )
 
-        # Image de profil et image de couverture
-        embed.set_thumbnail(url="https://github.com/Iseyg91/Etherya-Gestion/blob/main/37baf0deff8e2a1a3cddda717a3d3e40.jpg?raw=true")
-        embed.set_image(url="https://github.com/Cass64/EtheryaBot/blob/main/images_etherya/etheryaBot_banniere.png?raw=true")
+        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
+        public_embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
 
-        embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/Etherya-Gestion/blob/main/37baf0deff8e2a1a3cddda717a3d3e40.jpg?raw=true")
+        public_embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveurs, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
+        public_embed.add_field(name="💡 **Commandes principales**", value="📜 Voici les commandes essentielles pour bien commencer :\n`+help` - Afficher toutes les commandes disponibles\n`+vc` - Voir les statistiques du serveur\n`+setup` - Configurer le bot selon vos besoins", inline=False)
+        public_embed.add_field(name="🚀 **Prêt à commencer ?**", value="Tapez `+aide` pour voir toutes les commandes disponibles ou dites-moi ce que vous souhaitez faire. Si vous avez des questions, je suis là pour vous aider ! 🎉", inline=False)
+        public_embed.add_field(name="🌐 **Serveurs utiles**", value="**[Serveur de Support](https://discord.com/invite/PzTHvVKDxN)**\n**[Serveur Etherya](https://discord.com/invite/tVVYC2Ynfy)**", inline=False)
 
-        # Sections d'info sur le bot
-        embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveur, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
-        embed.add_field(name="💡 **Commandes principales**", value="📜 Voici les commandes essentielles pour bien commencer :\n`+aide` - Afficher toutes les commandes disponibles\n`+vc` - Voir les statistiques du serveur\n`+setup` - Pour pour configurer le bot en fonction de vos besoins`", inline=False)
-        embed.add_field(name="🚀 **Prêt à commencer ?**", value="Tapez `+aide` pour voir toutes les commandes disponibles ou dites-moi ce que vous souhaitez faire. Si vous avez des questions, je suis là pour vous aider ! 🎉", inline=False)
-        embed.add_field(name="🌐 **Serveurs utiles**", value="**[Serveur de Support](https://discord.com/invite/PzTHvVKDxN)**\n**[Serveur Etherya](https://discord.com/invite/tVVYC2Ynfy)**", inline=False)
+        await top_channel.send(embed=public_embed)
 
-        # Envoie l'embed dans le salon le plus haut
-        await top_channel.send(embed=embed)
+@bot.event
+async def on_guild_remove(guild):
+    isey = await bot.fetch_user(ISEY_ID)
+
+    embed = discord.Embed(
+        title="💔 Serveur quitté",
+        description="Le bot a été retiré d’un serveur.",
+        color=discord.Color.red(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    embed.add_field(name="📛 Nom", value=guild.name, inline=True)
+    embed.add_field(name="🆔 ID", value=guild.id, inline=True)
+    embed.add_field(name="👥 Membres lors du départ", value=str(guild.member_count), inline=True)
+    embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
+    embed.set_footer(text="Retiré le")
+
+    await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-# Code Premium valide
-valid_code = "Etherya_Iseyg=91"
 
 @bot.tree.command(name="statut")
 async def statut(interaction: discord.Interaction):
@@ -600,40 +630,61 @@ async def premium(interaction: discord.Interaction, code: str):
     try:
         data = load_guild_settings(interaction.guild.id)
         premium_data = data["setup_premium"]
-
-        if code == valid_code:
-            if premium_data:
-                # Le serveur est déjà premium
+        
+        # Liste des codes valides
+        valid_codes = [
+            "A3fX7hT9", "V5wQd2M8", "L9rP1yJ6", "K7uQ3zB4",
+            "X2bA8nY5", "M4pV1jZ7", "F6rT3hP9", "J8wE5nL2",
+            "H3gY1kR4", "C7oD4vX1"
+        ]
+        
+        # Vérifier si le code est valide et s'il n'a pas déjà été utilisé
+        if code in valid_codes:
+            if code in premium_data["used_codes"]:
+                # Le code a déjà été utilisé
                 embed = discord.Embed(
-                    title="⚠️ Serveur déjà Premium",
-                    description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
-                    color=discord.Color.yellow()
+                    title="❌ Code déjà utilisé",
+                    description="Ce code premium a déjà été utilisé. Vous ne pouvez pas l'utiliser à nouveau.",
+                    color=discord.Color.red()
                 )
-                embed.add_field(
-                    name="Pas de double activation",
-                    value="Ce serveur a déjà activé le code premium. Aucun changement nécessaire.",
-                    inline=False
-                )
-                embed.set_footer(text="Merci d'utiliser nos services premium.")
-                embed.set_thumbnail(url=interaction.guild.icon.url)
                 await interaction.followup.send(embed=embed)
             else:
-                # Enregistrer en tant que premium
-                add_premium_server(interaction.guild.id, interaction.guild.name)
+                if premium_data:
+                    # Le serveur est déjà premium
+                    embed = discord.Embed(
+                        title="⚠️ Serveur déjà Premium",
+                        description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
+                        color=discord.Color.yellow()
+                    )
+                    embed.add_field(
+                        name="Pas de double activation",
+                        value="Ce serveur a déjà activé le code premium. Aucun changement nécessaire.",
+                        inline=False
+                    )
+                    embed.set_footer(text="Merci d'utiliser nos services premium.")
+                    embed.set_thumbnail(url=interaction.guild.icon.url)
+                    await interaction.followup.send(embed=embed)
+                else:
+                    # Enregistrer en tant que premium et marquer le code comme utilisé
+                    add_premium_server(interaction.guild.id, interaction.guild.name)
+                    premium_data["used_codes"].append(code)  # Ajout du code aux codes utilisés
 
-                embed = discord.Embed(
-                    title="✅ Serveur Premium Activé",
-                    description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
-                    color=discord.Color.green()
-                )
-                embed.add_field(
-                    name="Avantages Premium",
-                    value="Profitez des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
-                    inline=False
-                )
-                embed.set_footer(text="Merci d'utiliser nos services premium.")
-                embed.set_thumbnail(url=interaction.guild.icon.url)
-                await interaction.followup.send(embed=embed)
+                    # Sauvegarder les données mises à jour
+                    save_guild_settings(interaction.guild.id, premium_data)
+
+                    embed = discord.Embed(
+                        title="✅ Serveur Premium Activé",
+                        description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
+                        color=discord.Color.green()
+                    )
+                    embed.add_field(
+                        name="Avantages Premium",
+                        value="Profitez des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
+                        inline=False
+                    )
+                    embed.set_footer(text="Merci d'utiliser nos services premium.")
+                    embed.set_thumbnail(url=interaction.guild.icon.url)
+                    await interaction.followup.send(embed=embed)
         else:
             # Code invalide
             embed = discord.Embed(
@@ -1491,7 +1542,7 @@ async def on_message(message):
         embed = discord.Embed(
             title="👋 Besoin d’aide ?",
             description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
-                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+aide`\n"
+                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
                          "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
                          "✨ **Profite bien du serveur et amuse-toi !**"),
             color=discord.Color.blue()
@@ -1504,7 +1555,7 @@ async def on_message(message):
 
         async def button_callback(interaction: discord.Interaction):
             ctx = await bot.get_context(interaction.message)
-            await ctx.invoke(bot.get_command("aide"))
+            await ctx.invoke(bot.get_command("help"))
             await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
 
         button.callback = button_callback
