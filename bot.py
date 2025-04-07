@@ -755,18 +755,18 @@ class SetupView(View):
 
 AUTHORIZED_USER_ID = 792755123587645461
  
-     async def start(self):
-            embed.title = "⚙️ **Configuration du Serveur**"
-            embed.description = """
-            🎉 **Bienvenue dans le menu de configuration !**  
-            Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
-
-            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
-
-            🔽 **Sélectionnez une catégorie pour commencer !**
-            """
- 
+    async def start(self):
+        embed.title = "⚙️ **Configuration du Serveur**"
+        embed.description = """
+        🎉 **Bienvenue dans le menu de configuration !**  
+        Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
+    
+        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+        🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+    
+         🔽 **Sélectionnez une catégorie pour commencer !**
+         """
+     
          # Envoi du message initial et affectation à embed_message
          self.embed_message = await self.ctx.send(embed=embed, view=self)
          print(f"Message initial envoyé: {self.embed_message}")
