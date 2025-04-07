@@ -760,13 +760,15 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-    async def start(self):
+async def start(self):
     """Démarre la vue de setup avec l'embed d'accueil."""
-        await self.update_embed("accueil")
+    
+    # Génère ou récupère l'embed d'accueil
+    embed = await self.update_embed("accueil")
 
-        # Envoi du message initial et affectation à embed_message
-        self.embed_message = await self.ctx.send(embed=embed, view=self)
-        print(f"Message initial envoyé: {self.embed_message}")
+    # Envoi du message initial et affectation à embed_message
+    self.embed_message = await self.ctx.send(embed=embed, view=self)
+    print(f"Message initial envoyé: {self.embed_message}")
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
