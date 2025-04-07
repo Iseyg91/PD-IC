@@ -752,8 +752,6 @@ class SetupView(View):
         self.collection = collection
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
-
-AUTHORIZED_USER_ID = 792755123587645461
  
     async def start(self):
         embed.title = "⚙️ **Configuration du Serveur**"
@@ -1485,32 +1483,6 @@ async def on_message(message):
             print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
             asyncio.create_task(send_alert_to_admin(message, word))
             break
-
-    # 🔹 Fonction 1 : Stocke les messages si quelqu'un mentionne TARGET_ID
-    if TARGET_ID in [user.id for user in message.mentions]:
-        guild_id = str(message.guild.id) if message.guild else "DM"
-        channel_id = str(message.channel.id) if message.guild else "DM"
-
-        if guild_id not in mentions_dict:
-            mentions_dict[guild_id] = {}
-        if channel_id not in mentions_dict[guild_id]:
-            mentions_dict[guild_id][channel_id] = []
-
-        try:
-            author_name = str(message.author)
-            channel_name = message.channel.name if message.guild else "DM"
-            server_name = message.guild.name if message.guild else "DM"
-
-            mention_data = {
-                "author": author_name,
-                "content": message.content,
-                "channel": channel_name,
-                "server": server_name
-            }
-
-            mentions_dict[guild_id][channel_id].append(mention_data)
-        except Exception as e:
-            print(f"❌ ERREUR lors de l'enregistrement de la mention: {e}")
 
     # 🔹 Fonction 2 : Répond si le bot est mentionné directement
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
