@@ -753,17 +753,31 @@ class SetupView(View):
         self.embed_message = None  # Initialisation de embed_message
         self.add_item(MainSelect(self))
 
-    async def start(self):
-        """Envoie un message initial pour la configuration."""
-        embed = discord.Embed(
-            title="⚙️ **Configuration du Serveur**",
-            description="Choisissez une option pour commencer.",
-            color=discord.Color.blurple()
-        )
+async def start(self):
+    """Envoie un message initial pour la configuration."""
+    embed = discord.Embed(
+        title="⚙️ **Configuration du Serveur**",
+        description="""
+🎉 **Bienvenue dans le menu de configuration !**  
+Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-        # Envoi du message initial et affectation à embed_message
-        self.embed_message = await self.ctx.send(embed=embed, view=self)
-        print(f"Message initial envoyé: {self.embed_message}")
+📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
+
+🔽 **Sélectionnez une catégorie pour commencer !**
+""",
+        color=discord.Color.blurple(),
+        timestamp=discord.utils.utcnow()
+    )
+    embed.set_footer(
+        text=f"Serveur : {self.ctx.guild.name}",
+        icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None
+    )
+
+    # Envoi du message initial et affectation à embed_message
+    self.embed_message = await self.ctx.send(embed=embed, view=self)
+    print(f"Message initial envoyé: {self.embed_message}")
+
 
     async def update_embed(self, category):
         """Met à jour l'embed et rafraîchit dynamiquement le message."""
