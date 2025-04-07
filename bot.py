@@ -1865,6 +1865,11 @@ mentions_dict = {}
 
 # 🎨 Formatage stylisé d'une mention avec couleur uniforme
 def format_mention(index, msg):
+    # Vérification si msg est bien un dictionnaire
+    if not isinstance(msg, dict):
+        print(f"ERREUR : Le message doit être un dictionnaire, mais c'est un {type(msg)}. Contenu du message : {msg}")
+        raise ValueError("Le message n'est pas sous la forme attendue (dictionnaire).")
+
     mention_color = 0x000000  # Couleur noire
     return (
         f"**{index}.** [`{msg['author']}`] dans **#{msg['channel']}** "
@@ -1927,6 +1932,10 @@ async def isey(ctx, count: int = 1):
         # 🎨 Formatage
         formatted_mentions = []
         for idx, mention in enumerate(reversed(recent_mentions), 1):
+            # Vérification de la structure de 'mention'
+            if not isinstance(mention, dict):
+                print(f"ERREUR : La mention # {idx} doit être un dictionnaire, mais c'est un {type(mention)}. Contenu de la mention : {mention}")
+                raise ValueError(f"La mention #{idx} n'est pas sous la forme attendue (dictionnaire).")
             text, color = format_mention(idx, mention)
             formatted_mentions.append((text, color))
 
