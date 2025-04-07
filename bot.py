@@ -830,22 +830,9 @@ class SetupView(View):
             print("Erreur : embed_message est nul ou non défini.")
 
 def format_mention(id, type_mention):
-    if not id or id in ["Non défini", "None", None]:
+    if not id or id == "Non défini":
         return "❌ **Non défini**"
-    try:
-        if not str(id).isdigit():
-            return "❌ **ID invalide**"
-        if type_mention == "user":
-            return f"<@{int(id)}>"
-        elif type_mention == "role":
-            return f"<@&{int(id)}>"
-        elif type_mention == "channel":
-            return f"<#{int(id)}>"
-        else:
-            return "❌ **Type inconnu**"
-    except Exception as e:
-        print(f"Erreur dans format_mention : {e}")
-        return "❌ **Erreur d'affichage**"
+    return f"<@{id}>" if type_mention == "user" else f"<@&{id}>" if type_mention == "role" else f"<#{id}>"
 
 class MainSelect(Select):
     def __init__(self, view):
