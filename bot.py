@@ -1424,9 +1424,7 @@ async def listwl(ctx):
 # Liste des mots sensibles
 sensitive_words = [
     # Insultes et injures
-    "connard", "crétin", "idiot", "imbécile", "salopard", "enfoiré", "méchant", "abruti", "débile", "bouffon",
-    "clown", "baltringue", "fils de pute", "gros con", "sale type", "ordure", "merdeux", "guignol", "vaurien",
-    "tocard", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet", "parasite",
+    "connard", "salopard", "enfoiré","baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
 
     # Discrimination et discours haineux
     "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", 
@@ -1481,19 +1479,28 @@ async def on_message(message):
     # 🔹 Fonction 1 : Stocke les messages si quelqu'un mentionne TARGET_ID
     if TARGET_ID in [user.id for user in message.mentions]:
         guild_id = str(message.guild.id) if message.guild else "DM"
-        channel_id = str(message.channel.id)
+        channel_id = str(message.channel.id) if message.guild else "DM"
 
         if guild_id not in mentions_dict:
             mentions_dict[guild_id] = {}
         if channel_id not in mentions_dict[guild_id]:
             mentions_dict[guild_id][channel_id] = []
 
-        mentions_dict[guild_id][channel_id].append({
-            "author": str(message.author),
-            "content": message.content,
-            "channel": message.channel.name,
-            "server": message.guild.name if message.guild else "DM"
-        })
+        try:
+            author_name = str(message.author)
+            channel_name = message.channel.name if message.guild else "DM"
+            server_name = message.guild.name if message.guild else "DM"
+
+            mention_data = {
+                "author": author_name,
+                "content": message.content,
+                "channel": channel_name,
+                "server": server_name
+            }
+
+            mentions_dict[guild_id][channel_id].append(mention_data)
+        except Exception as e:
+            print(f"❌ ERREUR lors de l'enregistrement de la mention: {e}")
 
     # 🔹 Fonction 2 : Répond si le bot est mentionné directement
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
@@ -1919,15 +1926,11 @@ async def isey(ctx, count: int = 1):
             count = 25
 
         # 🧩 Récupération des mentions
-        all_mentions = []
-        for guild_data in mentions_dict.values():
-            for channel_mentions in guild_data.values():
-                all_mentions.extend(channel_mentions)
-
-        if not all_mentions:
-            return await ctx.send("😶 Aucune mention trouvée.")
-
-        recent_mentions = all_mentions[-count:]
+all_mentions = []
+for guild_data in mentions_dict.values():
+    for channel_mentions in guild_data.values():
+        # Sécurise ici en filtrant uniquement les bons formats
+        all_mentions.extend([m for m in channel_mentions if isinstance(m, dict)])
 
         # 🎨 Formatage
         formatted_mentions = []
