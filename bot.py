@@ -864,10 +864,14 @@ def format_mention(id, type_mention):
     
     # Si id est un Message, on traite autrement
     if isinstance(id, discord.Message):
-        msg = id  # Assurez-vous que msg est bien un objet discord.Message
-        author_mention = msg.author.mention if hasattr(msg, 'author') else "Auteur inconnu"
-        channel_mention = msg.channel.mention if hasattr(msg, 'channel') else "Salon inconnu"
-        return f"**{author_mention}** dans **#{channel_mention}**"
+        try:
+            msg = id  # Assurez-vous que msg est bien un objet discord.Message
+            author_mention = msg.author.mention if hasattr(msg, 'author') else "Auteur inconnu"
+            channel_mention = msg.channel.mention if hasattr(msg, 'channel') else "Salon inconnu"
+            return f"**{author_mention}** dans **#{channel_mention}**"
+        except Exception as e:
+            print(f"Erreur lors du formatage du message: {e}")
+            return "❌ **Erreur lors du formatage du message**"
     
     # Si id est un identifiant (ID d'utilisateur, rôle ou salon)
     if type_mention == "user":
@@ -879,7 +883,6 @@ def format_mention(id, type_mention):
     
     # Si aucun type spécifique, retourner une mention générique
     return "❌ **Mention invalide**"
-
 
 class MainSelect(Select):
     def __init__(self, view):
