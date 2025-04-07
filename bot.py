@@ -281,13 +281,6 @@ async def getbotinfo(ctx):
             inline=True
         )
 
-        # 🌐 Hébergement (modifiable selon ton setup)
-        embed.add_field(
-            name="🌐 **Hébergement**",
-            value="🖥️ `Render + Uptime Robot`",  # Change ça si nécessaire
-            inline=False
-        )
-
         # 📍 Informations supplémentaires
         embed.add_field(
             name="📍 **Informations supplémentaires**",
