@@ -1911,7 +1911,6 @@ class PaginationView(View):
             button.disabled = True
         await self.message.edit(view=self)
 
-# 📩 Commande protégée
 @bot.command(name="isey")
 async def isey(ctx, count: int = 1):
     try:
@@ -1926,16 +1925,16 @@ async def isey(ctx, count: int = 1):
             count = 25
 
         # 🧩 Récupération des mentions
-all_mentions = []
-for guild_data in mentions_dict.values():
-    for channel_mentions in guild_data.values():
-        # Sécurise ici en filtrant uniquement les bons formats
-        all_mentions.extend([m for m in channel_mentions if isinstance(m, dict)])
+        all_mentions = []
+        for guild_data in mentions_dict.values():
+            for channel_mentions in guild_data.values():
+                # Sécurise ici en filtrant uniquement les bons formats
+                all_mentions.extend([m for m in channel_mentions if isinstance(m, dict)])
 
         # 🎨 Formatage
         formatted_mentions = []
+        recent_mentions = all_mentions[-count:]  # ← Tu semblais vouloir faire ça ici
         for idx, mention in enumerate(reversed(recent_mentions), 1):
-            # Vérification de la structure de 'mention'
             if not isinstance(mention, dict):
                 print(f"ERREUR : La mention # {idx} doit être un dictionnaire, mais c'est un {type(mention)}. Contenu de la mention : {mention}")
                 raise ValueError(f"La mention #{idx} n'est pas sous la forme attendue (dictionnaire).")
