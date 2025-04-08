@@ -2535,7 +2535,7 @@ async def boobs(ctx, member: discord.Member = None):
     # Créer l'embed
     embed = discord.Embed(
         title="Analyse de la taille de la poitrine 🙍‍♀️", 
-        description=f"{member.mention} a une poitrine de **{value} cm** !\n\n*La taille varie selon l'humeur du membre.*", 
+        description=f"{member.mention} a une poitrine de **{value}** !\n\n*La taille varie selon l'humeur du membre.*", 
         color=discord.Color.blue()
     )
     embed.set_thumbnail(url=member.avatar.url)
