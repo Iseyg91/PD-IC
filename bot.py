@@ -545,6 +545,11 @@ async def on_guild_remove(guild):
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
 
+def get_bot_uptime():
+    uptime_seconds = time.time() - start_time
+    uptime = str(datetime.timedelta(seconds=uptime_seconds))
+    return uptime
+
 @bot.tree.command(name="statut")
 async def statut(interaction: discord.Interaction):
     try:
