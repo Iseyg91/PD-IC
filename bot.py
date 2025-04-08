@@ -115,19 +115,24 @@ start_time = None
 
 start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
 
+import time
+import datetime
+
 @bot.event
 async def on_ready():
     global start_time
     start_time = time.time()  # Défini l'heure de démarrage lorsque le bot est prêt
+    bot.start_time = start_time  # Stocke start_time dans l'objet bot pour un accès ultérieur
     print(f'{bot.user} est prêt et l\'uptime est maintenant calculable.')
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
 # Fonction pour récupérer le uptime du bot
 async def get_bot_uptime():
     now = datetime.datetime.utcnow()  # Utilisation correcte de datetime.datetime
-    uptime_seconds = int((now - bot.start_time).total_seconds())
+    uptime_seconds = int((now - datetime.datetime.utcfromtimestamp(bot.start_time)).total_seconds())
     uptime = str(datetime.timedelta(seconds=uptime_seconds))
     return uptime
+
 
     # Initialisation de l'uptime du bot
     bot.uptime = time.time()
