@@ -1976,7 +1976,6 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
-#---------------------------------------------------------------------------- Snipe Isey:
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
@@ -3716,6 +3715,8 @@ async def roleinfo(interaction: discord.Interaction, role: discord.Role):
 
         await interaction.response.send_message(embed=embed)
 
+start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
+
 @bot.command()
 async def uptime(ctx):
     uptime_seconds = round(time.time() - start_time)
@@ -3729,6 +3730,7 @@ async def uptime(ctx):
         color=discord.Color.blue()
     )
     embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
+    await ctx.send(embed=embed)
 
 BOUNTY_CHANNEL_ID = 1355298449829920950  # Salon où les victoires sont annoncées
 PRIME_IMAGE_URL = "https://cdn.gamma.app/m6u5udkwwfl3cxy/generated-images/MUnIIu5yOv6nMFAXKteig.jpg"
