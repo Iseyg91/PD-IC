@@ -2090,7 +2090,7 @@ async def help(ctx):
             new_embed.description = "Bienvenue dans la section gestion du bot !"
             new_embed.add_field(name="💥 +shutdown", value="Déconnecte le **bot** ✂️.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
             new_embed.add_field(name="🔧 +restart", value="Redémarre le **bot** 📍.\n*À utiliser en cas de mise à jour ou de bug mineur.*", inline=False)
-            new_embed.add_field(name="🎈 +serverinfoall", value="Affiche les **informations de tous les serveurs** où le bot est présent 🌐.\n*Utile pour les développeurs ou admins multiserveurs.*",  inline=False)
+            new_embed.add_field(name="🎈 +serverinfoall", value="Affiche les **informations de tous les serveurs** où le bot est présent.",  inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         if category == "Configuration du Bot":
             new_embed.title = "🗃️ **Commandes de Configuration du Bot**"
