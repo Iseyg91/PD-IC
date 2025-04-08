@@ -12,7 +12,6 @@ import sys
 import traceback
 from keep_alive import keep_alive
 from discord.ui import Button, View
-from datetime import datetime
 from discord.ui import View, Select
 from discord.ext import tasks
 from collections import defaultdict
