@@ -122,6 +122,13 @@ async def on_ready():
     print(f'{bot.user} est prêt et l\'uptime est maintenant calculable.')
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
+# Fonction pour récupérer le uptime du bot
+async def get_bot_uptime():
+    now = datetime.datetime.utcnow()  # Utilisation correcte de datetime.datetime
+    uptime_seconds = int((now - bot.start_time).total_seconds())
+    uptime = str(datetime.timedelta(seconds=uptime_seconds))
+    return uptime
+
     # Initialisation de l'uptime du bot
     bot.uptime = time.time()
     
@@ -544,11 +551,6 @@ async def on_guild_remove(guild):
     await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-
-def get_bot_uptime():
-    uptime_seconds = time.time() - start_time
-    uptime = str(datetime.timedelta(seconds=uptime_seconds))
-    return uptime
 
 @bot.tree.command(name="statut")
 async def statut(interaction: discord.Interaction):
