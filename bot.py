@@ -548,6 +548,13 @@ async def on_guild_remove(guild):
 @bot.tree.command(name="statut")
 async def statut(interaction: discord.Interaction):
     try:
+        # Vérifie si start_time est défini
+        if start_time is None:
+            await interaction.followup.send(
+                "Le bot n'est pas encore prêt. Veuillez réessayer plus tard."
+            )
+            return
+
         # Message d'attente pendant que les données sont récupérées
         await interaction.response.defer()
 
@@ -598,6 +605,7 @@ async def statut(interaction: discord.Interaction):
         await interaction.followup.send(
             f"Une erreur est survenue lors de la récupération du statut du bot : {str(e)}"
         )
+
 
 # Fonction pour récupérer la latence du bot
 async def get_latency():
