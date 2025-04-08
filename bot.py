@@ -109,7 +109,12 @@ def load_guild_settings(guild_id):
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
+
+# Variable globale pour start_time
+start_time = None
+
 start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
+
 @bot.event
 async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
