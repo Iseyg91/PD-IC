@@ -2066,12 +2066,15 @@ async def help(ctx):
     select = discord.ui.Select(
         placeholder="Choisissez une catégorie 👇", 
         options=[
+            discord.SelectOption(label="Owner Bot", description="👑Commandes pour gèrer le bot", emoji="🎓"),
+            discord.SelectOption(label="Configuration du Bot", description="🖇️Commandes pour configurer le bot", emoji="📡"),
             discord.SelectOption(label="Gestion", description="📚 Commandes pour gérer le serveur", emoji="🔧"),
+            discord.SelectOption(label="Utilitaire", description="⚙️ Commandes utiles", emoji="🔔"),
+            discord.SelectOption(label="Modération", description="⚖️ Commandes Modération", emoji="🔨"),
+            discord.SelectOption(label="Bot", description="🤖 Commandes Bot", emoji="🦾"),
             discord.SelectOption(label="Économie", description="💸 Commandes économie", emoji="💰"),
             discord.SelectOption(label="Ludiques", description="🎉 Commandes amusantes pour détendre l'atmosphère et interagir avec les autres.", emoji="🎈"),
             discord.SelectOption(label="Test & Défis", description="🧠Commandes pour testez la personnalité et défiez vos amis avec des jeux et des évaluations.", emoji="🎲"),
-            discord.SelectOption(label="Utilitaire", description="⚙️ Commandes utiles", emoji="🔔"),
-            discord.SelectOption(label="Modération", description="⚖️ Commandes Modération", emoji="🔨"),
             discord.SelectOption(label="Crédits", description="💖 Remerciements et crédits", emoji="🙏")
         ], 
         custom_id="help_select"
@@ -2082,7 +2085,23 @@ async def help(ctx):
         category = interaction.data['values'][0]
         new_embed = discord.Embed(color=discord.Color(0x1abc9c))
         new_embed.set_image(url=banner_url)  # Ajout de la bannière dans chaque catégorie
+        if category == "Owner Bot":
+            new_embed.title = "👑 **Commandes de Gestion du Bot**"
+            new_embed.description = "Bienvenue dans la section gestion du bot !"
+            new_embed.add_field(name="💥 +shutdown", value="Déconnecte le **bot** ✂️.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
+            new_embed.add_field(name="🔧 +restart", value="Redémarre le **bot** 📍.\n*À utiliser en cas de mise à jour ou de bug mineur.*", inline=False)
+            new_embed.add_field(name="🎈 +serverinfoall", value="Affiche les **informations de tous les serveurs** où le bot est présent 🌐.\n*Utile pour les développeurs ou admins multiserveurs.*",  inline=False)
+            new_embed.set_footer(text="♥️ by Iseyg")
+        if category == "Configuration du Bot":
+            new_embed.title = "🗃️ **Commandes de Configuration du Bot**"
+            new_embed.description = "Bienvenue dans la section configuration du bot !"
+            new_embed.add_field(name="⚙️ +setup", value="Lance la **configuration du bot** sur le serveur ⚙️.\n*Permet de personnaliser les paramètres du bot selon les besoins du serveur.*", inline=False)
+            new_embed.add_field(name="🛡️ +protection", value="Affiche les **protections disponibles** sur le bot et permet de les **activer ou désactiver** 🛠️.\n*Utile pour gérer les options de sécurité comme l'anti-spam, l'anti-lien, etc.*", inline=False)
+            new_embed.add_field(name="🔓 +addwl", value="Ajoute un membre à la **whitelist** pour qu'il soit **ignoré** par les protections du bot 🛡️.\n*Permet d'exempter certains utilisateurs des actions de sécurité comme l'anti-spam ou l'anti-lien.*", inline=False)
+            new_embed.add_field(name="❌ +removewl", value="Supprime un membre de la **whitelist** pour qu'il soit de nouveau **sujet aux protections** du bot 🛡️.\n*Utilisé pour réactiver les actions de sécurité contre l'utilisateur.*", inline=False)
+            new_embed.add_field(name="🔍 +listwl", value="Affiche la **liste des membres sur la whitelist** du bot 🛡️.\n*Permet de voir quels utilisateurs sont exemptés des protections du bot.*", inline=False)
 
+            new_embed.set_footer(text="♥️ by Iseyg")
         if category == "Gestion":
             new_embed.title = "🔨 **Commandes de Gestion**"
             new_embed.description = "Bienvenue dans la section gestion ! 📊\nCes commandes sont essentielles pour administrer le serveur. Voici un aperçu :"
@@ -2090,6 +2109,48 @@ async def help(ctx):
             new_embed.add_field(name="💥 +nuke", value="Efface **tous** les messages du salon 🚨.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
             new_embed.add_field(name="➕ +addrole @user @rôle", value="Ajoute un rôle à un utilisateur 👤.\n*Pour attribuer des rôles et des privilèges spéciaux aux membres.*", inline=False)
             new_embed.add_field(name="➖ +delrole @user @rôle", value="Retire un rôle à un utilisateur 🚫.\n*Retirer un rôle en cas de sanction ou de changement de statut.*", inline=False)
+            new_embed.add_field(name="🔲 /embed", value="Crée un **embed personnalisé** avec du texte, des images et des couleurs 🎨.\n*Pratique pour partager des informations de manière stylée et structurée.*", inline=False)
+            new_embed.add_field(name="🚫 +listban", value="Affiche la **liste des membres bannis** du serveur ⚠️.\n*Permet aux admins de voir les bannissements en cours.*", inline=False)
+            new_embed.add_field(name="🔓 +unbanall", value="Dé-banni **tous les membres** actuellement bannis du serveur 🔓.\n*Utilisé pour lever les bannissements en masse.*", inline=False)
+            new_embed.add_field(name="🎉 +gcreate", value="Crée un **giveaway** (concours) pour offrir des récompenses aux membres 🎁.\n*Permet d'organiser des tirages au sort pour des prix ou des objets.*", inline=False)
+            new_embed.add_field(name="⚡ +fastgw", value="Crée un **giveaway rapide** avec une durée courte ⏱️.\n*Idéal pour des concours instantanés avec des récompenses immédiates.*", inline=False)
+            new_embed.add_field(name="📊 /statut", value="Affiche les **statistiques du bot**, comme son uptime, nombre de serveurs, et d'autres données clés 📈.\n*Utile pour suivre l'état du bot et ses performances en temps réel.*", inline=False)
+            new_embed.add_field(name="💎 /premium", value="Entre un **code premium** pour devenir membre **premium** et accéder à des fonctionnalités exclusives ✨.\n*Permet de débloquer des avantages supplémentaires pour améliorer ton expérience.*", inline=False)
+            new_embed.add_field(name="🔍 /viewpremium", value="Affiche la **liste des serveurs premium** actuellement actifs 🔑.\n*Permet de voir quels serveurs ont accédé aux avantages premium.*", inline=False)
+            new_embed.add_field(name="💎 /devenirpremium", value="Obtiens des **informations** sur la manière de devenir membre **premium** et débloquer des fonctionnalités exclusives ✨.\n*Un guide pour savoir comment accéder à l'expérience premium et ses avantages.*", inline=False)
+            new_embed.set_footer(text="♥️ by Iseyg")
+        elif category == "Utilitaire":
+            new_embed.title = "⚙️ **Commandes Utilitaires**"
+            new_embed.description = "Bienvenue dans la section modération ! 🚨\nCes commandes sont conçues pour gérer et contrôler l'activité du serveur, en assurant une expérience sûre et agréable pour tous les membres."
+            new_embed.add_field(name="📊 +vc", value="Affiche les statistiques du serveur en temps réel .\n*Suivez l'évolution du serveur en direct !*.", inline=False)
+            new_embed.add_field(name="🚨 +alerte @user <reason>", value="Envoie une alerte au staff en cas de comportement inapproprié (insultes, spam, etc.) .\n*Note : Si cette commande est utilisée abusivement, des sanctions sévères seront appliquées !*.", inline=False)
+            new_embed.add_field(name="📶 +ping", value="Affiche la latence du bot en millisecondes.", inline=False)
+            new_embed.add_field(name="⏳ +uptime", value="Affiche depuis combien de temps le bot est en ligne.", inline=False)
+            new_embed.add_field(name="ℹ️ /rôle info <nom_du_rôle>", value="Affiche les informations détaillées sur un rôle spécifique.", inline=False)
+            new_embed.add_field(name="ℹ💡 /idees", value="Note une idée ou une chose à faire dans ta liste perso 📝.\n*Parfait pour te rappeler d'un projet, d'une envie ou d'un objectif.*", inline=False)
+            new_embed.add_field(name="📋 +listi", value="Affiche la **liste de tes idées notées** 🧾.\n*Utile pour retrouver facilement ce que tu as prévu ou pensé.*", inline=False)
+            new_embed.add_field(name="💬 /suggestion", value="Propose une **suggestion ou une idée** pour améliorer **Etherya** ou le **bot** 🛠️.\n*Ton avis compte, alors n’hésite pas à participer à l’évolution du projet.*", inline=False)
+            new_embed.add_field(name="📊 /sondage", value="Crée un **sondage** pour obtenir l'avis des membres du serveur 📋.\n*Parfait pour recueillir des retours ou prendre des décisions collectives.*", inline=False)
+            new_embed.add_field(name="⏰ /rappel", value="Crée un **rappel personnel** pour ne rien oublier 📅.\n*Tu peux programmer des rappels pour des événements, des tâches ou des objectifs.*", inline=False)
+            new_embed.add_field(name="👋 /presentation", value="Présente-toi au serveur et fais connaissance avec les membres 🌟.\n*Une manière sympa de partager tes intérêts et d'en savoir plus sur la communauté.*", inline=False)
+            new_embed.add_field(name="🤖 +getbotinfo", value="Affiche des **informations détaillées** sur le bot 🛠️.\n*Comprend des données comme la version, les statistiques et les fonctionnalités du bot.*", inline=False)
+            new_embed.add_field(name="👑 +alladmin", value="Affiche la **liste de tous les administrateurs** du serveur 🔑.\n*Utile pour voir les membres avec les privilèges d'administration.*", inline=False)
+            new_embed.add_field(name="🔍 +snipe", value="Affiche le **dernier message supprimé** du serveur 🕵️.\n*Permet de récupérer le contenu des messages effacés récemment.*", inline=False)
+            new_embed.set_footer(text="♥️ by Iseyg")
+        elif category == "Modération":
+            new_embed.title = "🔑 **Commandes Modération**"
+            new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur 🎤.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
+            new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal** 🎤.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
+            new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté 🚀.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
+            new_embed.set_footer(text="♥️ by Iseyg")
+        elif category == "Bot":
+            new_embed.title = "🔑 **Commandes Bot**"
+            new_embed.add_field(name="🚫 +ban @user", value="Exile un membre du serveur pour un comportement inacceptable .\nL'action de bannir un utilisateur est irréversible et est utilisée pour des infractions graves aux règles du serveur.*", inline=False)
+            new_embed.add_field(name="🚔 +unban @user", value="Lève le bannissement d'un utilisateur, lui permettant de revenir sur le serveur .\nUnban un utilisateur qui a été banni, après examen du cas et décision du staff..*", inline=False)
+            new_embed.add_field(name="⚖️ +mute @user", value="Rend un utilisateur silencieux en l'empêchant de parler pendant un certain temps .\nUtilisé pour punir les membres qui perturbent le serveur par des messages intempestifs ou offensants.", inline=False)
+            new_embed.add_field(name="🔓 +unmute @user", value="Annule le silence imposé à un utilisateur et lui redonne la possibilité de communiquer 🔊.\nPermet à un membre de reprendre la parole après une période de mute.", inline=False)
+            new_embed.add_field(name="⚠️ +warn @user", value="Avertit un utilisateur pour un comportement problématique ⚠.\nUn moyen de signaler qu'un membre a enfreint une règle mineure, avant de prendre des mesures plus sévères.", inline=False)
+            new_embed.add_field(name="🚪 +kick @user", value="Expulse un utilisateur du serveur pour une infraction moins grave .\nUn kick expulse temporairement un membre sans le bannir, pour des violations légères des règles.", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Économie":
             new_embed.title = "⚖️ **Commandes Économie**"
@@ -2137,26 +2198,8 @@ async def help(ctx):
             new_embed.add_field(name="⚡ +superpouvoir @user", value="Déclenche un super-pouvoir épique pour un utilisateur !\n*Donne un pouvoir aléatoire allant du cool au complètement débile, comme la téléportation, la super vitesse, ou même la création de burgers.*", inline=False)
             new_embed.add_field(name="🌿 +totem @user", value="Découvrez votre animal totem spirituel !\n*Un animal magique et spirituel vous guidera, qu’il soit un loup protecteur ou un poisson rouge distrait. Un résultat épique et amusant !*", inline=False)
             new_embed.add_field(name="🔮 +futur @user", value="Prédit l'avenir d'un utilisateur de manière totalement farfelue !\n*L'avenir peut être aussi improbable qu'un trésor caché rempli de bonbons ou une rencontre avec un extraterrestre amateur de chats.*", inline=False)
-            new_embed.add_field(
-            name="👶 +enfant @user @user", value="Crée un enfant aléatoire entre deux utilisateurs !\n*Mélangez les pseudos et les photos de profil des deux utilisateurs pour créer un bébé unique. C'est fun et surprenant !*", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        elif category == "Utilitaire":
-            new_embed.title = "⚙️ **Commandes Utilitaires**"
-            new_embed.description = "Bienvenue dans la section modération ! 🚨\nCes commandes sont conçues pour gérer et contrôler l'activité du serveur, en assurant une expérience sûre et agréable pour tous les membres."
-            new_embed.add_field(name="📊 +vc", value="Affiche les statistiques du serveur en temps réel .\n*Suivez l'évolution du serveur en direct !*.", inline=False)
-            new_embed.add_field(name="🚨 +alerte @user <reason>", value="Envoie une alerte au staff en cas de comportement inapproprié (insultes, spam, etc.) .\n*Note : Si cette commande est utilisée abusivement, des sanctions sévères seront appliquées !*.", inline=False)
-            new_embed.add_field(name="📶 +ping", value="Affiche la latence du bot en millisecondes.", inline=False)
-            new_embed.add_field(name="⏳ +uptime", value="Affiche depuis combien de temps le bot est en ligne.", inline=False)
-            new_embed.add_field(name="ℹ️ +rôle info <nom_du_rôle>", value="Affiche les informations détaillées sur un rôle spécifique.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        elif category == "Modération":
-            new_embed.title = "🔑 **Commandes Modération**"
-            new_embed.add_field(name="🚫 +ban @user", value="Exile un membre du serveur pour un comportement inacceptable .\nL'action de bannir un utilisateur est irréversible et est utilisée pour des infractions graves aux règles du serveur.*", inline=False)
-            new_embed.add_field(name="🚔 +unban @user", value="Lève le bannissement d'un utilisateur, lui permettant de revenir sur le serveur .\nUnban un utilisateur qui a été banni, après examen du cas et décision du staff..*", inline=False)
-            new_embed.add_field(name="⚖️ +mute @user", value="Rend un utilisateur silencieux en l'empêchant de parler pendant un certain temps .\nUtilisé pour punir les membres qui perturbent le serveur par des messages intempestifs ou offensants.", inline=False)
-            new_embed.add_field(name="🔓 +unmute @user", value="Annule le silence imposé à un utilisateur et lui redonne la possibilité de communiquer 🔊.\nPermet à un membre de reprendre la parole après une période de mute.", inline=False)
-            new_embed.add_field(name="⚠️ +warn @user", value="Avertit un utilisateur pour un comportement problématique ⚠.\nUn moyen de signaler qu'un membre a enfreint une règle mineure, avant de prendre des mesures plus sévères.", inline=False)
-            new_embed.add_field(name="🚪 +kick @user", value="Expulse un utilisateur du serveur pour une infraction moins grave .\nUn kick expulse temporairement un membre sans le bannir, pour des violations légères des règles.", inline=False)
+            new_embed.add_field(name="👶 +enfant @user @user", value="Crée un enfant aléatoire entre deux utilisateurs !\n*Mélangez les pseudos et les photos de profil des deux utilisateurs pour créer un bébé unique. C'est fun et surprenant !*", inline=False)
+            new_embed.add_field(name="🍬 +sucre", value="Affiche le **taux de glycémie** du membre ciblé 🍭.\n*Utile pour suivre les niveaux de sucre des membres du serveur de manière ludique.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Crédits":
             new_embed.title = "💖 **Crédits et Remerciements**"
