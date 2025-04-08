@@ -988,14 +988,14 @@ class ReturnButton(Button):
 class InfoSelect(Select):
     def __init__(self, view):
         options = [
-            discord.SelectOption(label="⚙️ Modifier le préfixe", value="prefix")
+            discord.SelectOption(label="⚙️ Modifier le préfixe", value="prefix"),
             discord.SelectOption(label="👑 Propriétaire", value="owner"),
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
             discord.SelectOption(label="📝 Salon Rapports", value="reports_channel"),
             discord.SelectOption(label="✨Salon Suggestion:", value="suggestion_channel"),
-            discord.SelectOption(label=="📊Salon Sondage:", value="sondage_channel"),
+            discord.SelectOption(label="📊Salon Sondage:", value="sondage_channel"),
         ]
         super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
         self.view_ctx = view
