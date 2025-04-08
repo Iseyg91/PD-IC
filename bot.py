@@ -2527,15 +2527,15 @@ async def boobs(ctx, member: discord.Member = None):
         return
     
     # Générer une valeur aléatoire entre 0 et 28 cm
-bonnets = ['Bonnet A', 'Bonnet B', 'Bonnet C', 'Bonnet D', 'Bonnet E', 'Bonnet F', 'Bonnet G', 'Bonnet H', 'Bonnet I', 'Bonnet J', 'Bonnet K']
+    bonnets = ['Bonnet A', 'Bonnet B', 'Bonnet C', 'Bonnet D', 'Bonnet E', 'Bonnet F', 'Bonnet G', 'Bonnet H', 'Bonnet I', 'Bonnet J', 'Bonnet K']
 
-# Choisir un bonnet aléatoire parmi les bonnets définis
-value = random.choice(bonnets)
+    # Choisir un bonnet aléatoire parmi les bonnets définis
+    value = random.choice(bonnets)
 
     # Créer l'embed
     embed = discord.Embed(
         title="Analyse de la taille de la poitrine 🙍‍♀️", 
-        description=f"{member.mention} a une pointrine de **{value} cm** !\n\n*La taille varie selon l'humeur du membre.*", 
+        description=f"{member.mention} a une poitrine de **{value} cm** !\n\n*La taille varie selon l'humeur du membre.*", 
         color=discord.Color.blue()
     )
     embed.set_thumbnail(url=member.avatar.url)
