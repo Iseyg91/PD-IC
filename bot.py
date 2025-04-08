@@ -628,63 +628,71 @@ async def premium(interaction: discord.Interaction, code: str):
     await interaction.response.defer(thinking=True)
 
     try:
+        # Charger les données du serveur
         data = load_guild_settings(interaction.guild.id)
-        premium_data = data["setup_premium"]
-        
+        premium_data = data.get("setup_premium", {})
+
+        # Initialiser la liste des codes utilisés si elle n'existe pas
+        if "used_codes" not in premium_data:
+            premium_data["used_codes"] = []
+
         # Liste des codes valides
         valid_codes = [
             "A3fX7hT9", "V5wQd2M8", "L9rP1yJ6", "K7uQ3zB4",
             "X2bA8nY5", "M4pV1jZ7", "F6rT3hP9", "J8wE5nL2",
             "H3gY1kR4", "C7oD4vX1"
         ]
-        
-        # Vérifier si le code est valide et s'il n'a pas déjà été utilisé
+
+        # Vérifier si le code est valide
         if code in valid_codes:
             if code in premium_data["used_codes"]:
-                # Le code a déjà été utilisé
+                # Code déjà utilisé
                 embed = discord.Embed(
                     title="❌ Code déjà utilisé",
                     description="Ce code premium a déjà été utilisé. Vous ne pouvez pas l'utiliser à nouveau.",
                     color=discord.Color.red()
                 )
                 await interaction.followup.send(embed=embed)
-            else:
-                if premium_data:
-                    # Le serveur est déjà premium
-                    embed = discord.Embed(
-                        title="⚠️ Serveur déjà Premium",
-                        description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
-                        color=discord.Color.yellow()
-                    )
-                    embed.add_field(
-                        name="Pas de double activation",
-                        value="Ce serveur a déjà activé le code premium. Aucun changement nécessaire.",
-                        inline=False
-                    )
-                    embed.set_footer(text="Merci d'utiliser nos services premium.")
-                    embed.set_thumbnail(url=interaction.guild.icon.url)
-                    await interaction.followup.send(embed=embed)
-                else:
-                    # Enregistrer en tant que premium et marquer le code comme utilisé
-                    add_premium_server(interaction.guild.id, interaction.guild.name)
-                    premium_data["used_codes"].append(code)  # Ajout du code aux codes utilisés
+                return
 
-                    # Sauvegarder les données mises à jour
-                    save_guild_settings(interaction.guild.id, premium_data)
+            # Vérifier si le serveur est déjà premium
+            if data.get("is_premium", False):
+                embed = discord.Embed(
+                    title="⚠️ Serveur déjà Premium",
+                    description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
+                    color=discord.Color.yellow()
+                )
+                embed.add_field(
+                    name="Pas de double activation",
+                    value="Ce serveur a déjà activé le code premium. Aucun changement nécessaire.",
+                    inline=False
+                )
+                embed.set_footer(text="Merci d'utiliser nos services premium.")
+                embed.set_thumbnail(url=interaction.guild.icon.url)
+                await interaction.followup.send(embed=embed)
+                return
 
-                    embed = discord.Embed(
-                        title="✅ Serveur Premium Activé",
-                        description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
-                        color=discord.Color.green()
-                    )
-                    embed.add_field(
-                        name="Avantages Premium",
-                        value="Profitez des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
-                        inline=False
-                    )
-                    embed.set_footer(text="Merci d'utiliser nos services premium.")
-                    embed.set_thumbnail(url=interaction.guild.icon.url)
-                    await interaction.followup.send(embed=embed)
+            # Activer le premium
+            data["is_premium"] = True
+            premium_data["used_codes"].append(code)
+            data["setup_premium"] = premium_data
+
+            # Sauvegarder les données mises à jour
+            save_guild_settings(interaction.guild.id, data)
+
+            embed = discord.Embed(
+                title="✅ Serveur Premium Activé",
+                description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="Avantages Premium",
+                value="Profitez des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
+                inline=False
+            )
+            embed.set_footer(text="Merci d'utiliser nos services premium.")
+            embed.set_thumbnail(url=interaction.guild.icon.url)
+            await interaction.followup.send(embed=embed)
         else:
             # Code invalide
             embed = discord.Embed(
