@@ -109,7 +109,7 @@ def load_guild_settings(guild_id):
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
-
+start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
 @bot.event
 async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
@@ -3713,8 +3713,6 @@ async def roleinfo(interaction: discord.Interaction, role: discord.Role):
         embed.set_footer(text=f"Commande demandée par {interaction.user.name}", icon_url=interaction.user.avatar.url)
 
         await interaction.response.send_message(embed=embed)
-
-start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
 
 @bot.command()
 async def uptime(ctx):
