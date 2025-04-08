@@ -117,6 +117,9 @@ start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du b
 
 @bot.event
 async def on_ready():
+    global start_time
+    start_time = time.time()  # Défini l'heure de démarrage lorsque le bot est prêt
+    print(f'{bot.user} est prêt et l\'uptime est maintenant calculable.')
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
     # Initialisation de l'uptime du bot
