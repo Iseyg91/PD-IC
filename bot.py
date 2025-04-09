@@ -1326,15 +1326,12 @@ async def protection(ctx):
     embed = create_protection_embed()
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
-# Fonction pour envoyer le menu de sélection interactif avec un meilleur contrôle des erreurs
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
-        select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
-        if not select.values:
-            await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
-            return
+        select = discord.ui.Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
 
+        # Fonction de callback pour le menu
         async def select_callback(interaction):
             if not select.values:
                 await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
@@ -1371,9 +1368,8 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                 await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
                 print(f"Erreur lors de la gestion de l'interaction : {str(e)}")
 
-
         select.callback = select_callback
-        view = View()
+        view = discord.ui.View()
         view.add_item(select)
         await ctx.send(embed=embed, view=view)
 
