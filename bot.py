@@ -122,8 +122,12 @@ async def get_prefix(bot, message):
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
+# Fonction pour obtenir les données de protection
 async def get_protection_data(guild_id):
+    # Cherche dans la collection 'protection'
     data = await collection4.find_one({"_id": str(guild_id)})
+    
+    # Si aucune donnée n'est trouvée, crée un document avec des valeurs par défaut
     if not data:
         data = {
             "_id": str(guild_id),
@@ -136,7 +140,9 @@ async def get_protection_data(guild_id):
             "anti_deleterole": "Non configuré",
             "whitelist": []
         }
-        await collection4.insert_one(data)  # Insertion des données par défaut
+        # Insertion du document avec les données par défaut
+        await collection4.insert_one(data)
+    
     return data
 
 async def update_protection(guild_id, field, value):
