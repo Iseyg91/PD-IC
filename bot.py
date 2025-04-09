@@ -1272,37 +1272,47 @@ def create_default_protection_data(guild_id):
         "whitelist": []
     }
 
-# Fonction pour mettre à jour les paramètres de protection
 async def update_protection(guild_id, field, value, guild):
     try:
+        print(f"Début de la mise à jour des protections pour le guild_id {guild_id}.")
+        
         if value not in ["activer", "désactiver"]:
             raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
+        
+        print(f"Valeur '{value}' pour le champ '{field}' est valide.")
 
-        # Mise à jour dans la base de données sans attendre l'objet UpdateResult
+        # Mise à jour dans la base de données
+        print(f"Mise à jour du champ '{field}' avec la valeur '{value}' dans la base de données.")
         result = await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
         
-        # Affichage des informations de résultat pour débogage
+        # Débogage : afficher le contenu de result
         print(f"Résultat de l'update: {result}")
         print(f"modified_count: {result.modified_count}")
         
         # Vérification si la mise à jour a bien été effectuée
         if result.modified_count == 0:
             print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
-        
+        else:
+            print(f"Modification effectuée avec succès pour {field} dans le guild_id {guild_id}.")
+
         # Envoi du MP à l'owner du serveur
         owner = guild.owner
         if owner:
             try:
+                print(f"Envoi d'un MP à l'owner du serveur {guild_id} ({owner.name}).")
                 await owner.send(f"🔒 **Mise à jour de la protection sur votre serveur :**\n"
                                  f"Le paramètre `{field}` a été mis à jour à **{value}**.")
+                print(f"MP envoyé avec succès à {owner.name}.")
             except discord.Forbidden:
                 print(f"Impossible d'envoyer un MP à {owner.name}, permissions insuffisantes.")
             except Exception as e:
                 print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild_id}: {e}")
+        else:
+            print(f"Aucun owner trouvé pour le serveur {guild_id}.")
+            
     except Exception as e:
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
-
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
