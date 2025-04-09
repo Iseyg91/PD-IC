@@ -4887,7 +4887,6 @@ async def presentation(interaction: discord.Interaction):
         await presentation_channel.send(embed=embed)
     else:
         await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
-n
 
 @bot.command()
 @commands.has_permissions(administrator=True)
