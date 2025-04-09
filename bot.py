@@ -4895,7 +4895,8 @@ async def presentation(interaction: discord.Interaction):
 
     # Charger les paramètres du serveur depuis la base de données
     guild_settings = load_guild_settings(guild_id)
-    
+    print(f"Guild settings for {guild_id}: {guild_settings}")  # Ajout d'un log
+
     # Récupérer l'ID du salon de présentation depuis les paramètres du serveur
     presentation_channel_id = guild_settings.get('setup', {}).get('presentation_channel')
     if not presentation_channel_id:
