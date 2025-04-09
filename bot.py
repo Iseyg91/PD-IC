@@ -123,7 +123,7 @@ async def get_prefix(bot, message):
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
 async def get_protection_data(guild_id):
-    data = await protection_col.find_one({"_id": str(guild_id)})
+    data = await collection4.find_one({"_id": str(guild_id)})  # Remplace protection_col par collection4
     if not data:
         data = {
             "_id": str(guild_id),
@@ -136,7 +136,7 @@ async def get_protection_data(guild_id):
             "anti_deleterole": "Non configuré",
             "whitelist": []
         }
-        await protection_col.insert_one(data)
+        await collection4.insert_one(data)  # Remplace protection_col par collection4
     return data
 
 async def update_protection(guild_id, field, value):
