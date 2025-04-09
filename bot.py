@@ -1215,7 +1215,7 @@ async def setup(ctx):
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
 # Fonction pour créer un embed de protection avec une mise en page améliorée
-def create_protection_embed():
+def create_protection_embed(protection_data):
     embed = discord.Embed(
         title="🔒 **Protection du Serveur**",
         description="Voici les protections que vous pouvez configurer pour votre serveur. "
@@ -1231,12 +1231,16 @@ def create_protection_embed():
               "Sélectionnez celle que vous souhaitez modifier.",
         inline=False
     )
-    embed.add_field(
-        name="⚙️ **Modifications disponibles**",
-        value="Modifiez les paramètres de sécurité de votre serveur facilement. "
-              "Pour chaque protection, vous pouvez choisir de l'activer ou de la désactiver.",
-        inline=False
-    )
+
+    for label, value in get_protection_options().items():
+        protection_status = protection_data.get(value, "Non configuré")
+        status = "🔴 Désactivée" if protection_status == "Non configuré" else "🟢 Activée"
+        embed.add_field(
+            name=f"{label} ({status})",
+            value=f"État actuel : **{protection_status}**\n\n"
+                  f"Vous pouvez choisir d'activer ou de désactiver cette protection.",
+            inline=False
+        )
 
     embed.set_footer(text="Bot Protection | Servir votre sécurité ⚔️")
 
@@ -1345,7 +1349,7 @@ async def protection(ctx):
     if not protection_data:
         await ctx.send("⚠️ Aucune donnée de protection trouvée. La configuration par défaut a été appliquée.", ephemeral=True)
 
-    embed = create_protection_embed()
+    embed = create_protection_embed(protection_data)
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
 async def send_select_menu(ctx, embed, protection_data, guild_id):
@@ -1412,6 +1416,7 @@ def get_protection_options():
         "Anti-deleterole 🛡️": "anti_deleterole",
         "Whitelist 🔑": "whitelist"
     }
+
 #------------------------------------------------------------------------- Code Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
