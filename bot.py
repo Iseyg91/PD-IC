@@ -1335,8 +1335,7 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
             await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
             return
 
-
-async def select_callback(interaction):
+        async def select_callback(interaction):
     if not select.values:
         await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
         return
