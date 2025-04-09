@@ -1326,13 +1326,17 @@ async def protection(ctx):
     embed = create_protection_embed()
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
-# Fonction pour envoyer le menu de sélection interactif
+# Fonction pour envoyer le menu de sélection interactif avec un meilleur contrôle des erreurs
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
         select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
 
         async def select_callback(interaction):
+            if not select.values:
+                await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
+                return
+            
             selected_value = select.values[0]
             current_value = protection_data.get(selected_value, "Non configuré")
 
