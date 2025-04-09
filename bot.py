@@ -1277,9 +1277,14 @@ async def update_protection(guild_id, field, value, guild):
     try:
         if value not in ["activer", "désactiver"]:
             raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
-        
-        await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
 
+        # Ici, on n'attend pas l'objet UpdateResult
+        result = await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+
+        # Vérification si la mise à jour a bien été effectuée
+        if result.modified_count == 0:
+            print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
+        
         # Envoi du MP à l'owner du serveur
         owner = guild.owner
         if owner:
