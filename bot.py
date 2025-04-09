@@ -114,8 +114,12 @@ GUILD_SETTINGS = {}
 start_time = None
 
 start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
+
 @bot.event
 async def on_ready():
+    global start_time
+    start_time = time.time()  # Défini l'heure de démarrage lorsque le bot est prêt
+    print(f'{bot.user} est prêt et l\'uptime est maintenant calculable.')
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
     # Initialisation de l'uptime du bot
@@ -912,7 +916,7 @@ class InfoSelect(Select):
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-            discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
+            discord.SelectOption(label="📝 Salon Rapports", value="reports_channel"),
             discord.SelectOption(label="✨Salon Suggestion:", value="suggestion_channel"),
             discord.SelectOption(label="📊Salon Sondage:", value="sondage_channel"),
         ]
