@@ -1278,9 +1278,13 @@ async def update_protection(guild_id, field, value, guild):
         if value not in ["activer", "désactiver"]:
             raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
 
-        # Ici, on n'attend pas l'objet UpdateResult
+        # Mise à jour dans la base de données sans attendre l'objet UpdateResult
         result = await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
-
+        
+        # Affichage des informations de résultat pour débogage
+        print(f"Résultat de l'update: {result}")
+        print(f"modified_count: {result.modified_count}")
+        
         # Vérification si la mise à jour a bien été effectuée
         if result.modified_count == 0:
             print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
@@ -1298,6 +1302,7 @@ async def update_protection(guild_id, field, value, guild):
     except Exception as e:
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
+
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
