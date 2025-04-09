@@ -110,9 +110,6 @@ def load_guild_settings(guild_id):
         "setup_premium": setup_premium_data,
         "bounty": bounty_data,
         "protection": protection_data,
-        "sondage": sondage_data,
-        "suggestion": suggestion_data,
-        "presentation": presentation_data,
         "idees": idees_data
     }
     
