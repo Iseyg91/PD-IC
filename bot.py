@@ -4863,23 +4863,42 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
     passion = discord.ui.TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True)
     bio = discord.ui.TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True)
 
-    async def on_submit(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title=f"Présentation de {interaction.user.name}",
-            description="Une nouvelle présentation vient d'être envoyée ! 🎉",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
-        embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
-        embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
-        embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
-        embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id}")
-
+# Fonction de présentation
 @bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
 async def presentation(interaction: discord.Interaction):
     guild_id = interaction.guild.id
-    presentation_channel_id = bot.guild_data.get(guild_id, {}).get('presentation_channel')
+
+    # Charger les paramètres du serveur depuis la base de données
+    guild_settings = load_guild_settings(guild_id)
+    
+    # Récupérer les données du salon de présentation à partir de guild_settings
+    presentation_channel_id = guild_settings.get('setup', {}).get('presentation_channel')
+
+    if presentation_channel_id:
+        presentation_channel = interaction.guild.get_channel(presentation_channel_id)
+        
+        # Vérifiez si le salon est valide
+        if presentation_channel:
+            # Créer l'embed pour la présentation
+            embed = discord.Embed(
+                title=f"Présentation de {interaction.user.name}",
+                description="Une nouvelle présentation vient d'être envoyée ! 🎉",
+                color=discord.Color.blue()
+            )
+            embed.set_thumbnail(url=interaction.user.display_avatar.url)
+            embed.add_field(name="👤 Pseudo", value="Ex: Jean_57", inline=True)
+            embed.add_field(name="🎂 Âge", value="Ex: 18", inline=True)
+            embed.add_field(name="🎨 Passion", value="Ex: Gaming, Musique...", inline=False)
+            embed.add_field(name="📝 Bio", value="Parle un peu de toi...", inline=False)
+            embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id}")
+
+            # Envoie l'embed dans le salon de présentation
+            await presentation_channel.send(embed=embed)
+        else:
+            await interaction.response.send_message("Le salon de présentation n'existe plus ou est invalide.")
+    else:
+        await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
+
 
     if presentation_channel_id:
         presentation_channel = interaction.guild.get_channel(presentation_channel_id)
