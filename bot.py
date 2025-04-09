@@ -1266,10 +1266,6 @@ async def protection(ctx):
     embed = create_protection_embed()
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
-# Vérifie si l'utilisateur est autorisé à exécuter la commande
-def is_authorized(ctx):
-    return ctx.author.id == AUTHORIZED_USER_ID or ctx.author.guild_permissions.administrator
-
 # Retourne les données de protection par défaut
 def get_default_protection_data():
     return {
@@ -1282,7 +1278,6 @@ def get_default_protection_data():
         "anti_deleterole": "Non configuré",
         "whitelist": "Non configuré"
     }
-
 
 # Crée l'embed pour les protections avec des emojis et des descriptions plus engageantes
 def create_protection_embed():
@@ -1308,7 +1303,6 @@ def create_protection_embed():
 
     embed.set_footer(text="Choisissez une option pour modifier la protection.")
     return embed
-
 
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     options = [
@@ -1354,6 +1348,7 @@ def get_protection_options():
         "Anti-deleterole 🛡️": "anti_deleterole",
         "Whitelist 🔑": "whitelist"
     }
+
 #------------------------------------------------------------------------- Code Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
