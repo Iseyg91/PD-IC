@@ -39,6 +39,10 @@ collection = db['setup']  # Configuration générale
 collection2 = db['setup_premium']  # Serveurs premium
 collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
+collection5 = db['sondage'] #Salon Sondage
+collection6 = db['suggestion'] #Salon Suggestion
+collection7 = db['presentation'] "Salon Presentation
+collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -108,7 +112,11 @@ def load_guild_settings(guild_id):
         "setup": setup_data,
         "setup_premium": setup_premium_data,
         "bounty": bounty_data,
-        "protection": protection_data
+        "protection": protection_data,
+        "sondage": sondage_data,
+        "suggestion": suggestion_data,
+        "presentation": presentation_data,
+        "idees": idees_data
     }
     
     return combined_data
@@ -247,7 +255,7 @@ async def getbotinfo(ctx):
             description=f"📌 **Nom :** `{bot.user.name}`\n"
                         f"🆔 **ID :** `{bot.user.id}`\n"
                         f"🛠️ **Développé par :** `Iseyg`\n"
-                        f"🔄 **Version :** `1.1.5`",
+                        f"🔄 **Version :** `1.2.1`",
             color=discord.Color.blurple(),  # Dégradé bleu-violet pour une touche dynamique
             timestamp=datetime.utcnow()
         )
