@@ -2133,7 +2133,7 @@ async def help(ctx):
             new_embed.add_field(name="📶 +ping", value="Affiche la latence du bot en millisecondes.", inline=False)
             new_embed.add_field(name="⏳ +uptime", value="Affiche depuis combien de temps le bot est en ligne.", inline=False)
             new_embed.add_field(name="ℹ️ /rôle info <nom_du_rôle>", value="Affiche les informations détaillées sur un rôle spécifique.", inline=False)
-            new_embed.add_field(name="ℹ💡 /idees", value="Note une idée ou une chose à faire dans ta liste perso 📝.\n*Parfait pour te rappeler d'un projet, d'une envie ou d'un objectif.*", inline=False)
+            new_embed.add_field(name="ℹ💡 /idée", value="Note une idée ou une chose à faire dans ta liste perso 📝.\n*Parfait pour te rappeler d'un projet, d'une envie ou d'un objectif.*", inline=False)
             new_embed.add_field(name="📋 +listi", value="Affiche la **liste de tes idées notées** 🧾.\n*Utile pour retrouver facilement ce que tu as prévu ou pensé.*", inline=False)
             new_embed.add_field(name="💬 /suggestion", value="Propose une **suggestion ou une idée** pour améliorer **Etherya** ou le **bot** 🛠️.\n*Ton avis compte, alors n’hésite pas à participer à l’évolution du projet.*", inline=False)
             new_embed.add_field(name="📊 /sondage", value="Crée un **sondage** pour obtenir l'avis des membres du serveur 📋.\n*Parfait pour recueillir des retours ou prendre des décisions collectives.*", inline=False)
@@ -3902,6 +3902,19 @@ async def calcul(interaction: discord.Interaction, nombre1: float, operation: st
 
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="calcul_%", description="Calcule un pourcentage d'un nombre")
+@app_commands.describe(nombre="Le nombre de base", pourcentage="Le pourcentage à appliquer (ex: 15 pour 15%)")
+async def calcul(interaction: discord.Interaction, nombre: float, pourcentage: float):
+    await interaction.response.defer()  # ✅ Correctement placé à l'intérieur de la fonction
+
+    resultat = (nombre * pourcentage) / 100
+    embed = discord.Embed(
+        title="📊 Calcul de pourcentage",
+        description=f"{pourcentage}% de {nombre} = **{resultat}**",
+        color=discord.Color.green()
+    )
+
+    await interaction.followup.send(embed=embed)
 
 # Installer PyNaCl 
 try:
@@ -3960,38 +3973,101 @@ async def disconnect(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 #------------------------------------------------------------------------------------------
 
-# Dictionnaire pour stocker les idées temporairement
-idees_dict = {}
+from discord.ui import Select, View
 
-# Commande pour ajouter une idée
-@bot.tree.command(name="idees", description="Rajoute une idée dans la liste")
-@app_commands.checks.has_permissions(administrator=True)
+# Commande pour ajouter une idée (sans restriction d'administrateur)
+@bot.tree.command(name="idée", description="Rajoute une idée dans la liste")
 async def ajouter_idee(interaction: discord.Interaction, idee: str):
-    user_id = interaction.user.id  # Remplace ctx.author.id par interaction.user.id
-
-    if user_id not in idees_dict:
-        idees_dict[user_id] = []
-    idees_dict[user_id].append(idee)
+    user_id = interaction.user.id  # Utilisation de interaction.user.id pour obtenir l'ID utilisateur
+    
+    # Vérifier si l'utilisateur a déjà des idées dans la base de données
+    idees_data = collection8.find_one({"user_id": str(user_id)})
+    
+    if idees_data:
+        # Si des idées existent déjà, on ajoute l'idée à la liste existante
+        collection8.update_one(
+            {"user_id": str(user_id)},
+            {"$push": {"idees": idee}}  # Ajoute l'idée à la liste des idées existantes
+        )
+    else:
+        # Si l'utilisateur n'a pas encore d'idées, on crée un nouveau document avec cette idée
+        collection8.insert_one({
+            "user_id": str(user_id),
+            "idees": [idee]  # Crée une nouvelle liste d'idées avec l'idée ajoutée
+        })
     
     embed = discord.Embed(title="Idée ajoutée !", description=f"**{idee}** a été enregistrée.", color=discord.Color.green())
-
-    await interaction.response.send_message(embed=embed)  # Utilise interaction.response.send_message
+    await interaction.response.send_message(embed=embed)
 
 
 # Commande pour lister les idées
 @bot.command(name="listi")
 async def liste_idees(ctx):
     user_id = ctx.author.id
-    idees = idees_dict.get(user_id, [])
     
-    if not idees:
+    # Chercher les idées de l'utilisateur dans la base de données
+    idees_data = collection8.find_one({"user_id": str(user_id)})
+    
+    if not idees_data or not idees_data.get("idees"):
         embed = discord.Embed(title="Aucune idée enregistrée", description="Ajoute-en une avec /idées !", color=discord.Color.red())
     else:
         embed = discord.Embed(title="Tes idées", color=discord.Color.blue())
-        for idx, idee in enumerate(idees, start=1):
+        for idx, idee in enumerate(idees_data["idees"], start=1):
             embed.add_field(name=f"Idée {idx}", value=idee, inline=False)
     
     await ctx.send(embed=embed)
+
+
+# Commande pour supprimer une idée
+@bot.tree.command(name="remove_idee", description="Supprime une de tes idées enregistrées")
+async def remove_idee(interaction: discord.Interaction):
+    user_id = interaction.user.id  # Utilisation de interaction.user.id pour obtenir l'ID utilisateur
+    
+    # Chercher les idées de l'utilisateur dans la base de données
+    idees_data = collection8.find_one({"user_id": str(user_id)})
+    
+    if not idees_data or not idees_data.get("idees"):
+        embed = discord.Embed(title="Aucune idée enregistrée", description="Ajoute-en une avec /idées !", color=discord.Color.red())
+        await interaction.response.send_message(embed=embed)
+        return
+
+    idees = idees_data["idees"]
+
+    # Créer un menu déroulant pour permettre à l'utilisateur de choisir une idée à supprimer
+    options = [discord.SelectOption(label=f"Idée {idx+1}: {idee}", value=str(idx)) for idx, idee in enumerate(idees)]
+    
+    select = Select(placeholder="Choisis une idée à supprimer", options=options)
+    
+    # Définir l'interaction pour supprimer l'idée
+    async def select_callback(interaction: discord.Interaction):
+        selected_idee_index = int(select.values[0])
+        idee_a_supprimer = idees[selected_idee_index]
+        
+        # Supprimer l'idée sélectionnée de la base de données
+        collection8.update_one(
+            {"user_id": str(user_id)},
+            {"$pull": {"idees": idee_a_supprimer}}  # Supprime l'idée de la liste
+        )
+        
+        embed = discord.Embed(
+            title="Idée supprimée !",
+            description=f"L'idée **{idee_a_supprimer}** a été supprimée.",
+            color=discord.Color.green()
+        )
+        await interaction.response.send_message(embed=embed)
+
+    select.callback = select_callback
+
+    view = View()
+    view.add_item(select)
+    
+    embed = discord.Embed(
+        title="Choisis l'idée à supprimer",
+        description="Sélectionne une idée à supprimer dans le menu déroulant.",
+        color=discord.Color.orange()
+    )
+    
+    await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
 
