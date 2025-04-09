@@ -93,6 +93,10 @@ def get_premium_servers():
     premium_docs = collection2.find({}, {"_id": 0, "guild_id": 1})
     return {doc["guild_id"] for doc in premium_docs}
 
+async def get_protection_data(guild_id):
+    data = await protection_col.find_one({"_id": str(guild_id)})
+    return data
+
 def load_guild_settings(guild_id):
     # Charger les données de la collection principale
     setup_data = collection.find_one({"guild_id": guild_id}) or {}
