@@ -122,36 +122,6 @@ async def get_prefix(bot, message):
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
-async def get_protection_data(guild_id):
-    try:
-        # Cherche dans la collection 'protection'
-        data = await collection4.find_one({"_id": str(guild_id)})
-
-        # Si aucune donnée n'est trouvée, crée un document avec des valeurs par défaut
-        if not data:
-            data = {
-                "_id": str(guild_id),
-                "anti_massban": "Non configuré",
-                "anti_masskick": "Non configuré",
-                "anti_bot": "Non configuré",
-                "anti_createchannel": "Non configuré",
-                "anti_deletechannel": "Non configuré",
-                "anti_createrole": "Non configuré",
-                "anti_deleterole": "Non configuré",
-                "whitelist": []
-            }
-            # Insertion du document avec les données par défaut
-            await collection4.insert_one(data)
-            print(f"Document créé pour le guild_id {guild_id} avec les valeurs par défaut.")
-        
-        return data
-    except Exception as e:
-        print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
-        return {}  # Retourne un dictionnaire vide en cas d'erreur
-
-async def update_protection(guild_id, field, value):
-    await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})  # Remplacer protection_col par collection4
-
 bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
@@ -1244,27 +1214,75 @@ async def setup(ctx):
     await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
+# Fonction pour créer l'embed de protection
+def create_protection_embed():
+    embed = discord.Embed(
+        title="Protection du serveur",
+        description="Voici les protections que vous pouvez configurer pour ce serveur.",
+        color=discord.Color.blue()  # Changez la couleur si nécessaire
+    )
 
+    embed.add_field(
+        name="🔒 Protection actuelle",
+        value="Les protections de votre serveur sont en place. Vous pouvez les modifier.",
+        inline=False
+    )
+
+    embed.add_field(
+        name="🛡️ Pour modifier une protection",
+        value="Utilisez le menu de sélection ci-dessous pour modifier les paramètres de protection.",
+        inline=False
+    )
+
+    return embed
+
+# Fonction pour récupérer les données de protection
+async def get_protection_data(guild_id):
+    try:
+        data = await collection4.find_one({"_id": str(guild_id)})
+
+        if not data:
+            data = {
+                "_id": str(guild_id),
+                "anti_massban": "Non configuré",
+                "anti_masskick": "Non configuré",
+                "anti_bot": "Non configuré",
+                "anti_createchannel": "Non configuré",
+                "anti_deletechannel": "Non configuré",
+                "anti_createrole": "Non configuré",
+                "anti_deleterole": "Non configuré",
+                "whitelist": []
+            }
+            await collection4.insert_one(data)
+            print(f"Document créé pour le guild_id {guild_id} avec les valeurs par défaut.")
+        
+        return data
+    except Exception as e:
+        print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
+        return {}
+
+# Fonction pour mettre à jour les données de protection
+async def update_protection(guild_id, field, value):
+    await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+
+# Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
 
 async def is_authorized(ctx):
-    # 1. Check si l'ID correspond
     if ctx.author.id == AUTHORIZED_USER_ID:
         return True
 
-    # 2. Check s'il a les permissions admin
     if ctx.author.guild_permissions.administrator:
         return True
 
-    # 3. Check s'il est dans la whitelist
     guild_id = str(ctx.guild.id)
     data = await get_protection_data(guild_id)
     if ctx.author.id in data.get("whitelist", []):
         return True
 
-    # Sinon, refusé
     return False
 
+# Commande de protection
 @bot.command()
 async def protection(ctx):
     try:
@@ -1287,7 +1305,7 @@ async def protection(ctx):
         await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
         print(f"Erreur dans la commande protection: {e}")
 
-# Ajoute une gestion d'erreur dans send_select_menu aussi
+# Fonction pour envoyer le menu de sélection
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [
@@ -1336,7 +1354,6 @@ def get_protection_options():
         "Anti-deleterole 🛡️": "anti_deleterole",
         "Whitelist 🔑": "whitelist"
     }
-
 #------------------------------------------------------------------------- Code Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
