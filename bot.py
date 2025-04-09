@@ -1035,7 +1035,7 @@ class InfoSelect(Select):
                 new_value = response.mentions[0].id if response.mentions else None
             elif param in ["admin_role", "staff_role"]:
                 new_value = response.role_mentions[0].id if response.role_mentions else None
-            elif param in ["sanctions_channel", "reports_channel"]:
+            elif param in ["sanctions_channel", "reports_channel","suggestion_channel","sondage_channel","presentation_channel"]:
                 new_value = response.channel_mentions[0].id if response.channel_mentions else None
 
             if new_value:
