@@ -39,9 +39,6 @@ collection = db['setup']  # Configuration générale
 collection2 = db['setup_premium']  # Serveurs premium
 collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
-collection5 = db['sondage'] #Salon Sondage
-collection6 = db['suggestion'] #Salon Suggestion
-collection7 = db['presentation'] #Salon Presentation
 collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
@@ -4847,12 +4844,11 @@ async def snipe(ctx, index: int = 1):
 
     await ctx.send(embed=embed)
 
-# Commande Slash /presentation
 @bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
 async def presentation(interaction: discord.Interaction):
     # Récupérer l'ID du salon de présentation configuré pour ce serveur
     guild_id = interaction.guild.id  # ID du serveur actuel
-    presentation_channel_id = self.guild_data.get(guild_id, {}).get('presentation_channel')  # Récupère l'ID du salon de présentation
+    presentation_channel_id = bot.guild_data.get(guild_id, {}).get('presentation_channel')  # Récupère l'ID du salon de présentation
 
     # Si le salon est configuré
     if presentation_channel_id:
@@ -4864,7 +4860,7 @@ async def presentation(interaction: discord.Interaction):
     else:
         # Si aucun salon de présentation n'est configuré, avertir l'utilisateur
         await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
-        
+
 
 # Classe pour le formulaire de présentation
 class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
@@ -4873,49 +4869,22 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
     passion = discord.ui.TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True)
     bio = discord.ui.TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True)
 
-    async def on_submit(self, interaction: discord.Interaction):
+   @bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
+async def presentation(interaction: discord.Interaction):
+    # Récupérer l'ID du salon de présentation configuré pour ce serveur
+    guild_id = interaction.guild.id  # ID du serveur actuel
+    presentation_channel_id = bot.guild_data.get(guild_id, {}).get('presentation_channel')  # Récupère l'ID du salon de présentation
+
+    # Si le salon est configuré
+    if presentation_channel_id:
         try:
-            # Créer un embed de présentation
-            embed = discord.Embed(
-                title=f"Présentation de {interaction.user.name}",
-                description="Une nouvelle présentation a été partagée avec nous ! 🎉",
-                color=discord.Color.blue()  # Définir la couleur par défaut (bleu)
-            )
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
-            
-            # Dynamique de couleur selon l'âge de l'utilisateur
-            age = int(self.age.value)
-            if age < 18:
-                embed.color = discord.Color.green()  # Si l'âge est inférieur à 18 ans
-            elif age < 30:
-                embed.color = discord.Color.orange()  # Si l'âge est compris entre 18 et 30
-            else:
-                embed.color = discord.Color.red()  # Si l'âge est supérieur à 30
-
-            # Ajout des champs à l'embed
-            embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
-            embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
-            embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
-            embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
-            embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id} | Envoyé le: {discord.utils.format_dt(interaction.created_at, style='F')}")
-
-            # Récupérer l'ID du salon de présentation configuré pour ce serveur
-            guild_id = interaction.guild.id
-            presentation_channel_id = self.bot.guild_data.get(guild_id, {}).get('presentation_channel')
-
-            # Si le salon de présentation est configuré, envoyer l'embed dans ce salon
-            if presentation_channel_id:
-                channel = interaction.guild.get_channel(presentation_channel_id)
-                if channel:
-                    await channel.send(embed=embed)
-                    await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès ! Nous sommes impatients de mieux te connaître.", ephemeral=True)
-                else:
-                    await interaction.response.send_message("❌ Erreur : Salon de présentation introuvable.", ephemeral=True)
-            else:
-                await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez contacter un administrateur.", ephemeral=True)
-
+            # Envoi direct du modal pour remplir la présentation
+            await interaction.response.send_modal(PresentationForm())
         except Exception as e:
             await interaction.response.send_message(f"❌ Une erreur s'est produite : {str(e)}", ephemeral=True)
+    else:
+        # Si aucun salon de présentation n'est configuré, avertir l'utilisateur
+        await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
 
 
 @bot.command()
