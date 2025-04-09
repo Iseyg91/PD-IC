@@ -1233,12 +1233,12 @@ def create_protection_embed(protection_data):
     )
 
     for label, value in get_protection_options().items():
-        protection_status = protection_data.get(value, "Non configuré")
-        status = "🔴 Désactivée" if protection_status == "Non configuré" else "🟢 Activée"
+        protection_status = protection_data.get(value, "Off")
+        status = "🟢 **On**" if protection_status == "On" else "🔴 **Off**"
         embed.add_field(
             name=f"{label} ({status})",
             value=f"État actuel : **{protection_status}**\n\n"
-                  f"Vous pouvez choisir d'activer ou de désactiver cette protection.",
+                  f"Vous pouvez choisir de mettre cette protection sur **On** ou **Off**.",
             inline=False
         )
 
@@ -1266,33 +1266,24 @@ async def get_protection_data(guild_id):
 def create_default_protection_data(guild_id):
     return {
         "_id": str(guild_id),
-        "anti_massban": "Non configuré",
-        "anti_masskick": "Non configuré",
-        "anti_bot": "Non configuré",
-        "anti_createchannel": "Non configuré",
-        "anti_deletechannel": "Non configuré",
-        "anti_createrole": "Non configuré",
-        "anti_deleterole": "Non configuré",
+        "anti_massban": "Off",
+        "anti_masskick": "Off",
+        "anti_bot": "Off",
+        "anti_createchannel": "Off",
+        "anti_deletechannel": "Off",
+        "anti_createrole": "Off",
+        "anti_deleterole": "Off",
         "whitelist": []
     }
 
 # Fonction pour mettre à jour les paramètres de protection
-async def update_protection(guild_id, field, value, guild):
+async def update_protection(guild_id, field, value, guild, ctx):
     try:
-        print(f"Début de la mise à jour des protections pour le guild_id {guild_id}.")
-        
-        if value not in ["activer", "désactiver"]:
-            raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
-        
-        print(f"Valeur '{value}' pour le champ '{field}' est valide.")
+        if value not in ["on", "off"]:
+            raise ValueError("La valeur doit être 'on' ou 'off'.")
 
-        # Mise à jour dans la base de données sans await, car update_one retourne déjà un résultat immédiat
-        print(f"Mise à jour du champ '{field}' avec la valeur '{value}' dans la base de données.")
-        result = collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})  # Retirer 'await'
-        
-        # Débogage : afficher le contenu de result
-        print(f"Résultat de l'update: {result}")
-        print(f"modified_count: {result.modified_count}")
+        # Mise à jour dans la base de données
+        result = collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
         
         # Vérification si la mise à jour a bien été effectuée
         if result.modified_count == 0:
@@ -1300,25 +1291,34 @@ async def update_protection(guild_id, field, value, guild):
         else:
             print(f"Modification effectuée avec succès pour {field} dans le guild_id {guild_id}.")
 
-        # Envoi du MP à l'owner du serveur
+        # Envoi du MP à l'owner du serveur avec un embed
         owner = guild.owner
         if owner:
+            embed = discord.Embed(
+                title="🔒 **Mise à jour de la protection**",
+                description=f"**{ctx.author.name}** a mis à jour une protection sur votre serveur.",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="Protection modifiée",
+                value=f"**Protection** : {field}\n"
+                      f"**Nouvelle valeur** : {value.capitalize()}",
+                inline=False
+            )
+            embed.set_footer(text=f"Serveur : {guild.name} | {guild.id}")
             try:
-                print(f"Envoi d'un MP à l'owner du serveur {guild_id} ({owner.name}).")
-                await owner.send(f"🔒 **Mise à jour de la protection sur votre serveur :**\n"
-                                 f"Le paramètre `{field}` a été mis à jour à **{value}**.")
-                print(f"MP envoyé avec succès à {owner.name}.")
+                await owner.send(embed=embed)
             except discord.Forbidden:
                 print(f"Impossible d'envoyer un MP à {owner.name}, permissions insuffisantes.")
             except Exception as e:
-                print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild_id}: {e}")
-        else:
-            print(f"Aucun owner trouvé pour le serveur {guild_id}.")
-            
+                print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild.id}: {e}")
+        
+        # Retourne le résultat de l'update
+        return result
+
     except Exception as e:
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
-
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
@@ -1364,12 +1364,12 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                 return
 
             selected_value = select.values[0]
-            current_value = protection_data.get(selected_value, "Non configuré")
+            current_value = protection_data.get(selected_value, "Off")
 
             # Envoie un message avec l'état actuel de la protection
             await interaction.response.send_message(
                 f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
-                "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
+                "🔄 **Quel est le nouvel état ?** (on/off)",
                 ephemeral=True
             )
 
@@ -1381,13 +1381,22 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                 msg = await bot.wait_for("message", check=check, timeout=60.0)
                 new_value = msg.content.lower()
 
-                if new_value not in ["activer", "désactiver"]:
-                    await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `activer` ou `désactiver`.", ephemeral=True)
+                if new_value not in ["on", "off"]:
+                    await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `on` ou `off`.", ephemeral=True)
                     return
 
                 # Appel de la mise à jour de la protection avec validation
-                await update_protection(guild_id, selected_value, new_value, ctx.guild)
-                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
+                await update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
+                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
+
+                # Suppression du message de l'utilisateur une fois qu'il a confirmé
+                await msg.delete()
+
+                # Actualisation de l'embed
+                updated_data = await get_protection_data(guild_id)
+                updated_embed = create_protection_embed(updated_data)
+                await interaction.edit_original_message(embed=updated_embed, view=view)
+
             except asyncio.TimeoutError:
                 await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
             except Exception as e:
@@ -1403,7 +1412,6 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
         print(f"Erreur dans send_select_menu: {e}")
         await ctx.send(f"❌ Une erreur est survenue lors de la configuration de la protection : {str(e)}", ephemeral=True)
 
-
 # Retourne les options de protection avec des labels clairs
 def get_protection_options():
     return {
@@ -1416,7 +1424,6 @@ def get_protection_options():
         "Anti-deleterole 🛡️": "anti_deleterole",
         "Whitelist 🔑": "whitelist"
     }
-
 #------------------------------------------------------------------------- Code Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
