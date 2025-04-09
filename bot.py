@@ -116,37 +116,37 @@ start_time = None
 start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
 @bot.event
 async def on_ready():
-    import datetime, time, random, asyncio, discord
+    print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
-    # Initialisation du temps de démarrage et de l'uptime
-    bot.start_time = datetime.datetime.utcnow()
+    # Initialisation de l'uptime du bot
     bot.uptime = time.time()
-
-    print(f"\n✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
-
-    # Récupération des statistiques
+    
+    # Récupération du nombre de serveurs et d'utilisateurs
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
-
+    
+    # Affichage des statistiques du bot dans la console
     print(f"\n📊 **Statistiques du bot :**")
     print(f"➡️ **Serveurs** : {guild_count}")
     print(f"➡️ **Utilisateurs** : {member_count}")
-
+    
     # Liste des activités dynamiques
     activity_types = [
         discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
         discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
         discord.Activity(type=discord.ActivityType.streaming, name="Etherya"),
     ]
-
+    
+    # Sélection d'une activité au hasard
+    activity = random.choice(activity_types)
+    
+    # Choix d'un statut aléatoire
     status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
-
-    # Choix initial aléatoire
-    initial_activity = random.choice(activity_types)
-    initial_status = random.choice(status_types)
-
-    await bot.change_presence(activity=initial_activity, status=initial_status)
-
+    status = random.choice(status_types)
+    
+    # Mise à jour du statut et de l'activité
+    await bot.change_presence(activity=activity, status=status)
+    
     print(f"\n🎉 **{bot.user}** est maintenant connecté et affiche ses statistiques dynamiques avec succès !")
 
     # Afficher les commandes chargées
@@ -155,21 +155,20 @@ async def on_ready():
         print(f"- {command.name}")
 
     try:
-        synced = await bot.tree.sync()
+        # Synchroniser les commandes avec Discord
+        synced = await bot.tree.sync()  # Synchronisation des commandes slash
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
 
-    # Chargement des paramètres de chaque serveur
-    for guild in bot.guilds:
-        GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
-
-    # Boucle de mise à jour du statut
+    # Jongler entre différentes activités et statuts
     while True:
         for activity in activity_types:
             for status in status_types:
                 await bot.change_presence(status=status, activity=activity)
-                await asyncio.sleep(10)
+                await asyncio.sleep(10)  # Attente de 10 secondes avant de changer l'activité et le statut
+    for guild in bot.guilds:
+        GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
 
 # Gestion des erreurs globales pour toutes les commandes
@@ -541,91 +540,6 @@ async def on_guild_remove(guild):
     await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-
-@bot.tree.command(name="statut")
-async def statut(interaction: discord.Interaction):
-    try:
-        # Message d'attente pendant que les données sont récupérées
-        await interaction.response.defer()
-
-        # Récupération des informations en parallèle
-        latency_task = asyncio.create_task(get_latency())
-        premium_task = asyncio.create_task(get_premium_servers_count())
-        members_task = asyncio.create_task(get_server_members_count(interaction.guild))
-        uptime_task = asyncio.create_task(get_bot_uptime())
-        memory_task = asyncio.create_task(get_bot_memory_usage())
-
-        # Récupérer les résultats de toutes les tâches
-        latency, premium_count, member_count, uptime, memory_usage = await asyncio.gather(
-            latency_task, premium_task, members_task, uptime_task, memory_task
-        )
-
-        # Déterminer la couleur de l'embed en fonction de la latence
-        color = discord.Color.green() if latency < 100 else discord.Color.orange() if latency < 200 else discord.Color.red()
-
-        # Création de l'embed
-        embed = discord.Embed(
-            title="🤖 Statut du Bot",
-            description="Le bot est actuellement en ligne et opérationnel.",
-            color=color
-        )
-
-        # Ajout des informations dans l'embed
-        embed.add_field(name="Version", value="Bot v1.0", inline=True)
-        embed.add_field(name="Serveurs Premium", value=f"**{premium_count}** serveurs premium activés.", inline=True)
-        embed.add_field(name="Latence", value=f"{latency:.2f} ms", inline=True)
-        embed.add_field(name="Membres sur le serveur", value=f"{member_count} membres actifs", inline=True)
-        embed.add_field(name="Uptime du Bot", value=uptime, inline=True)
-        embed.add_field(name="Utilisation Mémoire", value=f"{memory_usage} MB", inline=True)
-
-        # Informations sur l'environnement
-        embed.add_field(name="Environnement", value=f"{platform.system()} {platform.release()} - Python {platform.python_version()}", inline=False)
-
-        # Footer dynamique
-        embed.set_footer(text=f"Bot géré par Etherya | {bot.user.name}")
-
-        # Ajouter le thumbnail du bot
-        embed.set_thumbnail(url=bot.user.avatar.url)
-
-        # Envoi du message avec l'embed
-        await interaction.followup.send(embed=embed)
-
-    except Exception as e:
-        # Gestion d'erreur plus détaillée
-        await interaction.followup.send(
-            f"Une erreur est survenue lors de la récupération du statut du bot : {str(e)}"
-        )
-
-
-# Fonction pour récupérer la latence du bot
-async def get_latency():
-    return bot.latency * 1000  # Retourne la latence en millisecondes
-
-
-# Fonction pour récupérer le nombre de serveurs premium
-async def get_premium_servers_count():
-    return len(premium_servers)
-
-
-# Fonction pour récupérer le nombre de membres sur le serveur
-async def get_server_members_count(guild):
-    return len(guild.members)
-
-
-async def get_bot_uptime():
-    now = datetime.datetime.utcnow()  # Utilisation correcte de datetime.datetime
-    uptime_seconds = int((now - bot.start_time).total_seconds())
-    uptime = str(datetime.timedelta(seconds=uptime_seconds))
-    return uptime
-
-
-# Fonction pour récupérer l'utilisation de la mémoire du bot
-async def get_bot_memory_usage():
-    # Utilisation de psutil pour obtenir l'utilisation mémoire du processus Python
-    process = psutil.Process()
-    memory_info = process.memory_info()
-    memory_usage_mb = memory_info.rss / (1024 * 1024)  # Convertir en Mo
-    return round(memory_usage_mb, 2)
 
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
