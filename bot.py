@@ -593,8 +593,17 @@ async def premium(interaction: discord.Interaction, code: str):
             premium_data["used_codes"].append(code)
             data["setup_premium"] = premium_data
 
-            # Sauvegarder les données mises à jour
-            save_guild_settings(interaction.guild.id, data)
+collection2.update_one(
+    {"guild_id": interaction.guild.id},
+    {
+        "$set": {
+            "guild_name": interaction.guild.name,
+            "is_premium": True,
+            "used_codes": premium_data["used_codes"]
+        }
+    },
+    upsert=True
+)
 
             embed = discord.Embed(
                 title="✅ Serveur Premium Activé",
