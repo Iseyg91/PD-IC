@@ -41,7 +41,7 @@ collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
 collection5 = db['sondage'] #Salon Sondage
 collection6 = db['suggestion'] #Salon Suggestion
-collection7 = db['presentation'] "Salon Presentation
+collection7 = db['presentation'] #Salon Presentation
 collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
