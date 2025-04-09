@@ -3619,6 +3619,7 @@ async def uptime(ctx):
         color=discord.Color.blue()
     )
     embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
+    await ctx.send(embed=embed)
 
 BOUNTY_CHANNEL_ID = 1355298449829920950  # Salon où les victoires sont annoncées
 PRIME_IMAGE_URL = "https://cdn.gamma.app/m6u5udkwwfl3cxy/generated-images/MUnIIu5yOv6nMFAXKteig.jpg"
