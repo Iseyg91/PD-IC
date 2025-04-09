@@ -4878,9 +4878,16 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
 
 @bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
 async def presentation(interaction: discord.Interaction):
-    # Récupérer l'ID du salon de présentation configuré pour ce serveur
-    guild_id = interaction.guild.id  # ID du serveur actuel
-    presentation_channel_id = bot.guild_data.get(guild_id, {}).get('presentation_channel')  # Récupère l'ID du salon de présentation
+    guild_id = interaction.guild.id
+    presentation_channel_id = bot.guild_data.get(guild_id, {}).get('presentation_channel')
+
+    if presentation_channel_id:
+        presentation_channel = interaction.guild.get_channel(presentation_channel_id)
+        # Envoie l'embed dans le salon de présentation
+        await presentation_channel.send(embed=embed)
+    else:
+        await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
+n
 
 @bot.command()
 @commands.has_permissions(administrator=True)
