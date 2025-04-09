@@ -1331,40 +1331,47 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
         select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
+        if not select.values:
+            await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
+            return
 
-        async def select_callback(interaction):
-            if not select.values:
-                await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
-                return
-            
-            selected_value = select.values[0]
-            current_value = protection_data.get(selected_value, "Non configuré")
 
-            # Envoie un message avec l'état actuel de la protection
-            await interaction.response.send_message(
-                f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
-                "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
-                ephemeral=True
-            )
+async def select_callback(interaction):
+    if not select.values:
+        await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
+        return
 
-            # Attente de la réponse de l'utilisateur
-            def check(msg):
-                return msg.author == interaction.user and msg.channel == interaction.channel
+    selected_value = select.values[0]
+    current_value = protection_data.get(selected_value, "Non configuré")
 
-            # Attente de message dans le chat et réactivité sur le bon message
-            try:
-                msg = await bot.wait_for("message", check=check, timeout=60.0)
-                new_value = msg.content.lower()
+    # Envoie un message avec l'état actuel de la protection
+    await interaction.response.send_message(
+        f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
+        "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
+        ephemeral=True
+    )
 
-                if new_value not in ["activer", "désactiver"]:
-                    await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `activer` ou `désactiver`.", ephemeral=True)
-                    return
+    # Attente de la réponse de l'utilisateur
+    def check(msg):
+        return msg.author == interaction.user and msg.channel == interaction.channel
 
-                # Appel de la mise à jour de la protection avec validation
-                await update_protection(guild_id, selected_value, new_value, ctx.guild)
-                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
-            except asyncio.TimeoutError:
-                await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
+    try:
+        msg = await bot.wait_for("message", check=check, timeout=60.0)
+        new_value = msg.content.lower()
+
+        if new_value not in ["activer", "désactiver"]:
+            await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `activer` ou `désactiver`.", ephemeral=True)
+            return
+
+        # Appel de la mise à jour de la protection avec validation
+        await update_protection(guild_id, selected_value, new_value, ctx.guild)
+        await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
+    except asyncio.TimeoutError:
+        await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+        print(f"Erreur lors de la gestion de l'interaction : {str(e)}")
+
 
         select.callback = select_callback
         view = View()
