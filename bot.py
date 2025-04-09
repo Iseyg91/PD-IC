@@ -21,6 +21,7 @@ import pymongo
 from pymongo import MongoClient
 import psutil
 import platform
+from discord.ui import Modal, TextInput
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
