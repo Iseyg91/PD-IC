@@ -1217,26 +1217,18 @@ async def setup(ctx):
 # Fonction pour créer l'embed de protection
 def create_protection_embed():
     embed = discord.Embed(
-        title="Protection du serveur",
-        description="Voici les protections que vous pouvez configurer pour ce serveur.",
-        color=discord.Color.blue()  # Changez la couleur si nécessaire
+        title="🔒 Protection du serveur",
+        description="Voici les protections que vous pouvez configurer pour ce serveur. Sélectionnez une option ci-dessous pour modifier l'état de la protection.",
+        color=discord.Color.blue()
     )
-
     embed.add_field(
-        name="🔒 Protection actuelle",
-        value="Les protections de votre serveur sont en place. Vous pouvez les modifier.",
+        name="📌 Protection actuelle",
+        value="Vous pouvez modifier les protections de votre serveur selon vos préférences.",
         inline=False
     )
-
-    embed.add_field(
-        name="🛡️ Pour modifier une protection",
-        value="Utilisez le menu de sélection ci-dessous pour modifier les paramètres de protection.",
-        inline=False
-    )
-
     return embed
 
-# Fonction pour récupérer les données de protection
+# Fonction pour récupérer les données de protection depuis la base de données
 async def get_protection_data(guild_id):
     try:
         data = await collection4.find_one({"_id": str(guild_id)})
@@ -1261,18 +1253,18 @@ async def get_protection_data(guild_id):
         print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
         return {}
 
-# Fonction pour mettre à jour les données de protection
+# Fonction pour mettre à jour les paramètres de protection
 async def update_protection(guild_id, field, value):
-    await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+    try:
+        await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+    except Exception as e:
+        print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
 
 async def is_authorized(ctx):
-    if ctx.author.id == AUTHORIZED_USER_ID:
-        return True
-
-    if ctx.author.guild_permissions.administrator:
+    if ctx.author.id == AUTHORIZED_USER_ID or ctx.author.guild_permissions.administrator:
         return True
 
     guild_id = str(ctx.guild.id)
@@ -1282,28 +1274,22 @@ async def is_authorized(ctx):
 
     return False
 
-# Commande de protection
+# Commande principale pour la gestion de la protection
 @bot.command()
 async def protection(ctx):
-    try:
-        if not await is_authorized(ctx):
-            await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
-            return
+    if not await is_authorized(ctx):
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
 
-        guild_id = str(ctx.guild.id)
-        protection_data = await get_protection_data(guild_id)
-        
-        # Ajout d'une vérification pour protection_data
-        if protection_data is None:
-            protection_data = {}  # Utiliser un dictionnaire vide si aucune donnée n'est trouvée
-            await ctx.send("⚠️ Aucune donnée de protection trouvée, configuration par défaut appliquée.", ephemeral=True)
+    guild_id = str(ctx.guild.id)
+    protection_data = await get_protection_data(guild_id)
+    
+    # Vérification des données de protection
+    if not protection_data:
+        await ctx.send("⚠️ Aucune donnée de protection trouvée, configuration par défaut appliquée.", ephemeral=True)
 
-        embed = create_protection_embed()
-        await send_select_menu(ctx, embed, protection_data, guild_id)
-
-    except Exception as e:
-        await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-        print(f"Erreur dans la commande protection: {e}")
+    embed = create_protection_embed()
+    await send_select_menu(ctx, embed, protection_data, guild_id)
 
 # Fonction pour envoyer le menu de sélection
 async def send_select_menu(ctx, embed, protection_data, guild_id):
