@@ -3902,7 +3902,7 @@ async def calcul(interaction: discord.Interaction, nombre1: float, operation: st
 
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="calcul_%", description="Calcule un pourcentage d'un nombre")
+@bot.tree.command(name="calcul_pourcentage", description="Calcule un pourcentage d'un nombre")
 @app_commands.describe(nombre="Le nombre de base", pourcentage="Le pourcentage à appliquer (ex: 15 pour 15%)")
 async def calcul(interaction: discord.Interaction, nombre: float, pourcentage: float):
     await interaction.response.defer()  # ✅ Correctement placé à l'intérieur de la fonction
