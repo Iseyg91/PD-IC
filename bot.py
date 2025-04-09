@@ -91,24 +91,17 @@ def get_premium_servers():
     premium_docs = collection2.find({}, {"_id": 0, "guild_id": 1})
     return {doc["guild_id"] for doc in premium_docs}
 
-# Fonction pour charger les paramètres de serveur, primes et récompenses
 def load_guild_settings(guild_id):
     # Charger les données de la collection principale
     setup_data = collection.find_one({"guild_id": guild_id}) or {}
-    
-    # Charger les données de la collection premium
     setup_premium_data = collection2.find_one({"guild_id": guild_id}) or {}
-    
-    # Charger les données de la collection bounty (primes et récompenses)
     bounty_data = collection3.find_one({"guild_id": guild_id}) or {}
-
-    # Charger les données de la collection protection
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
-
-    # Charger les données de la collection Idées
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
 
-    # Combiner les données dans un dictionnaire
+    # Débogage : Afficher les données de setup
+    print(f"Setup data for guild {guild_id}: {setup_data}")
+
     combined_data = {
         "setup": setup_data,
         "setup_premium": setup_premium_data,
@@ -116,8 +109,9 @@ def load_guild_settings(guild_id):
         "protection": protection_data,
         "idees": idees_data
     }
-    
+
     return combined_data
+
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
@@ -4907,6 +4901,8 @@ async def presentation(interaction: discord.Interaction):
     
     # Récupérer l'ID du salon de présentation depuis les paramètres du serveur
     presentation_channel_id = guild_settings.get('setup', {}).get('presentation_channel')
+    if not presentation_channel_id:
+        print("Salon de présentation non trouvé dans la base de données pour le serveur")
 
     # Vérifier si le salon de présentation est configuré
     if presentation_channel_id:
