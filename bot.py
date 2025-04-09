@@ -22,12 +22,12 @@ from pymongo import MongoClient
 import psutil
 import platform
 from discord.ui import Modal, TextInput
+from discord.utils import get
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
 start_time = time.time()
 client = discord.Client(intents=intents)
-bot = commands.Bot(command_prefix="+", intents=intents, help_command=None)
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -111,7 +111,12 @@ def load_guild_settings(guild_id):
     }
 
     return combined_data
+# Fonction pour récupérer le préfixe depuis la base de données
+async def get_prefix(bot, message):
+    guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
+    return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
+bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
@@ -3326,19 +3331,31 @@ async def send_dm(member, action, reason, duration=None):
 @bot.command()
 async def ban(ctx, member: discord.Member = None, *, reason="Aucune raison spécifiée"):
     if member is None:
-        return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à bannir.")
+        return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre ou fournir un ID pour bannir.")
 
-    if ctx.author == member:
+    # Si le membre fourni est une mention
+    if isinstance(member, discord.Member):
+        target_member = member
+    else:
+        # Si le membre est un ID
+        target_member = get(ctx.guild.members, id=int(member))
+
+    # Si le membre est introuvable dans le serveur
+    if target_member is None:
+        return await ctx.send("❌ Aucun membre trouvé avec cet ID ou mention.")
+
+    if ctx.author == target_member:
         return await ctx.send("🚫 Vous ne pouvez pas vous bannir vous-même.")
-    if is_higher_or_equal(ctx, member):
+    
+    if is_higher_or_equal(ctx, target_member):
         return await ctx.send("🚫 Vous ne pouvez pas sanctionner quelqu'un de votre niveau ou supérieur.")
+    
     if has_permission(ctx, "ban_members"):
-        await member.ban(reason=reason)
-        embed = create_embed("🔨 Ban", f"{member.mention} a été banni.", discord.Color.red(), ctx, member, "Ban", reason)
+        await target_member.ban(reason=reason)
+        embed = create_embed("🔨 Ban", f"{target_member.mention} a été banni.", discord.Color.red(), ctx, target_member, "Ban", reason)
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Ban", reason)
-        await send_dm(member, "Ban", reason)
-
+        await send_log(ctx, target_member, "Ban", reason)
+        await send_dm(target_member, "Ban", reason)
 
 @bot.command()
 async def unban(ctx, user_id: int = None):
