@@ -1214,16 +1214,18 @@ async def setup(ctx):
     await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
-# Fonction pour créer l'embed de protection
+# Fonction pour créer un embed de protection avec une mise en page améliorée
 def create_protection_embed():
     embed = discord.Embed(
-        title="🔒 Protection du serveur",
-        description="Voici les protections que vous pouvez configurer pour ce serveur. Sélectionnez une option ci-dessous pour modifier l'état de la protection.",
+        title="🔒 **Protection du Serveur**",
+        description="Voici les protections disponibles que vous pouvez configurer pour ce serveur. "
+                    "Sélectionnez une protection à modifier en utilisant le menu ci-dessous.",
         color=discord.Color.blue()
     )
     embed.add_field(
-        name="📌 Protection actuelle",
-        value="Vous pouvez modifier les protections de votre serveur selon vos préférences.",
+        name="📌 **Protection actuelle**",
+        value="Les protections actuellement activées ou désactivées sur votre serveur. "
+              "Choisissez ci-dessous celle que vous souhaitez ajuster.",
         inline=False
     )
     return embed
@@ -1234,36 +1236,61 @@ async def get_protection_data(guild_id):
         data = await collection4.find_one({"_id": str(guild_id)})
 
         if not data:
-            data = {
-                "_id": str(guild_id),
-                "anti_massban": "Non configuré",
-                "anti_masskick": "Non configuré",
-                "anti_bot": "Non configuré",
-                "anti_createchannel": "Non configuré",
-                "anti_deletechannel": "Non configuré",
-                "anti_createrole": "Non configuré",
-                "anti_deleterole": "Non configuré",
-                "whitelist": []
-            }
+            # Crée un document avec des valeurs par défaut si aucune donnée n'existe
+            data = create_default_protection_data(guild_id)
             await collection4.insert_one(data)
             print(f"Document créé pour le guild_id {guild_id} avec les valeurs par défaut.")
         
         return data
     except Exception as e:
+        # Gère l'erreur de manière plus informative
         print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
         return {}
 
+# Fonction pour créer des données de protection par défaut
+def create_default_protection_data(guild_id):
+    return {
+        "_id": str(guild_id),
+        "anti_massban": "Non configuré",
+        "anti_masskick": "Non configuré",
+        "anti_bot": "Non configuré",
+        "anti_createchannel": "Non configuré",
+        "anti_deletechannel": "Non configuré",
+        "anti_createrole": "Non configuré",
+        "anti_deleterole": "Non configuré",
+        "whitelist": []
+    }
+
 # Fonction pour mettre à jour les paramètres de protection
-async def update_protection(guild_id, field, value):
+async def update_protection(guild_id, field, value, guild):
     try:
+        # Vérifie que la valeur est valide avant de l'appliquer
+        if value not in ["activer", "désactiver"]:
+            raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
+        
         await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+
+        # Envoi du MP à l'owner du serveur
+        owner = guild.owner  # Récupère l'owner du serveur
+        if owner:
+            try:
+                # Envoi d'un MP à l'owner pour l'informer du changement
+                await owner.send(f"🔒 **Mise à jour de la protection sur votre serveur :**\n"
+                                 f"Le paramètre `{field}` a été mis à jour à **{value}**.")
+            except discord.Forbidden:
+                print(f"Impossible d'envoyer un MP à {owner.name}, permissions insuffisantes.")
+            except Exception as e:
+                print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild_id}: {e}")
     except Exception as e:
+        # Gère les erreurs de mise à jour de manière détaillée
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
+        raise
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
 
 async def is_authorized(ctx):
+    """Vérifie si l'utilisateur a l'autorisation de modifier les protections"""
     if ctx.author.id == AUTHORIZED_USER_ID or ctx.author.guild_permissions.administrator:
         return True
 
@@ -1274,49 +1301,49 @@ async def is_authorized(ctx):
 
     return False
 
-# Commande principale pour la gestion de la protection
+# Commande principale pour gérer la protection
 @bot.command()
 async def protection(ctx):
+    """Commande principale pour afficher les protections et les modifier"""
     if not await is_authorized(ctx):
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires pour effectuer cette action.", ephemeral=True)
         return
 
     guild_id = str(ctx.guild.id)
     protection_data = await get_protection_data(guild_id)
-    
-    # Vérification des données de protection
+
     if not protection_data:
-        await ctx.send("⚠️ Aucune donnée de protection trouvée, configuration par défaut appliquée.", ephemeral=True)
+        await ctx.send("⚠️ Aucune donnée de protection trouvée. La configuration par défaut a été appliquée.", ephemeral=True)
 
     embed = create_protection_embed()
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
-# Fonction pour envoyer le menu de sélection
+# Fonction pour envoyer le menu de sélection interactif
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
-        options = [
-            discord.SelectOption(label=f"{label}", value=value)
-            for label, value in get_protection_options().items()
-        ]
+        options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
         select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
 
         async def select_callback(interaction):
             selected_value = select.values[0]
             current_value = protection_data.get(selected_value, "Non configuré")
 
+            # Envoie un message avec l'état actuel de la protection
             await interaction.response.send_message(
                 f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
                 "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
                 ephemeral=True
             )
 
+            # Attente de la réponse de l'utilisateur
             def check(msg):
                 return msg.author == interaction.user and msg.channel == interaction.channel
 
             msg = await bot.wait_for("message", check=check)
             new_value = msg.content.lower()
 
-            await update_protection(guild_id, selected_value, new_value)
+            # Appel de la mise à jour de la protection avec validation
+            await update_protection(guild_id, selected_value, new_value, ctx.guild)
             await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
 
         select.callback = select_callback
@@ -1326,7 +1353,7 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
 
     except Exception as e:
         print(f"Erreur dans send_select_menu: {e}")
-        await ctx.send(f"❌ Une erreur est survenue lors de la configuration de la protection. {str(e)}", ephemeral=True)
+        await ctx.send(f"❌ Une erreur est survenue lors de la configuration de la protection : {str(e)}", ephemeral=True)
 
 # Retourne les options de protection avec des labels clairs
 def get_protection_options():
