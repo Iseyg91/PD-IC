@@ -1533,7 +1533,6 @@ sensitive_words = [
 ]
 
 ADMIN_ID = 792755123587645461
-TARGET_ID = 792755123587645461
 
 @bot.event
 async def on_message(message):
@@ -1640,9 +1639,7 @@ async def send_alert_to_admin(message, detected_word):
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
-
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
-
 private_threads = {}  # Stocke les fils privés des nouveaux membres
 
 ETHERYA_SERVER_ID = 1034007767050104892  # L'ID du serveur Etherya
@@ -3087,8 +3084,8 @@ async def prison(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
     # Gestion des rôles
-    role_remove = discord.utils.get(ctx.guild.roles, id=1344407004739014706)
-    role_add = discord.utils.get(ctx.guild.roles, id=1344453363261116468)
+    role_remove = discord.utils.get(ctx.guild.roles, id=1355190216188497951)
+    role_add = discord.utils.get(ctx.guild.roles, id=1359562052552622215)
 
     if role_remove:
         await member.remove_roles(role_remove)
@@ -3122,8 +3119,8 @@ async def arrestation(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
     # Gestion des rôles
-    role_remove = discord.utils.get(ctx.guild.roles, id=1344407004739014706)
-    role_add = discord.utils.get(ctx.guild.roles, id=1344453363261116468)
+    role_remove = discord.utils.get(ctx.guild.roles, id=1355190216188497951)
+    role_add = discord.utils.get(ctx.guild.roles, id=1359562052552622215)
 
     if role_remove:
         await member.remove_roles(role_remove)
@@ -3157,8 +3154,8 @@ async def liberation(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
     # Gestion des rôles
-    role_add = discord.utils.get(ctx.guild.roles, id=1344407004739014706)
-    role_remove = discord.utils.get(ctx.guild.roles, id=1344453363261116468)
+    role_add = discord.utils.get(ctx.guild.roles, id=1355190216188497951)
+    role_remove = discord.utils.get(ctx.guild.roles, id=1359562052552622215)
 
     if role_add:
         await member.add_roles(role_add)
@@ -3190,9 +3187,9 @@ async def evasion(ctx):
     await ctx.send(embed=embed)
 
     # Gestion des rôles
-    role_add = discord.utils.get(ctx.guild.roles, id=1344407004739014706)
-    role_remove_1 = discord.utils.get(ctx.guild.roles, id=1344453363261116468)
-    role_remove_2 = discord.utils.get(ctx.guild.roles, id=1344591867068809268)
+    role_add = discord.utils.get(ctx.guild.roles, id=1355190216188497951)
+    role_remove_1 = discord.utils.get(ctx.guild.roles, id=1359562052552622215)
+    role_remove_2 = discord.utils.get(ctx.guild.roles, id=1357435690463531271)
 
     if role_add:
         await member.add_roles(role_add)
@@ -3228,8 +3225,8 @@ async def cautionpayer(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
     # Gestion des rôles
-    role_remove = discord.utils.get(ctx.guild.roles, id=1344453363261116468)
-    role_remove = discord.utils.get(ctx.guild.roles, id=1347165421958205470)
+    role_remove = discord.utils.get(ctx.guild.roles, id=1359562052552622215)
+    role_remove = discord.utils.get(ctx.guild.roles, id=1357435690463531271)
     if role_remove:
         await member.remove_roles(role_remove)
 
