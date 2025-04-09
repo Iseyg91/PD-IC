@@ -12,6 +12,7 @@ import sys
 import traceback
 from keep_alive import keep_alive
 from discord.ui import Button, View
+from datetime import datetime
 from discord.ui import View, Select
 from discord.ext import tasks
 from collections import defaultdict
@@ -110,16 +111,8 @@ def load_guild_settings(guild_id):
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Variable globale pour start_time
-start_time = None
-
-start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
-
 @bot.event
 async def on_ready():
-    global start_time
-    start_time = time.time()  # Défini l'heure de démarrage lorsque le bot est prêt
-    print(f'{bot.user} est prêt et l\'uptime est maintenant calculable.')
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
     # Initialisation de l'uptime du bot
@@ -544,6 +537,90 @@ async def on_guild_remove(guild):
     await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
+
+@bot.tree.command(name="statut")
+async def statut(interaction: discord.Interaction):
+    try:
+        # Message d'attente pendant que les données sont récupérées
+        await interaction.response.defer()
+
+        # Récupération des informations en parallèle
+        latency_task = asyncio.create_task(get_latency())
+        premium_task = asyncio.create_task(get_premium_servers_count())
+        members_task = asyncio.create_task(get_server_members_count(interaction.guild))
+        uptime_task = asyncio.create_task(get_bot_uptime())
+        memory_task = asyncio.create_task(get_bot_memory_usage())
+
+        # Récupérer les résultats de toutes les tâches
+        latency, premium_count, member_count, uptime, memory_usage = await asyncio.gather(
+            latency_task, premium_task, members_task, uptime_task, memory_task
+        )
+
+        # Déterminer la couleur de l'embed en fonction de la latence
+        color = discord.Color.green() if latency < 100 else discord.Color.orange() if latency < 200 else discord.Color.red()
+
+        # Création de l'embed
+        embed = discord.Embed(
+            title="🤖 Statut du Bot",
+            description="Le bot est actuellement en ligne et opérationnel.",
+            color=color
+        )
+
+        # Ajout des informations dans l'embed
+        embed.add_field(name="Version", value="Bot v1.0", inline=True)
+        embed.add_field(name="Serveurs Premium", value=f"**{premium_count}** serveurs premium activés.", inline=True)
+        embed.add_field(name="Latence", value=f"{latency:.2f} ms", inline=True)
+        embed.add_field(name="Membres sur le serveur", value=f"{member_count} membres actifs", inline=True)
+        embed.add_field(name="Uptime du Bot", value=uptime, inline=True)
+        embed.add_field(name="Utilisation Mémoire", value=f"{memory_usage} MB", inline=True)
+
+        # Informations sur l'environnement
+        embed.add_field(name="Environnement", value=f"{platform.system()} {platform.release()} - Python {platform.python_version()}", inline=False)
+
+        # Footer dynamique
+        embed.set_footer(text=f"Bot géré par Etherya | {bot.user.name}")
+
+        # Ajouter le thumbnail du bot
+        embed.set_thumbnail(url=bot.user.avatar.url)
+
+        # Envoi du message avec l'embed
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        # Gestion d'erreur plus détaillée
+        await interaction.followup.send(
+            f"Une erreur est survenue lors de la récupération du statut du bot : {str(e)}"
+        )
+
+# Fonction pour récupérer la latence du bot
+async def get_latency():
+    return bot.latency * 1000  # Retourne la latence en millisecondes
+
+
+# Fonction pour récupérer le nombre de serveurs premium
+async def get_premium_servers_count():
+    return len(premium_servers)
+
+
+# Fonction pour récupérer le nombre de membres sur le serveur
+async def get_server_members_count(guild):
+    return len(guild.members)
+
+
+async def get_bot_uptime():
+    now = datetime.datetime.utcnow()  # Utilisation correcte de datetime.datetime
+    uptime_seconds = int((now - bot.start_time).total_seconds())
+    uptime = str(datetime.timedelta(seconds=uptime_seconds))
+    return uptime
+
+
+# Fonction pour récupérer l'utilisation de la mémoire du bot
+async def get_bot_memory_usage():
+    # Utilisation de psutil pour obtenir l'utilisation mémoire du processus Python
+    process = psutil.Process()
+    memory_info = process.memory_info()
+    memory_usage_mb = memory_info.rss / (1024 * 1024)  # Convertir en Mo
+    return round(memory_usage_mb, 2)
 
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
@@ -1899,6 +1976,7 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
+#---------------------------------------------------------------------------- Snipe Isey:
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
@@ -2089,6 +2167,7 @@ async def help(ctx):
             new_embed.add_field(name="🔓 +addwl", value="Ajoute un membre à la **whitelist** pour qu'il soit **ignoré** par les protections du bot 🛡️.\n*Permet d'exempter certains utilisateurs des actions de sécurité comme l'anti-spam ou l'anti-lien.*", inline=False)
             new_embed.add_field(name="❌ +removewl", value="Supprime un membre de la **whitelist** pour qu'il soit de nouveau **sujet aux protections** du bot 🛡️.\n*Utilisé pour réactiver les actions de sécurité contre l'utilisateur.*", inline=False)
             new_embed.add_field(name="🔍 +listwl", value="Affiche la **liste des membres sur la whitelist** du bot 🛡️.\n*Permet de voir quels utilisateurs sont exemptés des protections du bot.*", inline=False)
+
             new_embed.set_footer(text="♥️ by Iseyg")
         if category == "Gestion":
             new_embed.title = "🔨 **Commandes de Gestion**"
@@ -2127,18 +2206,18 @@ async def help(ctx):
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Modération":
             new_embed.title = "🔑 **Commandes Modération**"
+            new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur 🎤.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
+            new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal** 🎤.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
+            new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté 🚀.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
+            new_embed.set_footer(text="♥️ by Iseyg")
+        elif category == "Bot":
+            new_embed.title = "🔑 **Commandes Bot**"
             new_embed.add_field(name="🚫 +ban @user", value="Exile un membre du serveur pour un comportement inacceptable .\nL'action de bannir un utilisateur est irréversible et est utilisée pour des infractions graves aux règles du serveur.*", inline=False)
             new_embed.add_field(name="🚔 +unban @user", value="Lève le bannissement d'un utilisateur, lui permettant de revenir sur le serveur .\nUnban un utilisateur qui a été banni, après examen du cas et décision du staff..*", inline=False)
             new_embed.add_field(name="⚖️ +mute @user", value="Rend un utilisateur silencieux en l'empêchant de parler pendant un certain temps .\nUtilisé pour punir les membres qui perturbent le serveur par des messages intempestifs ou offensants.", inline=False)
             new_embed.add_field(name="🔓 +unmute @user", value="Annule le silence imposé à un utilisateur et lui redonne la possibilité de communiquer 🔊.\nPermet à un membre de reprendre la parole après une période de mute.", inline=False)
             new_embed.add_field(name="⚠️ +warn @user", value="Avertit un utilisateur pour un comportement problématique ⚠.\nUn moyen de signaler qu'un membre a enfreint une règle mineure, avant de prendre des mesures plus sévères.", inline=False)
             new_embed.add_field(name="🚪 +kick @user", value="Expulse un utilisateur du serveur pour une infraction moins grave .\nUn kick expulse temporairement un membre sans le bannir, pour des violations légères des règles.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        elif category == "Bot":
-            new_embed.title = "🪡 **Commandes Bot**"
-            new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur 🎤.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
-            new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal** 🎤.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
-            new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté 🚀.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Économie":
             new_embed.title = "⚖️ **Commandes Économie**"
@@ -2433,30 +2512,6 @@ async def zizi(ctx, member: discord.Member = None):
     embed = discord.Embed(
         title="Analyse de la taille du zizi 🔥", 
         description=f"{member.mention} a un zizi de **{value} cm** !\n\n*La taille varie selon l'humeur du membre.*", 
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-
-    # Envoyer l'embed
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def boobs(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-    
-    # Générer une valeur aléatoire entre 0 et 28 cm
-    bonnets = ['Bonnet A', 'Bonnet B', 'Bonnet C', 'Bonnet D', 'Bonnet E', 'Bonnet F', 'Bonnet G', 'Bonnet H', 'Bonnet I', 'Bonnet J', 'Bonnet K']
-
-    # Choisir un bonnet aléatoire parmi les bonnets définis
-    value = random.choice(bonnets)
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title="Analyse de la taille de la poitrine 🙍‍♀️", 
-        description=f"{member.mention} a une poitrine de **{value}** !\n\n*La taille varie selon l'humeur du membre.*", 
         color=discord.Color.blue()
     )
     embed.set_thumbnail(url=member.avatar.url)
@@ -3650,7 +3705,6 @@ async def uptime(ctx):
         color=discord.Color.blue()
     )
     embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
 
 BOUNTY_CHANNEL_ID = 1355298449829920950  # Salon où les victoires sont annoncées
 PRIME_IMAGE_URL = "https://cdn.gamma.app/m6u5udkwwfl3cxy/generated-images/MUnIIu5yOv6nMFAXKteig.jpg"
