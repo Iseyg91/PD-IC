@@ -1272,6 +1272,7 @@ def create_default_protection_data(guild_id):
         "whitelist": []
     }
 
+# Fonction pour mettre à jour les paramètres de protection
 async def update_protection(guild_id, field, value, guild):
     try:
         print(f"Début de la mise à jour des protections pour le guild_id {guild_id}.")
@@ -1281,9 +1282,9 @@ async def update_protection(guild_id, field, value, guild):
         
         print(f"Valeur '{value}' pour le champ '{field}' est valide.")
 
-        # Mise à jour dans la base de données
+        # Mise à jour dans la base de données sans await, car update_one retourne déjà un résultat immédiat
         print(f"Mise à jour du champ '{field}' avec la valeur '{value}' dans la base de données.")
-        result = await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+        result = collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})  # Retirer 'await'
         
         # Débogage : afficher le contenu de result
         print(f"Résultat de l'update: {result}")
@@ -1313,6 +1314,7 @@ async def update_protection(guild_id, field, value, guild):
     except Exception as e:
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
+
 
 # Vérification de l'autorisation de l'utilisateur
 AUTHORIZED_USER_ID = 792755123587645461
