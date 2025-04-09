@@ -1263,89 +1263,61 @@ async def is_authorized(ctx):
 
 @bot.command()
 async def protection(ctx):
-    if not await is_authorized(ctx):
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
-        return
+    try:
+        if not await is_authorized(ctx):
+            await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+            return
 
-    guild_id = str(ctx.guild.id)
-    protection_data = await get_protection_data(guild_id)
-    
-    if protection_data is None:
-        await ctx.send("❌ Erreur lors de la récupération des données de protection.", ephemeral=True)
-        return
+        guild_id = str(ctx.guild.id)
+        protection_data = await get_protection_data(guild_id)
+        
+        if protection_data is None:
+            await ctx.send("❌ Erreur lors de la récupération des données de protection.", ephemeral=True)
+            return
 
-    embed = create_protection_embed()
-    await send_select_menu(ctx, embed, protection_data, guild_id)
+        embed = create_protection_embed()
+        await send_select_menu(ctx, embed, protection_data, guild_id)
 
-# Retourne les données de protection par défaut
-def get_default_protection_data():
-    return {
-        "anti_massban": "Non configuré",
-        "anti_masskick": "Non configuré",
-        "anti_bot": "Non configuré",
-        "anti_createchannel": "Non configuré",
-        "anti_deletechannel": "Non configuré",
-        "anti_createrole": "Non configuré",
-        "anti_deleterole": "Non configuré",
-        "whitelist": "Non configuré"
-    }
+    except Exception as e:
+        await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+        print(f"Erreur dans la commande protection: {e}")
 
-# Crée l'embed pour les protections avec des emojis et des descriptions plus engageantes
-def create_protection_embed():
-    embed = discord.Embed(
-        title="🔒 Protection Avancée",
-        description="Voici les protections avancées proposées par ce bot :",
-        color=discord.Color.blue()
-    )
-
-    protections = [
-        ("⚔️ Anti-massban", "🔨 Protection contre les bans massifs (trop de bans en peu de temps)."),
-        ("👢 Anti-masskick", "🛑 Protection contre les kicks massifs (trop de kicks en peu de temps)."),
-        ("🤖 Anti-bot", "🚫 Protection contre les bots non autorisés sur le serveur."),
-        ("📂 Anti-createchannel", "🛑 Protection contre la création de nouveaux salons sans autorisation."),
-        ("❌ Anti-deletechannel", "⚠️ Protection contre la suppression de salons importants."),
-        ("🎭 Anti-createrole", "🚫 Protection contre la création de nouveaux rôles non autorisés."),
-        ("🛡️ Anti-deleterole", "⚔️ Protection contre la suppression de rôles importants."),
-        ("🔑 Whitelist", "✅ Permet d'ignorer certaines personnes des protections.")
-    ]
-
-    for label, description in protections:
-        embed.add_field(name=label, value=description, inline=False)
-
-    embed.set_footer(text="Choisissez une option pour modifier la protection.")
-    return embed
-
+# Ajoute une gestion d'erreur dans send_select_menu aussi
 async def send_select_menu(ctx, embed, protection_data, guild_id):
-    options = [
-        discord.SelectOption(label=f"{label}", value=value)
-        for label, value in get_protection_options().items()
-    ]
-    select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
+    try:
+        options = [
+            discord.SelectOption(label=f"{label}", value=value)
+            for label, value in get_protection_options().items()
+        ]
+        select = Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
 
-    async def select_callback(interaction):
-        selected_value = select.values[0]
-        current_value = protection_data.get(selected_value, "Non configuré")
+        async def select_callback(interaction):
+            selected_value = select.values[0]
+            current_value = protection_data.get(selected_value, "Non configuré")
 
-        await interaction.response.send_message(
-            f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
-            "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
-            ephemeral=True
-        )
+            await interaction.response.send_message(
+                f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
+                "🔄 **Quel est le nouvel état ?** (activer/désactiver)",
+                ephemeral=True
+            )
 
-        def check(msg):
-            return msg.author == interaction.user and msg.channel == interaction.channel
+            def check(msg):
+                return msg.author == interaction.user and msg.channel == interaction.channel
 
-        msg = await bot.wait_for("message", check=check)
-        new_value = msg.content.lower()
+            msg = await bot.wait_for("message", check=check)
+            new_value = msg.content.lower()
 
-        await update_protection(guild_id, selected_value, new_value)
-        await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
+            await update_protection(guild_id, selected_value, new_value)
+            await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
 
-    select.callback = select_callback
-    view = View()
-    view.add_item(select)
-    await ctx.send(embed=embed, view=view)
+        select.callback = select_callback
+        view = View()
+        view.add_item(select)
+        await ctx.send(embed=embed, view=view)
 
+    except Exception as e:
+        print(f"Erreur dans send_select_menu: {e}")
+        await ctx.send(f"❌ Une erreur est survenue lors de la configuration de la protection. {str(e)}", ephemeral=True)
 
 # Retourne les options de protection avec des labels clairs
 def get_protection_options():
