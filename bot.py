@@ -104,6 +104,9 @@ def load_guild_settings(guild_id):
     # Charger les données de la collection protection
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
 
+    # Charger les données de la collection Idées
+    idees_data = collection8.find_one({"guild_id": guild_id}) or {}
+
     # Combiner les données dans un dictionnaire
     combined_data = {
         "setup": setup_data,
