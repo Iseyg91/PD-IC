@@ -114,40 +114,39 @@ GUILD_SETTINGS = {}
 start_time = None
 
 start_time = time.time()  # Assurez-vous que ceci est défini au démarrage du bot.
-
 @bot.event
 async def on_ready():
-    print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
+    import datetime, time, random, asyncio, discord
 
-    # Initialisation de l'uptime du bot
+    # Initialisation du temps de démarrage et de l'uptime
+    bot.start_time = datetime.datetime.utcnow()
     bot.uptime = time.time()
-    
-    # Récupération du nombre de serveurs et d'utilisateurs
+
+    print(f"\n✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
+
+    # Récupération des statistiques
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
-    
-    # Affichage des statistiques du bot dans la console
+
     print(f"\n📊 **Statistiques du bot :**")
     print(f"➡️ **Serveurs** : {guild_count}")
     print(f"➡️ **Utilisateurs** : {member_count}")
-    
+
     # Liste des activités dynamiques
     activity_types = [
         discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
         discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
         discord.Activity(type=discord.ActivityType.streaming, name="Etherya"),
     ]
-    
-    # Sélection d'une activité au hasard
-    activity = random.choice(activity_types)
-    
-    # Choix d'un statut aléatoire
+
     status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
-    status = random.choice(status_types)
-    
-    # Mise à jour du statut et de l'activité
-    await bot.change_presence(activity=activity, status=status)
-    
+
+    # Choix initial aléatoire
+    initial_activity = random.choice(activity_types)
+    initial_status = random.choice(status_types)
+
+    await bot.change_presence(activity=initial_activity, status=initial_status)
+
     print(f"\n🎉 **{bot.user}** est maintenant connecté et affiche ses statistiques dynamiques avec succès !")
 
     # Afficher les commandes chargées
@@ -156,20 +155,21 @@ async def on_ready():
         print(f"- {command.name}")
 
     try:
-        # Synchroniser les commandes avec Discord
-        synced = await bot.tree.sync()  # Synchronisation des commandes slash
+        synced = await bot.tree.sync()
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
 
-    # Jongler entre différentes activités et statuts
+    # Chargement des paramètres de chaque serveur
+    for guild in bot.guilds:
+        GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
+
+    # Boucle de mise à jour du statut
     while True:
         for activity in activity_types:
             for status in status_types:
                 await bot.change_presence(status=status, activity=activity)
-                await asyncio.sleep(10)  # Attente de 10 secondes avant de changer l'activité et le statut
-    for guild in bot.guilds:
-        GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
+                await asyncio.sleep(10)
 
 
 # Gestion des erreurs globales pour toutes les commandes
@@ -998,7 +998,7 @@ class InfoSelect(Select):
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-            discord.SelectOption(label="📝 Salon Rapports", value="reports_channel"),
+            discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
             discord.SelectOption(label="✨Salon Suggestion:", value="suggestion_channel"),
             discord.SelectOption(label="📊Salon Sondage:", value="sondage_channel"),
         ]
