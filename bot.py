@@ -562,7 +562,6 @@ async def premium(interaction: discord.Interaction, code: str):
         # Vérifier si le code est valide
         if code in valid_codes:
             if code in premium_data["used_codes"]:
-                # Code déjà utilisé
                 embed = discord.Embed(
                     title="❌ Code déjà utilisé",
                     description="Ce code premium a déjà été utilisé. Vous ne pouvez pas l'utiliser à nouveau.",
@@ -571,7 +570,6 @@ async def premium(interaction: discord.Interaction, code: str):
                 await interaction.followup.send(embed=embed)
                 return
 
-            # Vérifier si le serveur est déjà premium
             if data.get("is_premium", False):
                 embed = discord.Embed(
                     title="⚠️ Serveur déjà Premium",
@@ -593,17 +591,18 @@ async def premium(interaction: discord.Interaction, code: str):
             premium_data["used_codes"].append(code)
             data["setup_premium"] = premium_data
 
-collection2.update_one(
-    {"guild_id": interaction.guild.id},
-    {
-        "$set": {
-            "guild_name": interaction.guild.name,
-            "is_premium": True,
-            "used_codes": premium_data["used_codes"]
-        }
-    },
-    upsert=True
-)
+            # ✅ ICI : indentation correcte
+            collection2.update_one(
+                {"guild_id": interaction.guild.id},
+                {
+                    "$set": {
+                        "guild_name": interaction.guild.name,
+                        "is_premium": True,
+                        "used_codes": premium_data["used_codes"]
+                    }
+                },
+                upsert=True
+            )
 
             embed = discord.Embed(
                 title="✅ Serveur Premium Activé",
@@ -618,8 +617,8 @@ collection2.update_one(
             embed.set_footer(text="Merci d'utiliser nos services premium.")
             embed.set_thumbnail(url=interaction.guild.icon.url)
             await interaction.followup.send(embed=embed)
+
         else:
-            # Code invalide
             embed = discord.Embed(
                 title="❌ Code Invalide",
                 description="Le code que vous avez entré est invalide. Veuillez vérifier votre code ou contactez le support.",
@@ -641,6 +640,7 @@ collection2.update_one(
 
     except Exception as e:
         await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
+
 
 @bot.tree.command(name="viewpremium")
 async def viewpremium(interaction: discord.Interaction):
@@ -4788,6 +4788,24 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
 async def presentation(interaction: discord.Interaction):
     # Envoi direct du modal
     await interaction.response.send_modal(PresentationForm())
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def lock(ctx):
+    """Empêche @everyone de parler dans le salon actuel (admin only)."""
+    overwrite = ctx.channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = False
+    await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send("🔒 Salon verrouillé. Seuls les rôles autorisés peuvent parler.")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def unlock(ctx):
+    """Autorise @everyone à parler dans le salon actuel (admin only)."""
+    overwrite = ctx.channel.overwrites_for(ctx.guild.default_role)
+    overwrite.send_messages = True
+    await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
+    await ctx.send("🔓 Salon déverrouillé. Tout le monde peut parler à nouveau.")
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
