@@ -1502,18 +1502,28 @@ AUTHORIZED_USER_ID = 792755123587645461
 
 @bot.command()
 async def addwl(ctx, member: discord.Member):
-    if ctx.author.id != AUTHORIZED_USER_ID:
-        return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
-    
-    guild_id = str(ctx.guild.id)
-    data = await get_protection_data(guild_id)
+    try:
+        if ctx.author.id != AUTHORIZED_USER_ID:
+            return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
+        
+        guild_id = str(ctx.guild.id)
+        data = await get_protection_data(guild_id)
 
-    if member.id not in data.get("whitelist", []):
-        data["whitelist"].append(member.id)
-        await update_protection(guild_id, "whitelist", data["whitelist"])
-        await ctx.send(f"{member} a été ajouté à la whitelist.")
-    else:
-        await ctx.send(f"{member} est déjà dans la whitelist.")
+        if "whitelist" not in data:
+            data["whitelist"] = []  # Assurer qu'il existe une clé "whitelist"
+
+        if member.id not in data["whitelist"]:
+            data["whitelist"].append(member.id)
+            await update_protection(guild_id, "whitelist", data["whitelist"])
+            await ctx.send(f"{member} a été ajouté à la whitelist.")
+        else:
+            await ctx.send(f"{member} est déjà dans la whitelist.")
+    
+    except Exception as e:
+        # Log l'erreur pour aider à diagnostiquer le problème
+        print(f"Erreur dans la commande addwl : {e}")
+        await ctx.send("Une erreur est survenue lors de l'ajout à la whitelist.")
+
 
 @bot.command()
 async def removewl(ctx, member: discord.Member):
