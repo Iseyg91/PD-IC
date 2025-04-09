@@ -84,6 +84,11 @@ def update_protection(guild_id, protection_key, new_value):
         upsert=True
     )
 
+def get_premium_servers():
+    """Récupère les IDs des serveurs premium depuis la base de données."""
+    premium_docs = collection2.find({}, {"_id": 0, "guild_id": 1})
+    return {doc["guild_id"] for doc in premium_docs}
+
 # Fonction pour charger les paramètres de serveur, primes et récompenses
 def load_guild_settings(guild_id):
     # Charger les données de la collection principale
@@ -435,7 +440,8 @@ class ServerInfoView(View):
 @bot.command()
 async def serverinfoall(ctx):
     if ctx.author.id == BOT_OWNER_ID:  # Assurez-vous que seul l'owner peut voir ça
-        view = ServerInfoView(ctx, bot, bot.guilds, premium_servers)
+        premium_server_ids = get_premium_servers()
+        view = ServerInfoView(ctx, bot, bot.guilds, premium_server_ids)
         embed = await view.create_embed()
         await ctx.send(embed=embed, view=view)
     else:
@@ -473,6 +479,8 @@ async def iseyg(ctx):
         await ctx.send("❌ Seul l'owner du bot peut exécuter cette commande.")
 
 #-------------------------------------------------------------------------- Bot Join:
+ISEY_ID = 792755123587645461
+ 
 @bot.event
 async def on_guild_join(guild):
     isey = await bot.fetch_user(ISEY_ID)
