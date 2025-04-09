@@ -122,28 +122,32 @@ async def get_prefix(bot, message):
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
-# Fonction pour obtenir les données de protection
 async def get_protection_data(guild_id):
-    # Cherche dans la collection 'protection'
-    data = await collection4.find_one({"_id": str(guild_id)})
-    
-    # Si aucune donnée n'est trouvée, crée un document avec des valeurs par défaut
-    if not data:
-        data = {
-            "_id": str(guild_id),
-            "anti_massban": "Non configuré",
-            "anti_masskick": "Non configuré",
-            "anti_bot": "Non configuré",
-            "anti_createchannel": "Non configuré",
-            "anti_deletechannel": "Non configuré",
-            "anti_createrole": "Non configuré",
-            "anti_deleterole": "Non configuré",
-            "whitelist": []
-        }
-        # Insertion du document avec les données par défaut
-        await collection4.insert_one(data)
-    
-    return data
+    try:
+        # Cherche dans la collection 'protection'
+        data = await collection4.find_one({"_id": str(guild_id)})
+
+        # Si aucune donnée n'est trouvée, crée un document avec des valeurs par défaut
+        if not data:
+            data = {
+                "_id": str(guild_id),
+                "anti_massban": "Non configuré",
+                "anti_masskick": "Non configuré",
+                "anti_bot": "Non configuré",
+                "anti_createchannel": "Non configuré",
+                "anti_deletechannel": "Non configuré",
+                "anti_createrole": "Non configuré",
+                "anti_deleterole": "Non configuré",
+                "whitelist": []
+            }
+            # Insertion du document avec les données par défaut
+            await collection4.insert_one(data)
+            print(f"Document créé pour le guild_id {guild_id} avec les valeurs par défaut.")
+        
+        return data
+    except Exception as e:
+        print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
+        return {}  # Retourne un dictionnaire vide en cas d'erreur
 
 async def update_protection(guild_id, field, value):
     await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})  # Remplacer protection_col par collection4
@@ -1271,9 +1275,10 @@ async def protection(ctx):
         guild_id = str(ctx.guild.id)
         protection_data = await get_protection_data(guild_id)
         
+        # Ajout d'une vérification pour protection_data
         if protection_data is None:
-            await ctx.send("❌ Erreur lors de la récupération des données de protection.", ephemeral=True)
-            return
+            protection_data = {}  # Utiliser un dictionnaire vide si aucune donnée n'est trouvée
+            await ctx.send("⚠️ Aucune donnée de protection trouvée, configuration par défaut appliquée.", ephemeral=True)
 
         embed = create_protection_embed()
         await send_select_menu(ctx, embed, protection_data, guild_id)
