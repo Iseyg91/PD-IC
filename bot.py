@@ -1218,16 +1218,28 @@ async def setup(ctx):
 def create_protection_embed():
     embed = discord.Embed(
         title="🔒 **Protection du Serveur**",
-        description="Voici les protections disponibles que vous pouvez configurer pour ce serveur. "
-                    "Sélectionnez une protection à modifier en utilisant le menu ci-dessous.",
+        description="Voici les protections que vous pouvez configurer pour votre serveur. "
+                    "Vous pouvez activer ou désactiver ces protections en utilisant le menu ci-dessous. "
+                    "Cliquez sur une option pour la configurer.",
         color=discord.Color.blue()
     )
+    embed.set_thumbnail(url="https://example.com/image.png")  # Remplacez l'URL par une image pertinente
+
     embed.add_field(
         name="📌 **Protection actuelle**",
-        value="Les protections actuellement activées ou désactivées sur votre serveur. "
-              "Choisissez ci-dessous celle que vous souhaitez ajuster.",
+        value="Les protections actuelles de votre serveur sont affichées ci-dessous. "
+              "Sélectionnez celle que vous souhaitez modifier.",
         inline=False
     )
+    embed.add_field(
+        name="⚙️ **Modifications disponibles**",
+        value="Modifiez les paramètres de sécurité de votre serveur facilement. "
+              "Pour chaque protection, vous pouvez choisir de l'activer ou de la désactiver.",
+        inline=False
+    )
+
+    embed.set_footer(text="Bot Protection | Servir votre sécurité ⚔️")
+
     return embed
 
 # Fonction pour récupérer les données de protection depuis la base de données
@@ -1243,7 +1255,6 @@ async def get_protection_data(guild_id):
         
         return data
     except Exception as e:
-        # Gère l'erreur de manière plus informative
         print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
         return {}
 
@@ -1264,17 +1275,15 @@ def create_default_protection_data(guild_id):
 # Fonction pour mettre à jour les paramètres de protection
 async def update_protection(guild_id, field, value, guild):
     try:
-        # Vérifie que la valeur est valide avant de l'appliquer
         if value not in ["activer", "désactiver"]:
             raise ValueError("La valeur doit être 'activer' ou 'désactiver'.")
         
         await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
 
         # Envoi du MP à l'owner du serveur
-        owner = guild.owner  # Récupère l'owner du serveur
+        owner = guild.owner
         if owner:
             try:
-                # Envoi d'un MP à l'owner pour l'informer du changement
                 await owner.send(f"🔒 **Mise à jour de la protection sur votre serveur :**\n"
                                  f"Le paramètre `{field}` a été mis à jour à **{value}**.")
             except discord.Forbidden:
@@ -1282,7 +1291,6 @@ async def update_protection(guild_id, field, value, guild):
             except Exception as e:
                 print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild_id}: {e}")
     except Exception as e:
-        # Gère les erreurs de mise à jour de manière détaillée
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
 
@@ -1339,12 +1347,20 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
             def check(msg):
                 return msg.author == interaction.user and msg.channel == interaction.channel
 
-            msg = await bot.wait_for("message", check=check)
-            new_value = msg.content.lower()
+            # Attente de message dans le chat et réactivité sur le bon message
+            try:
+                msg = await bot.wait_for("message", check=check, timeout=60.0)
+                new_value = msg.content.lower()
 
-            # Appel de la mise à jour de la protection avec validation
-            await update_protection(guild_id, selected_value, new_value, ctx.guild)
-            await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
+                if new_value not in ["activer", "désactiver"]:
+                    await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `activer` ou `désactiver`.", ephemeral=True)
+                    return
+
+                # Appel de la mise à jour de la protection avec validation
+                await update_protection(guild_id, selected_value, new_value, ctx.guild)
+                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value}**.", ephemeral=True)
+            except asyncio.TimeoutError:
+                await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
 
         select.callback = select_callback
         view = View()
