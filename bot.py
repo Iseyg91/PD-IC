@@ -804,6 +804,7 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
                 embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
                 embed.add_field(name="✨Salon Suggestion:", value=format_mention(self.guild_data.get('suggestion_channel', 'Non défini'), "channel"), inline=False)
                 embed.add_field(name="📊Salon Sondage:", value=format_mention(self.guild_data.get('sondage_channel', 'Non défini'), "channel"), inline=False)
+                embed.add_field(name="🥂Salon Présentation", value=format_mention(self.guild_data.get('presentation_channel', 'Non défini'), "channel"), inline=False)
             except Exception as e:
                 print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
                 traceback.print_exc()
@@ -934,9 +935,10 @@ class InfoSelect(Select):
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-            discord.SelectOption(label="📝 Salon Rapports", value="reports_channel"),
+            discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
             discord.SelectOption(label="✨Salon Suggestion:", value="suggestion_channel"),
             discord.SelectOption(label="📊Salon Sondage:", value="sondage_channel"),
+            discord.SelectOption(label="🥂Salon Presentation:", value="presentation_channel"),
         ]
         super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
         self.view_ctx = view
@@ -4845,10 +4847,26 @@ async def snipe(ctx, index: int = 1):
 
     await ctx.send(embed=embed)
 
-GUILD_ID = 1034007767050104892  # Remplace par l'ID de ton serveur
-CHANNEL_ID = 1355157891358920836  # Remplace par l'ID du salon où envoyer l'embed
+# Commande Slash /presentation
+@bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
+async def presentation(interaction: discord.Interaction):
+    # Récupérer l'ID du salon de présentation configuré pour ce serveur
+    guild_id = interaction.guild.id  # ID du serveur actuel
+    presentation_channel_id = self.guild_data.get(guild_id, {}).get('presentation_channel')  # Récupère l'ID du salon de présentation
 
-# Création du formulaire (modal)
+    # Si le salon est configuré
+    if presentation_channel_id:
+        try:
+            # Envoi direct du modal pour remplir la présentation
+            await interaction.response.send_modal(PresentationForm())
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Une erreur s'est produite : {str(e)}", ephemeral=True)
+    else:
+        # Si aucun salon de présentation n'est configuré, avertir l'utilisateur
+        await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
+        
+
+# Classe pour le formulaire de présentation
 class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
     pseudo = discord.ui.TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True)
     age = discord.ui.TextInput(label="Ton âge", placeholder="Ex: 18", required=True)
@@ -4856,30 +4874,49 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
     bio = discord.ui.TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True)
 
     async def on_submit(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title=f"Présentation de {interaction.user.name}",
-            description="Une nouvelle présentation vient d'être envoyée ! 🎉",
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
-        embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
-        embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
-        embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
-        embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
-        embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id}")
+        try:
+            # Créer un embed de présentation
+            embed = discord.Embed(
+                title=f"Présentation de {interaction.user.name}",
+                description="Une nouvelle présentation a été partagée avec nous ! 🎉",
+                color=discord.Color.blue()  # Définir la couleur par défaut (bleu)
+            )
+            embed.set_thumbnail(url=interaction.user.display_avatar.url)
+            
+            # Dynamique de couleur selon l'âge de l'utilisateur
+            age = int(self.age.value)
+            if age < 18:
+                embed.color = discord.Color.green()  # Si l'âge est inférieur à 18 ans
+            elif age < 30:
+                embed.color = discord.Color.orange()  # Si l'âge est compris entre 18 et 30
+            else:
+                embed.color = discord.Color.red()  # Si l'âge est supérieur à 30
 
-        channel = bot.get_channel(CHANNEL_ID)
-        if channel:
-            await channel.send(embed=embed)
-            await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès !", ephemeral=True)
-        else:
-            await interaction.response.send_message("❌ Erreur : Salon introuvable.", ephemeral=True)
+            # Ajout des champs à l'embed
+            embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
+            embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
+            embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
+            embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
+            embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id} | Envoyé le: {discord.utils.format_dt(interaction.created_at, style='F')}")
 
-# Commande Slash /presentation
-@bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter !")
-async def presentation(interaction: discord.Interaction):
-    # Envoi direct du modal
-    await interaction.response.send_modal(PresentationForm())
+            # Récupérer l'ID du salon de présentation configuré pour ce serveur
+            guild_id = interaction.guild.id
+            presentation_channel_id = self.bot.guild_data.get(guild_id, {}).get('presentation_channel')
+
+            # Si le salon de présentation est configuré, envoyer l'embed dans ce salon
+            if presentation_channel_id:
+                channel = interaction.guild.get_channel(presentation_channel_id)
+                if channel:
+                    await channel.send(embed=embed)
+                    await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès ! Nous sommes impatients de mieux te connaître.", ephemeral=True)
+                else:
+                    await interaction.response.send_message("❌ Erreur : Salon de présentation introuvable.", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez contacter un administrateur.", ephemeral=True)
+
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Une erreur s'est produite : {str(e)}", ephemeral=True)
+
 
 @bot.command()
 @commands.has_permissions(administrator=True)
