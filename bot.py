@@ -123,11 +123,7 @@ async def get_prefix(bot, message):
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
 async def get_protection_data(guild_id):
-    if collection4 is None:
-        raise ValueError("La collection MongoDB n'a pas été initialisée.")
-    
     data = await collection4.find_one({"_id": str(guild_id)})
-    
     if not data:
         data = {
             "_id": str(guild_id),
@@ -140,9 +136,8 @@ async def get_protection_data(guild_id):
             "anti_deleterole": "Non configuré",
             "whitelist": []
         }
-        await collection4.insert_one(data)  # Utilisez collection4 ici
+        await collection4.insert_one(data)  # Insertion des données par défaut
     return data
-
 
 async def update_protection(guild_id, field, value):
     await collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})  # Remplacer protection_col par collection4
@@ -1268,6 +1263,11 @@ async def protection(ctx):
 
     guild_id = str(ctx.guild.id)
     protection_data = await get_protection_data(guild_id)
+    
+    if protection_data is None:
+        await ctx.send("❌ Erreur lors de la récupération des données de protection.", ephemeral=True)
+        return
+
     embed = create_protection_embed()
     await send_select_menu(ctx, embed, protection_data, guild_id)
 
