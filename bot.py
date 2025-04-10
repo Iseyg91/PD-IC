@@ -1250,15 +1250,16 @@ def create_protection_embed(protection_data):
      icon_url="https://cdn-icons-png.flaticon.com/512/3064/3064197.png"
  )
 
-last_updated = protection_data.get("last_updated")
-if last_updated:
-    embed.add_field(
-        name="📅 Dernière mise à jour",
-        value=f"{last_updated.strftime('%d/%m/%Y %H:%M:%S')} UTC",
-        inline=False
-    )
+    last_updated = protection_data.get("last_updated")
+    if last_updated:
+        embed.add_field(
+            name="📅 Dernière mise à jour",
+            value=f"{last_updated.strftime('%d/%m/%Y %H:%M:%S')} UTC",
+            inline=False
+        )
 
-    return embed
+    return embed  # Retourner l'embed à la fin de la fonction
+
 
 # Fonction pour récupérer les données de protection depuis la base de données
 async def get_protection_data(guild_id):
