@@ -1304,7 +1304,7 @@ async def update_protection(guild_id, field, value, guild, ctx):
             raise ValueError("La valeur doit être 'on' ou 'off'.")
 
         # Mise à jour dans la base de données
-        result = collection4.update_one(
+        result = await collection4.update_one(
     {"_id": str(guild_id)},
     {"$set": {field: value, "last_updated": datetime.utcnow()}}
 )
