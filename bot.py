@@ -1262,20 +1262,19 @@ async def get_protection_data(guild_id):
         print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
         return {}
 
-# Fonction pour créer des données de protection par défaut
 def create_default_protection_data(guild_id):
-return {
-    "_id": str(guild_id),
-    "anti_massban": "Off",
-    "anti_masskick": "Off",
-    "anti_bot": "Off",
-    "anti_createchannel": "Off",
-    "anti_deletechannel": "Off",
-    "anti_createrole": "Off",
-    "anti_deleterole": "Off",
-    "whitelist": [],
-    "last_updated": datetime.utcnow()
-}
+    return {
+        "_id": str(guild_id),
+        "anti_massban": "Off",
+        "anti_masskick": "Off",
+        "anti_bot": "Off",
+        "anti_createchannel": "Off",
+        "anti_deletechannel": "Off",
+        "anti_createrole": "Off",
+        "anti_deleterole": "Off",
+        "whitelist": [],
+        "last_updated": datetime.utcnow()
+    }
 
 
 # Fonction pour mettre à jour les paramètres de protection
