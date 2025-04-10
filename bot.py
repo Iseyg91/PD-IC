@@ -1395,7 +1395,7 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                 # Actualisation de l'embed
                 updated_data = await get_protection_data(guild_id)
                 updated_embed = create_protection_embed(updated_data)
-                await interaction.edit_original_message(embed=updated_embed, view=view)
+                await interaction.message.edit(embed=updated_embed, view=view)
 
             except asyncio.TimeoutError:
                 await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
