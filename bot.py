@@ -1233,17 +1233,16 @@ def create_protection_embed(protection_data):
     )
 
     for label, value in get_protection_options().items():
-        protection_status = protection_data.get(value, "Off")
-        status = "🟢 **On**" if protection_status == "On" else "🔴 **Off**"
+        protection_status = protection_data.get(value, "off").lower()  # Normalisation
+        status = "🟢 **On**" if protection_status == "on" else "🔴 **Off**"
         embed.add_field(
             name=f"{label} ({status})",
-            value=f"État actuel : **{protection_status}**\n\n"
+            value=f"État actuel : **{protection_status.capitalize()}**\n\n"
                   f"Vous pouvez choisir de mettre cette protection sur **On** ou **Off**.",
             inline=False
         )
 
     embed.set_footer(text="Bot Protection | Servir votre sécurité ⚔️")
-
     return embed
 
 # Fonction pour récupérer les données de protection depuis la base de données
