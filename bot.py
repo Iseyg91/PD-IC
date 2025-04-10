@@ -1378,7 +1378,7 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
     for label, value in get_protection_options().items()
 ]
         select = discord.ui.Select(
-            placeholder="🛠️ Sélectionnez une protection à configurer..."
+            placeholder="🛠️ Sélectionnez une protection à configurer...",
             options=options,
             min_values=1,
             max_values=1
