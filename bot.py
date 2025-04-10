@@ -1932,7 +1932,7 @@ async def on_member_join(member):
                 "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
                 "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
                 "- <a:fleche3:1290077283100397672> **<#1355158018517500086>** pour comprendre les bases de l’économie.\n"
-                "- <a:fleche3:1290077283100397672> **<#1355157967510438080>** pour savoir ce que tu peux obtenir.\n\n"
+                "- <a:fleche3:1290077283100397672> **<#1359949279808061591>** pour savoir ce que tu peux obtenir.\n\n"
                 "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
                 "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
             ),
