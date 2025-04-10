@@ -1217,16 +1217,19 @@ async def setup(ctx):
 # Fonction pour créer un embed de protection avec une mise en page améliorée
 def create_protection_embed(protection_data):
     embed = discord.Embed(
-        title="🛡️ Sécurité du Serveur",
-        description=(
-                    "Personnalisez les systèmes de protection de votre serveur Discord. "
-                    "Utilisez le menu déroulant ci-dessous pour activer ou désactiver une protection.\n\n"
-                    "🔄 **Status** : 🟢 Activé | 🔴 Désactivé"
-        ),
-        color=discord.Color.from_rgb(44, 130, 201)
+        title="🛡️ **Sécurité du Serveur**",
+        description="Personnalisez les systèmes de protection de votre serveur Discord. "
+                    "Utilisez le menu déroulant ci-dessous pour activer ou désactiver une protection.",
+        color=discord.Color.blue()
     )
-    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Remplacez l'URL par une image pertinente
-    embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Facultatif pour un rendu plus pro
+    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
+    embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+
+    embed.add_field(
+        name="🔄 **Status Global**",
+        value="🟢 **Activé** | 🔴 **Désactivé**",
+        inline=False
+    )
 
     embed.add_field(
         name="📌 **Protection actuelle**",
@@ -1235,31 +1238,33 @@ def create_protection_embed(protection_data):
         inline=False
     )
 
+    # Affichage de chaque protection sans doublon d'état
     for label, value in get_protection_options().items():
-        protection_status = protection_data.get(value, "off").lower()  # Normalisation
-        status = "🟢 **On**" if protection_status == "on" else "🔴 **Off**"
+        protection_status = protection_data.get(value, "off").lower()
+        status = "🟢 Activé" if protection_status == "on" else "🔴 Désactivé"
+        
         embed.add_field(
-            name=f"{label} ({status})",
-            value=f"**État :** {status}\n"
-                  f"🔧 Cliquez dans le menu ci-dessous pour changer ce paramètre.",
+            name=f"{label} {get_protection_icon(value)}",
+            value=f"État : {status}\n🔧 Cliquez dans le menu ci-dessous pour changer ce paramètre.",
             inline=False
         )
 
-    embed.set_footer(
-     text="Système de sécurité - Dernière mise à jour : automatique lors de votre interaction.",
-     icon_url="https://cdn-icons-png.flaticon.com/512/3064/3064197.png"
- )
+    embed.set_footer(text="Dernière mise à jour automatique lors de l'interaction utilisateur.")
+    return embed
 
-    last_updated = protection_data.get("last_updated")
-    if last_updated:
-        embed.add_field(
-            name="📅 Dernière mise à jour",
-            value=f"{last_updated.strftime('%d/%m/%Y %H:%M:%S')} UTC",
-            inline=False
-        )
-
-    return embed  # Retourner l'embed à la fin de la fonction
-
+# Retourne l'icône correspondante à chaque protection
+def get_protection_icon(protection_key):
+    icon_map = {
+        "anti_massban": "⚔️",
+        "anti_masskick": "👢",
+        "anti_bot": "🤖",
+        "anti_createchannel": "📂",
+        "anti_deletechannel": "❌",
+        "anti_createrole": "🎭",
+        "anti_deleterole": "🛡️",
+        "whitelist": "🔑"
+    }
+    return icon_map.get(protection_key, "🔒")
 
 # Fonction pour récupérer les données de protection depuis la base de données
 async def get_protection_data(guild_id):
