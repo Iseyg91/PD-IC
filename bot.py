@@ -1223,7 +1223,8 @@ def create_protection_embed(protection_data):
                     "Cliquez sur une option pour la configurer.",
         color=discord.Color.blue()
     )
-    embed.set_thumbnail(url="https://example.com/image.png")  # Remplacez l'URL par une image pertinente
+    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Remplacez l'URL par une image pertinente
+    embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Facultatif pour un rendu plus pro
 
     embed.add_field(
         name="📌 **Protection actuelle**",
@@ -1242,7 +1243,7 @@ def create_protection_embed(protection_data):
             inline=False
         )
 
-    embed.set_footer(text="Bot Protection | Servir votre sécurité ⚔️")
+    embed.set_footer(text="Dernière mise à jour automatique lors de l'interaction utilisateur.")
     return embed
 
 # Fonction pour récupérer les données de protection depuis la base de données
@@ -1263,17 +1264,19 @@ async def get_protection_data(guild_id):
 
 # Fonction pour créer des données de protection par défaut
 def create_default_protection_data(guild_id):
-    return {
-        "_id": str(guild_id),
-        "anti_massban": "Off",
-        "anti_masskick": "Off",
-        "anti_bot": "Off",
-        "anti_createchannel": "Off",
-        "anti_deletechannel": "Off",
-        "anti_createrole": "Off",
-        "anti_deleterole": "Off",
-        "whitelist": []
-    }
+return {
+    "_id": str(guild_id),
+    "anti_massban": "Off",
+    "anti_masskick": "Off",
+    "anti_bot": "Off",
+    "anti_createchannel": "Off",
+    "anti_deletechannel": "Off",
+    "anti_createrole": "Off",
+    "anti_deleterole": "Off",
+    "whitelist": [],
+    "last_updated": datetime.utcnow()
+}
+
 
 # Fonction pour mettre à jour les paramètres de protection
 async def update_protection(guild_id, field, value, guild, ctx):
@@ -1282,7 +1285,11 @@ async def update_protection(guild_id, field, value, guild, ctx):
             raise ValueError("La valeur doit être 'on' ou 'off'.")
 
         # Mise à jour dans la base de données
-        result = collection4.update_one({"_id": str(guild_id)}, {"$set": {field: value}})
+        result = collection4.update_one(
+    {"_id": str(guild_id)},
+    {"$set": {field: value, "last_updated": datetime.utcnow()}}
+)
+
         
         # Vérification si la mise à jour a bien été effectuée
         if result.modified_count == 0:
@@ -1353,18 +1360,23 @@ async def protection(ctx):
 
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
-        options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
-        select = discord.ui.Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
+        options = [
+    discord.SelectOption(label=label, value=value, description="Modifier cette protection.")
+    for label, value in get_protection_options().items()
+]
+        select = discord.ui.Select(
+            placeholder="🔄 Choisissez une protection à modifier...",
+            options=options,
+            min_values=1,
+            max_values=1
+        )
 
         view = discord.ui.View()
         view.add_item(select)
 
-        # Envoi du message de menu et stockage pour modification future
-        message = await ctx.send(embed=embed, view=view)
-
-        async def select_callback(interaction):
-            if not select.values:
-                await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
+        async def select_callback(interaction: discord.Interaction):
+            if interaction.user != ctx.author:
+                await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser ce menu.", ephemeral=True)
                 return
 
             selected_value = select.values[0]
@@ -1372,42 +1384,47 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
 
             await interaction.response.send_message(
                 f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
-                "🔄 **Quel est le nouvel état ?** (on/off)",
+                "🔄 **Quel est le nouvel état ?** (`on` ou `off`)",
                 ephemeral=True
             )
 
             def check(msg):
-                return msg.author == interaction.user and msg.channel == interaction.channel
+                return msg.author == ctx.author and msg.channel == ctx.channel
 
             try:
                 msg = await bot.wait_for("message", check=check, timeout=60.0)
                 new_value = msg.content.lower()
 
                 if new_value not in ["on", "off"]:
-                    await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `on` ou `off`.", ephemeral=True)
+                    await interaction.followup.send("❌ Valeur invalide. Veuillez entrer `on` ou `off`.", ephemeral=True)
                     return
 
+                # ✅ Ligne de mise à jour
                 await update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
-                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
 
+                # 🗑️ On supprime le message utilisateur pour garder le salon propre
                 await msg.delete()
 
-                # ✅ Mise à jour des données et du message d'embed
+                # 🔄 On recharge les données et on met à jour l'embed
                 updated_data = await get_protection_data(guild_id)
                 updated_embed = create_protection_embed(updated_data)
-                await message.edit(embed=updated_embed, view=view)
+                await interaction.message.edit(embed=updated_embed, view=view)
+
+                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
 
             except asyncio.TimeoutError:
-                await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
+                await interaction.followup.send("⏳ Temps écoulé. Aucune réponse reçue.", ephemeral=True)
             except Exception as e:
                 await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-                print(f"Erreur lors de la gestion de l'interaction : {str(e)}")
+                print(f"Erreur dans le callback du select : {e}")
 
         select.callback = select_callback
+        await ctx.send(embed=embed, view=view)
 
     except Exception as e:
-        print(f"Erreur dans send_select_menu: {e}")
-        await ctx.send(f"❌ Une erreur est survenue lors de la configuration de la protection : {str(e)}", ephemeral=True)
+        print(f"Erreur dans send_select_menu : {e}")
+        await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+
 
 # Retourne les options de protection avec des labels clairs
 def get_protection_options():
