@@ -1217,11 +1217,13 @@ async def setup(ctx):
 # Fonction pour créer un embed de protection avec une mise en page améliorée
 def create_protection_embed(protection_data):
     embed = discord.Embed(
-        title="🔒 **Protection du Serveur**",
-        description="Voici les protections que vous pouvez configurer pour votre serveur. "
-                    "Vous pouvez activer ou désactiver ces protections en utilisant le menu ci-dessous. "
-                    "Cliquez sur une option pour la configurer.",
-        color=discord.Color.blue()
+        title="🛡️ Sécurité du Serveur",
+        description=(
+                    "Personnalisez les systèmes de protection de votre serveur Discord. "
+                    "Utilisez le menu déroulant ci-dessous pour activer ou désactiver une protection.\n\n"
+                    "🔄 **Status** : 🟢 Activé | 🔴 Désactivé"
+        ),
+        color=discord.Color.from_rgb(44, 130, 201)
     )
     embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")  # Remplacez l'URL par une image pertinente
     embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")  # Facultatif pour un rendu plus pro
@@ -1238,12 +1240,24 @@ def create_protection_embed(protection_data):
         status = "🟢 **On**" if protection_status == "on" else "🔴 **Off**"
         embed.add_field(
             name=f"{label} ({status})",
-            value=f"État actuel : **{protection_status.capitalize()}**\n\n"
-                  f"Vous pouvez choisir de mettre cette protection sur **On** ou **Off**.",
+            value=f"**État :** {status}\n"
+                  f"🔧 Cliquez dans le menu ci-dessous pour changer ce paramètre.",
             inline=False
         )
 
-    embed.set_footer(text="Dernière mise à jour automatique lors de l'interaction utilisateur.")
+    embed.set_footer(
+     text="Système de sécurité - Dernière mise à jour : automatique lors de votre interaction.",
+     icon_url="https://cdn-icons-png.flaticon.com/512/3064/3064197.png"
+ )
+
+last_updated = protection_data.get("last_updated")
+if last_updated:
+    embed.add_field(
+        name="📅 Dernière mise à jour",
+        value=f"{last_updated.strftime('%d/%m/%Y %H:%M:%S')} UTC",
+        inline=False
+    )
+
     return embed
 
 # Fonction pour récupérer les données de protection depuis la base de données
@@ -1360,11 +1374,11 @@ async def protection(ctx):
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [
-    discord.SelectOption(label=label, value=value, description="Modifier cette protection.")
+    discord.SelectOption(label=label, value=value, description="Configurer cette règle de sécurité.")
     for label, value in get_protection_options().items()
 ]
         select = discord.ui.Select(
-            placeholder="🔄 Choisissez une protection à modifier...",
+            placeholder="🛠️ Sélectionnez une protection à configurer..."
             options=options,
             min_values=1,
             max_values=1
@@ -1382,8 +1396,9 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
             current_value = protection_data.get(selected_value, "Off")
 
             await interaction.response.send_message(
-                f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
-                "🔄 **Quel est le nouvel état ?** (`on` ou `off`)",
+                f"🔍 Protection sélectionnée : `{selected_value}`\n"
+                f"🔒 État actuel : **{current_value.capitalize()}**\n\n"
+                "🟢 Tapez `on` pour activer\n🔴 Tapez `off` pour désactiver",
                 ephemeral=True
             )
 
@@ -1425,18 +1440,18 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
         await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
 
 
-# Retourne les options de protection avec des labels clairs
 def get_protection_options():
     return {
+        "Anti-bot 🤖": "anti_bot",
         "Anti-massban ⚔️": "anti_massban",
         "Anti-masskick 👢": "anti_masskick",
-        "Anti-bot 🤖": "anti_bot",
         "Anti-createchannel 📂": "anti_createchannel",
         "Anti-deletechannel ❌": "anti_deletechannel",
         "Anti-createrole 🎭": "anti_createrole",
         "Anti-deleterole 🛡️": "anti_deleterole",
         "Whitelist 🔑": "whitelist"
     }
+
 #------------------------------------------------------------------------- Code Protection:
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
