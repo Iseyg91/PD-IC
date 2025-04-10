@@ -1285,13 +1285,13 @@ async def get_protection_data(guild_id):
 def create_default_protection_data(guild_id):
     return {
         "_id": str(guild_id),
-        "anti_massban": "Off",
-        "anti_masskick": "Off",
-        "anti_bot": "Off",
-        "anti_createchannel": "Off",
-        "anti_deletechannel": "Off",
-        "anti_createrole": "Off",
-        "anti_deleterole": "Off",
+        "anti_massban": "off",
+        "anti_masskick": "off",
+        "anti_bot": "off",
+        "anti_createchannel": "off",
+        "anti_deletechannel": "off",
+        "anti_createrole": "off",
+        "anti_deleterole": "off",
         "whitelist": [],
         "last_updated": datetime.utcnow()
     }
