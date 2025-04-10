@@ -1356,7 +1356,12 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
         options = [discord.SelectOption(label=label, value=value) for label, value in get_protection_options().items()]
         select = discord.ui.Select(placeholder="🔄 Choisissez une protection à modifier...", options=options)
 
-        # Fonction de callback pour le menu
+        view = discord.ui.View()
+        view.add_item(select)
+
+        # Envoi du message de menu et stockage pour modification future
+        message = await ctx.send(embed=embed, view=view)
+
         async def select_callback(interaction):
             if not select.values:
                 await interaction.response.send_message("❌ Aucune sélection n'a été faite.", ephemeral=True)
@@ -1365,14 +1370,12 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
             selected_value = select.values[0]
             current_value = protection_data.get(selected_value, "Off")
 
-            # Envoie un message avec l'état actuel de la protection
             await interaction.response.send_message(
                 f"🔒 **État actuel de `{selected_value}` :** `{current_value}`.\n\n"
                 "🔄 **Quel est le nouvel état ?** (on/off)",
                 ephemeral=True
             )
 
-            # Attente de la réponse de l'utilisateur
             def check(msg):
                 return msg.author == interaction.user and msg.channel == interaction.channel
 
@@ -1384,17 +1387,15 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                     await interaction.followup.send(f"❌ **Valeur invalide**. Veuillez entrer `on` ou `off`.", ephemeral=True)
                     return
 
-                # Appel de la mise à jour de la protection avec validation
                 await update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
                 await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
 
-                # Suppression du message de l'utilisateur une fois qu'il a confirmé
                 await msg.delete()
 
-                # Actualisation de l'embed
+                # ✅ Mise à jour des données et du message d'embed
                 updated_data = await get_protection_data(guild_id)
                 updated_embed = create_protection_embed(updated_data)
-                await interaction.message.edit(embed=updated_embed, view=view)
+                await message.edit(embed=updated_embed, view=view)
 
             except asyncio.TimeoutError:
                 await interaction.followup.send("⏳ **Temps écoulé.** Aucune réponse reçue, la modification a été annulée.", ephemeral=True)
@@ -1403,9 +1404,6 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
                 print(f"Erreur lors de la gestion de l'interaction : {str(e)}")
 
         select.callback = select_callback
-        view = discord.ui.View()
-        view.add_item(select)
-        await ctx.send(embed=embed, view=view)
 
     except Exception as e:
         print(f"Erreur dans send_select_menu: {e}")
