@@ -803,9 +803,6 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
                 embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
                 embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
                 embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
-                embed.add_field(name="✨Salon Suggestion:", value=format_mention(self.guild_data.get('suggestion_channel', 'Non défini'), "channel"), inline=False)
-                embed.add_field(name="📊Salon Sondage:", value=format_mention(self.guild_data.get('sondage_channel', 'Non défini'), "channel"), inline=False)
-                embed.add_field(name="🥂Salon Présentation", value=format_mention(self.guild_data.get('presentation_channel', 'Non défini'), "channel"), inline=False)
             except Exception as e:
                 print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
                 traceback.print_exc()
@@ -937,9 +934,6 @@ class InfoSelect(Select):
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
             discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
-            discord.SelectOption(label="✨Salon Suggestion:", value="suggestion_channel"),
-            discord.SelectOption(label="📊Salon Sondage:", value="sondage_channel"),
-            discord.SelectOption(label="🥂Salon Presentation:", value="presentation_channel"),
         ]
         super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
         self.view_ctx = view
