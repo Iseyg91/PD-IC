@@ -1912,7 +1912,7 @@ async def on_message(message):
         rank, partnerships = get_user_partner_info(user_id)
 
         # ✅ Envoyer le premier message : mention du rôle
-        await message.channel.send("<@1355157749994098860>")
+        await message.channel.send("<@&1355157749994098860>")
 
         # ✅ Créer l'embed
         embed = discord.Embed(
