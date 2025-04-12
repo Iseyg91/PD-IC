@@ -201,11 +201,12 @@ async def on_error(event, *args, **kwargs):
 
 #--------------------------------------------------------------------------- Owner Verif
 AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
+LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 
-# Commande pour ajouter un client
+# Commande pour ajouter un client avec plus de détails
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
-@app_commands.describe(user="Mentionne un membre du serveur")
-async def add_client(interaction: discord.Interaction, user: discord.Member):
+@app_commands.describe(user="Mentionne un membre du serveur", service="Service acheté (Graphisme, Serveur, Site, Bot)", service_name="Nom du service acheté (ex: Project Delta)")
+async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
     await interaction.response.defer(ephemeral=True)
     print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id})")
 
@@ -226,7 +227,6 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
         async def find_existing():
             try:
                 print("🔄 Recherche dans MongoDB...")
-                # Utilise Motor pour faire une requête asynchrone
                 return await collection5.find_one({"guild_id": interaction.guild.id})
             except Exception as e:
                 print("❌ Erreur pendant la recherche MongoDB :", e)
@@ -242,20 +242,26 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
 
         # Ajout du client dans MongoDB avec Motor
         try:
+            client_data = {
+                "service": service,
+                "service_name": service_name,
+                "date_achat": datetime.now().strftime("%Y-%m-%d"),
+            }
+
             if existing:
                 print("📁 Ajout dans une liste de clients existante.")
                 # Utilisation de Motor pour mettre à jour
                 result = await collection5.update_one(
                     {"guild_id": interaction.guild.id},
-                    {"$push": {"clients": user.id}}
+                    {"$push": {"clients": {**client_data, 'user_id': user.id}}}
                 )
                 print(f"📝 Résultat de l'ajout : {result.raw_result}")
             else:
                 print("🆕 Création d’une nouvelle entrée pour ce serveur.")
-                # Utilisation de Motor pour insérer un nouveau document sans 'await'
-                result = collection5.insert_one({
+                # Utilisation de Motor pour insérer un nouveau document
+                result = await collection5.insert_one({
                     "guild_id": interaction.guild.id,
-                    "clients": [user.id]
+                    "clients": [{"user_id": user.id, **client_data}]
                 })
                 print(f"📝 Résultat de l'insertion : {result.inserted_id}")
 
@@ -268,16 +274,17 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
         print("✅ Ajout réussi.")
         await interaction.followup.send(f"✅ {user.mention} a été ajouté comme client.")
 
-        # Envoi du log dans le salon des logs
+        # Envoi du log dans le salon des logs avec un Embed amélioré
         try:
             log_channel = bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 print("📝 Envoi dans le salon de logs...")
                 embed = discord.Embed(
                     title="🟢 Client ajouté",
-                    description=f"{user.mention} (`{user.id}`)",
+                    description=f"{user.mention} (`{user.id}`) - Service: {service} - Nom: {service_name}",
                     color=discord.Color.green()
                 )
+                embed.add_field(name="Date d'achat", value=client_data["date_achat"])
                 embed.set_footer(text=f"Ajouté par {interaction.user}")
                 embed.timestamp = discord.utils.utcnow()
                 await log_channel.send(embed=embed)
@@ -292,7 +299,99 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
         print("❌ Erreur générale non prévue :", e)
         traceback.print_exc()
         await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
+# Commande pour retirer un client
+@bot.tree.command(name="remove_client", description="Retire un client via mention ou ID")
+@app_commands.describe(user="Mentionne un membre du serveur")
+async def remove_client(interaction: discord.Interaction, user: discord.Member):
+    await interaction.response.defer(ephemeral=True)
+    print(f"🔧 Commande /remove_client lancée par {interaction.user} ({interaction.user.id})")
 
+    try:
+        if interaction.user.id not in AUTHORIZED_USER_IDS:
+            print("🚫 Utilisateur non autorisé.")
+            await interaction.followup.send("🚫 Tu n'as pas la permission.")
+            return
+
+        if not interaction.guild:
+            print("❌ Commande utilisée en DM.")
+            await interaction.followup.send("❌ À utiliser uniquement dans un serveur.")
+            return
+
+        print(f"🔍 Vérification si {user} ({user.id}) est client...")
+
+        existing = await find_existing()
+
+        if not existing or user.id not in [client['user_id'] for client in existing.get("clients", [])]:
+            print("⚠️ Utilisateur non trouvé parmi les clients.")
+            await interaction.followup.send(f"{user.mention} n'est pas un client.")
+            return
+
+        # Retirer le client de la base de données
+        result = await collection5.update_one(
+            {"guild_id": interaction.guild.id},
+            {"$pull": {"clients": {"user_id": user.id}}}
+        )
+        print(f"📝 Résultat du retrait : {result.raw_result}")
+
+        await interaction.followup.send(f"✅ {user.mention} a été retiré de la liste des clients.")
+
+        # Envoi du log dans le salon des logs
+        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        if log_channel:
+            embed = discord.Embed(
+                title="🔴 Client retiré",
+                description=f"{user.mention} (`{user.id}`) a été retiré de la liste des clients.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=f"Retiré par {interaction.user}")
+            embed.timestamp = discord.utils.utcnow()
+            await log_channel.send(embed=embed)
+
+    except Exception as e:
+        print("❌ Erreur générale non prévue :", e)
+        traceback.print_exc()
+        await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
+# Commande pour lister les clients
+@bot.tree.command(name="list_clients", description="Liste les clients du serveur")
+async def list_clients(interaction: discord.Interaction):
+    await interaction.response.defer(ephemeral=True)
+    print(f"🔧 Commande /list_clients lancée par {interaction.user} ({interaction.user.id})")
+
+    try:
+        if interaction.user.id not in AUTHORIZED_USER_IDS:
+            print("🚫 Utilisateur non autorisé.")
+            await interaction.followup.send("🚫 Tu n'as pas la permission.")
+            return
+
+        if not interaction.guild:
+            print("❌ Commande utilisée en DM.")
+            await interaction.followup.send("❌ À utiliser uniquement dans un serveur.")
+            return
+
+        existing = await find_existing()
+
+        if not existing or not existing.get("clients"):
+            print("⚠️ Aucun client trouvé.")
+            await interaction.followup.send("Aucun client trouvé.")
+            return
+
+        # Envoi d'un embed avec la liste des clients
+        embed = discord.Embed(
+            title="Liste des clients",
+            color=discord.Color.blue()
+        )
+        for client in existing.get("clients", []):
+            embed.add_field(
+                name=f"{client['service_name']} - {client['service']}",
+                value=f"ID: {client['user_id']} - Date d'achat: {client['date_achat']}",
+                inline=False
+            )
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        print("❌ Erreur générale non prévue :", e)
+        traceback.print_exc()
+        await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
 
 BOT_OWNER_ID = 792755123587645461
 
