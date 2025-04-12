@@ -1908,36 +1908,32 @@ async def on_message(message):
 
     # 📦 3. Gestion des partenariats dans un salon spécifique
     if message.channel.id == partnership_channel_id:
-        # On récupère les informations de l'utilisateur depuis MongoDB
         user_id = str(message.author.id)
         rank, partnerships = get_user_partner_info(user_id)
 
-        # Si aucune information n'est trouvée pour l'utilisateur, on attribue des valeurs par défaut
-        if rank is None or partnerships is None:
-            rank = 1
-            partnerships = 1
+        # ✅ Envoyer le premier message : mention du rôle
+        await message.channel.send("<@1355157749994098860>")
 
-        # Premier message : mentionner le salon avec l'ID 1355157749994098860
-        mention_channel = bot.get_channel(1355157749994098860)  # Récupère le salon avec l'ID spécifié
-        if mention_channel:
-            await mention_channel.send(f"<@1355157749994098860>")
-
-        # Prépare l'embed
+        # ✅ Créer l'embed
         embed = discord.Embed(
-            title="Partenariat effectué",
-            description=f"Merci du partenariat {message.author.mention}",
-            color=discord.Color.blue()
+            title="Merci du partenariat 🤝",
+            description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
+            color=discord.Color.green()
         )
 
-        embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true")
-        embed.set_footer(text="Partenariat réalisé", icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true")
+        # Footer avec image
+        embed.set_footer(
+            text="Partenariat réalisé",
+            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true"
+        )
 
-        # Ajoute les informations sur le rank et le nombre de partenariats
-        embed.add_field(name="Rank", value=f"Tu es rank {rank}", inline=False)
-        embed.add_field(name="Partenariats effectués", value=f"Tu as effectué {partnerships} partenariats.", inline=False)
+        # ✅ Ajout d'une image en grand EN BAS (via image)
+        embed.set_image(
+            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true"
+        )
 
-        # Deuxième message : Envoi de l'embed dans le salon de partenariats
         await message.channel.send(embed=embed)
+
 
     # ⚙️ 4. Configuration du serveur pour sécurité
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
