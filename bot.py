@@ -762,7 +762,7 @@ async def serverinfoall(ctx):
         await ctx.send("Seul l'owner du bot peut obtenir ces informations.")
 
 @bot.command()
-async def iseyg(ctx):
+async def isey(ctx):
     if ctx.author.id == BOT_OWNER_ID:  # Vérifie si l'utilisateur est l'owner du bot
         try:
             guild = ctx.guild
