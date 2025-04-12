@@ -245,22 +245,24 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
             if existing:
                 print("📁 Ajout dans une liste de clients existante.")
                 # Utilisation de Motor pour mettre à jour
-                await collection5.update_one(
+                result = await collection5.update_one(
                     {"guild_id": interaction.guild.id},
                     {"$push": {"clients": user.id}}
                 )
+                print(f"📝 Résultat de l'ajout : {result.raw_result}")
             else:
                 print("🆕 Création d’une nouvelle entrée pour ce serveur.")
                 # Utilisation de Motor pour insérer un nouveau document
-                await collection5.insert_one({
+                result = await collection5.insert_one({
                     "guild_id": interaction.guild.id,
                     "clients": [user.id]
                 })
+                print(f"📝 Résultat de l'insertion : {result.inserted_id}")
 
         except Exception as e:
             print("❌ Erreur lors de l'ajout dans MongoDB :", e)
             traceback.print_exc()
-            await interaction.followup.send("❌ Une erreur est survenue lors de l'ajout.")
+            await interaction.followup.send(f"❌ Une erreur est survenue lors de l'ajout : {e}")
             return
 
         print("✅ Ajout réussi.")
@@ -289,7 +291,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
     except Exception as e:
         print("❌ Erreur générale non prévue :", e)
         traceback.print_exc()
-        await interaction.followup.send("❌ Une erreur inattendue est survenue.")
+        await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
 
 BOT_OWNER_ID = 792755123587645461
 
