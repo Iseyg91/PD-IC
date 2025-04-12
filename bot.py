@@ -252,8 +252,8 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
                 print(f"📝 Résultat de l'ajout : {result.raw_result}")
             else:
                 print("🆕 Création d’une nouvelle entrée pour ce serveur.")
-                # Utilisation de Motor pour insérer un nouveau document
-                result = await collection5.insert_one({
+                # Utilisation de Motor pour insérer un nouveau document sans 'await'
+                result = collection5.insert_one({
                     "guild_id": interaction.guild.id,
                     "clients": [user.id]
                 })
@@ -292,6 +292,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
         print("❌ Erreur générale non prévue :", e)
         traceback.print_exc()
         await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
+
 
 BOT_OWNER_ID = 792755123587645461
 
