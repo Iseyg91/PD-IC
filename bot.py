@@ -115,7 +115,7 @@ def load_guild_settings(guild_id):
         "setup_premium": setup_premium_data,
         "bounty": bounty_data,
         "protection": protection_data,
-        "clients": clients_data
+        "clients": clients_data,
         "idees": idees_data
     }
 
