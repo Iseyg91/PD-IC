@@ -221,10 +221,11 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
 
         print(f"🔍 Vérification si {user} ({user.id}) est déjà client...")
 
-        # Recherche MongoDB dans une tâche parallèle
+        # Recherche MongoDB dans une tâche parallèle (en utilisant Motor)
         async def find_existing():
             try:
                 print("🔄 Recherche dans MongoDB...")
+                # Utilise Motor pour faire une requête asynchrone
                 return await collection5.find_one({"guild_id": interaction.guild.id})
             except Exception as e:
                 print("❌ Erreur pendant la recherche MongoDB :", e)
@@ -241,16 +242,18 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
             await interaction.followup.send(f"{user.mention} est déjà client.")
             return
 
-        # Ajout du client dans MongoDB
+        # Ajout du client dans MongoDB avec Motor
         try:
             if existing:
                 print("📁 Ajout dans une liste de clients existante.")
+                # Utilisation de Motor pour mettre à jour
                 await collection5.update_one(
                     {"guild_id": interaction.guild.id},
                     {"$push": {"clients": user.id}}
                 )
             else:
                 print("🆕 Création d’une nouvelle entrée pour ce serveur.")
+                # Utilisation de Motor pour insérer un nouveau document
                 await collection5.insert_one({
                     "guild_id": interaction.guild.id,
                     "clients": [user.id]
