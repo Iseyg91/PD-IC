@@ -38,7 +38,7 @@ BOT_OWNER_ID = 792755123587645461
 CASS_ISEY = [792755123587645461, 873176863965589564]
 LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 ISEY_ID = 792755123587645461
-Icey_ID = 792755123587645461
+ICEY_ID = 792755123587645461
 Iseyg_ID = 792755123587645461
 Iceygo_91 = 792755123587645461
 ADMIN_ID = 792755123587645461
@@ -1445,7 +1445,7 @@ class AntiSelect(Select):
 @bot.command(name="setup")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
-    if ctx.author.id != Icey_ID and not ctx.author.guild_permissions.administrator:
+    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
