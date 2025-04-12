@@ -438,33 +438,34 @@ class ClientListView(View):
         self.page = 0
         self.per_page = 5
 
-def format_embed(self):
-    start = self.page * self.per_page
-    end = start + self.per_page
-    embed = discord.Embed(
-        title="📋 Liste des Clients",
-        description=f"Voici les clients enregistrés sur ce serveur ({len(self.clients)} total) :",
-        color=discord.Color.blurple()
-    )
-
-    for i, client in enumerate(self.clients[start:end], start=1+start):
-        user_mention = f"<@{client['user_id']}>"
-        creator_mention = f"<@{client['creator_id']}>" if "creator_id" in client else "❓ Inconnu"
-
-        embed.add_field(
-            name=f"👤 Client #{i}",
-            value=(
-                f"**Utilisateur :** {user_mention}\n"
-                f"**Service :** `{client['service']}`\n"
-                f"**Nom :** `{client['service_name']}`\n"
-                f"**📅 Date :** `{client['purchase_date']}`\n"
-                f"**👨‍💼 Réalisateur :** {creator_mention}"
-            ),
-            inline=False
+    def format_embed(self):
+        start = self.page * self.per_page
+        end = start + self.per_page
+        embed = discord.Embed(
+            title="📋 Liste des Clients",
+            description=f"Voici les clients enregistrés sur ce serveur ({len(self.clients)} total) :",
+            color=discord.Color.blurple()
         )
 
-    embed.set_footer(text=f"Page {self.page + 1} / {((len(self.clients) - 1) // self.per_page) + 1}")
-    return embed
+        for i, client in enumerate(self.clients[start:end], start=1 + start):
+            user_mention = f"<@{client['user_id']}>"
+            creator_mention = f"<@{client.get('creator_id', 'inconnu')}>"
+
+            embed.add_field(
+                name=f"👤 Client #{i}",
+                value=(
+                    f"**Utilisateur :** {user_mention}\n"
+                    f"**Service :** `{client['service']}`\n"
+                    f"**Nom :** `{client['service_name']}`\n"
+                    f"**📅 Date :** `{client['purchase_date']}`\n"
+                    f"**👨‍🔧 Réalisé par :** {creator_mention}"
+                ),
+                inline=False
+            )
+
+        total_pages = ((len(self.clients) - 1) // self.per_page) + 1
+        embed.set_footer(text=f"Page {self.page + 1} / {total_pages}")
+        return embed
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.author.id:
@@ -483,7 +484,6 @@ def format_embed(self):
         if (self.page + 1) * self.per_page < len(self.clients):
             self.page += 1
             await interaction.response.edit_message(embed=self.format_embed(), view=self)
-
 
 @bot.tree.command(name="list_clients", description="Affiche tous les clients enregistrés")
 async def list_clients(interaction: discord.Interaction):
