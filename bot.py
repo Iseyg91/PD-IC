@@ -3919,28 +3919,44 @@ async def send_dm(member, action, reason):
     except discord.Forbidden:
         print(f"Impossible d'envoyer un message privé à {member.name}")
 
-# Commande de warning
 @bot.command()
-async def warn(ctx, member: discord.Member, *, reason="Aucune raison spécifiée"):
+async def warn(ctx, member: discord.Member = None, *, reason="Aucune raison spécifiée"):
+    if member is None:
+        return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à avertir.")
+
+    if ctx.author == member:
+        return await ctx.send("🚫 Vous ne pouvez pas vous avertir vous-même.")
+    
+    if is_higher_or_equal(ctx, member):
+        return await ctx.send("🚫 Vous ne pouvez pas avertir quelqu'un de votre niveau ou supérieur.")
+    
+    if not has_permission(ctx, "moderate_members"):
+        return await ctx.send("❌ Vous n'avez pas la permission de donner des avertissements.")
+    
     try:
-        if await check_permissions(ctx) and not await is_immune(member):
-            embed = discord.Embed(
-                title="⚠️ Avertissement donné",
-                description=f"{member.mention} a reçu un avertissement pour la raison suivante :\n**{reason}**",
-                color=discord.Color.orange()
-            )
-            embed.set_footer(text=f"Avertissement donné par {ctx.author}", icon_url=ctx.author.avatar.url)
-            await ctx.send(embed=embed)
+        # Ajout du warning à la base de données
+        sanction_data = {
+            "guild_id": str(ctx.guild.id),
+            "user_id": str(member.id),
+            "action": "Warn",
+            "reason": reason,
+            "timestamp": datetime.utcnow()
+        }
 
-            # Envoi du log et du message privé
-            await send_log(ctx, member, "Warn", reason)
-            await send_dm(member, "Warn", reason)
+        # Tentative d'insertion dans MongoDB
+        collection7.insert_one(sanction_data)
+        print(f"Sanction ajoutée à la base de données pour {member.mention}")
 
-            # Enregistrement de la sanction
-            add_sanction(ctx.guild.id, member.id, "Warn", reason)
+        # Embeds et réponses
+        embed = create_embed("⚠️ Avertissement donné", f"{member.mention} a reçu un avertissement pour la raison suivante :\n{reason}", discord.Color.orange(), ctx, member, "Avertissement", reason)
+        await ctx.send(embed=embed)
+        await send_log(ctx, member, "Warn", reason)
+        await send_dm(member, "Avertissement", reason)
+
     except Exception as e:
-        print(f"Erreur dans la commande warn: {e}")
-        await ctx.send(f"Une erreur s'est produite lors de l'exécution de la commande.")
+        # Log de l'erreur dans la console pour faciliter le débogage
+        print(f"Erreur lors de l'exécution de la commande warn : {e}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de l'exécution de la commande. Détails : {str(e)}")
 
 @bot.command()
 async def warnlist(ctx, member: discord.Member = None):
