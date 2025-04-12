@@ -39,7 +39,7 @@ CASS_ISEY = [792755123587645461, 873176863965589564]
 LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 ISEY_ID = 792755123587645461
 ICEY_ID = 792755123587645461
-Iseyg_ID = 792755123587645461
+ISEYG_ID = 792755123587645461
 Iceygo_91 = 792755123587645461
 ADMIN_ID = 792755123587645461
 partnership_channel_id = 1355158081855688745
@@ -1602,7 +1602,7 @@ async def update_protection(guild_id, field, value, guild, ctx):
 
 async def is_authorized(ctx):
     """Vérifie si l'utilisateur a l'autorisation de modifier les protections"""
-    if ctx.author.id == Iseyg_ID or ctx.author.guild_permissions.administrator:
+    if ctx.author.id == ISEYG_ID or ctx.author.guild_permissions.administrator:
         return True
 
     guild_id = str(ctx.guild.id)
