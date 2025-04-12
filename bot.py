@@ -40,7 +40,7 @@ LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 ISEY_ID = 792755123587645461
 ICEY_ID = 792755123587645461
 ISEYG_ID = 792755123587645461
-Iceygo_91 = 792755123587645461
+ICEYGO_91 = 792755123587645461
 ADMIN_ID = 792755123587645461
 partnership_channel_id = 1355158081855688745
 ROLE_ID = 1355157749994098860
@@ -51,8 +51,8 @@ AUTHORIZED_USER_ID = 792755123587645461
 BOUNTY_CHANNEL_ID = 1355298449829920950
 SUGGESTION_CHANNEL_ID = 1355191928467230792
 SUGGESTION_ROLE= 1355157752950821046
-SONDAGE_CHANNEL_ID = 1355157860438376479  # ID du salon des sondages
-SONDAGE_ID = 1355157752950821046  # Nouvel ID à mentionner
+SONDAGE_CHANNEL_ID = 1355157860438376479
+SONDAGE_ID = 1355157752950821046
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -1828,7 +1828,7 @@ async def on_guild_role_delete(role):
 @bot.command()
 async def addwl(ctx, member: discord.Member):
     try:
-        if ctx.author.id != Iceygo_91:
+        if ctx.author.id != ICEYGO_91:
             return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
         
         guild_id = str(ctx.guild.id)
@@ -1852,7 +1852,7 @@ async def addwl(ctx, member: discord.Member):
 
 @bot.command()
 async def removewl(ctx, member: discord.Member):
-    if ctx.author.id != Iceygo_91:
+    if ctx.author.id != ICEYGO_91:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -1867,7 +1867,7 @@ async def removewl(ctx, member: discord.Member):
 
 @bot.command()
 async def listwl(ctx):
-    if ctx.author.id != Iceygo_91:
+    if ctx.author.id != ICEYGO_91:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
