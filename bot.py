@@ -242,7 +242,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
 
         # Ajout du client dans MongoDB avec Motor
         try:
-            purchase_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")  # Date d'achat
+            purchase_date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")  # Date d'achat
             client_data = {
                 "user_id": user.id,
                 "service": service,
