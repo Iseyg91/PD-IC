@@ -412,7 +412,7 @@ async def list_clients(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
     try:
-        data = await collection5.find_one({"guild_id": interaction.guild.id})
+        data = collection5.find_one({"guild_id": interaction.guild.id})
         if not data or not data.get("clients"):
             return await interaction.followup.send("❌ Aucun client enregistré sur ce serveur.")
 
