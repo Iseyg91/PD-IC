@@ -1843,7 +1843,7 @@ async def listwl(ctx):
 # Configuration
 ADMIN_ID = 792755123587645461
 # ID du salon ciblé et du rôle à mentionner
-TARGET_CHANNEL_ID = 1355158081855688745
+partnership_channel_id = 1355158081855688745
 ROLE_ID = 1355157749994098860
 
 # Mots sensibles
