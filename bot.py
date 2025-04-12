@@ -203,9 +203,9 @@ async def on_error(event, *args, **kwargs):
 AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
 LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 
-# Commande pour ajouter un client
+# Commande pour ajouter un client avec plus de détails
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
-@app_commands.describe(user="Mentionne un membre du serveur")
+@app_commands.describe(user="Mentionne un membre du serveur", service="Service acheté (Graphisme, Serveur, Site, Bot)", service_name="Nom du service acheté (ex: Project Delta)")
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
     await interaction.response.defer(ephemeral=True)
     print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id})")
@@ -359,6 +359,8 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
         print("❌ Erreur générale non prévue :", e)
         traceback.print_exc()
         await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
+
+
 # Commande pour lister les clients
 @bot.tree.command(name="list_clients", description="Liste les clients du serveur")
 async def list_clients(interaction: discord.Interaction):
