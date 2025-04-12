@@ -25,11 +25,34 @@ from discord.ui import Modal, TextInput
 from discord.utils import get
 from motor.motor_asyncio import AsyncIOMotorClient
 from collections import defaultdict
+from discord.ui import Select, View
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
 start_time = time.time()
 client = discord.Client(intents=intents)
+
+#Configuration du Bot:
+Project_Delta = 1359963854200639498
+BOT_OWNER_ID = 792755123587645461
+Cass_Isey = [792755123587645461, 873176863965589564]
+LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
+ISEY_ID = 792755123587645461
+Icey_ID = 792755123587645461
+Iseyg_ID = 792755123587645461
+Iceygo_91 = 792755123587645461
+ADMIN_ID = 792755123587645461
+partnership_channel_id = 1355158081855688745
+ROLE_ID = 1355157749994098860
+ETHERYA_SERVER_ID = 1034007767050104892
+WELCOME_CHANNEL_ID = 1355198748296351854
+AUTORIZED_SERVER_ID = 1034007767050104892
+AUTHORIZED_USER_ID = 792755123587645461
+BOUNTY_CHANNEL_ID = 1355298449829920950
+SUGGESTION_CHANNEL_ID = 1355191928467230792
+SUGGESTION_ROLE= 1355157752950821046
+SONDAGE_CHANNEL_ID = 1355157860438376479  # ID du salon des sondages
+SONDAGE_ID = 1355157752950821046  # Nouvel ID à mentionner
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -210,8 +233,6 @@ async def on_error(event, *args, **kwargs):
     await args[0].response.send_message(embed=embed)
 
 #--------------------------------------------------------------------------- Owner Verif
-AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
-LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
@@ -222,7 +243,11 @@ LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
     await interaction.response.defer(thinking=True)
 
-    if interaction.user.id not in AUTHORIZED_USER_IDS:
+    # Vérifier que la commande est exécutée sur le bon serveur
+    if interaction.guild.id != Project_Delta:
+        return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
+
+    if interaction.user.id not in Cass_Isey:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
@@ -300,7 +325,11 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
 async def remove_client(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.defer(thinking=True)
 
-    if interaction.user.id not in AUTHORIZED_USER_IDS:
+    # Vérifier que la commande est exécutée sur le bon serveur
+    if interaction.guild.id != Project_Delta:
+        return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
+
+    if interaction.user.id not in Cass_Isey:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
@@ -417,6 +446,13 @@ class ClientListView(View):
 async def list_clients(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
+    # Vérifier que la commande est exécutée sur le bon serveur
+    if interaction.guild.id != Project_Delta:
+        return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
+
+    if interaction.user.id not in Cass_Isey:
+        return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+
     try:
         data = collection5.find_one({"guild_id": interaction.guild.id})
         if not data or not data.get("clients"):
@@ -431,8 +467,6 @@ async def list_clients(interaction: discord.Interaction):
         print("❌ Erreur lors de la récupération des clients :", e)
         traceback.print_exc()
         await interaction.followup.send("⚠️ Une erreur est survenue pendant l'affichage.")
-
-BOT_OWNER_ID = 792755123587645461
 
 # Vérification si l'utilisateur est l'owner du bot
 def is_owner(ctx):
@@ -726,8 +760,6 @@ async def iseyg(ctx):
         await ctx.send("❌ Seul l'owner du bot peut exécuter cette commande.")
 
 #-------------------------------------------------------------------------- Bot Join:
-ISEY_ID = 792755123587645461
- 
 @bot.event
 async def on_guild_join(guild):
     isey = await bot.fetch_user(ISEY_ID)
@@ -792,7 +824,6 @@ async def on_guild_remove(guild):
     await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
@@ -979,8 +1010,6 @@ async def devenirpremium(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 
 #------------------------------------------------------------------------- Commande SETUP
-AUTHORIZED_USER_ID = 792755123587645461
-
 class SetupView(View):
     def __init__(self, ctx, guild_data, collection):
         super().__init__(timeout=180)
@@ -1416,7 +1445,7 @@ class AntiSelect(Select):
 @bot.command(name="setup")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
-    if ctx.author.id != AUTHORIZED_USER_ID and not ctx.author.guild_permissions.administrator:
+    if ctx.author.id != Icey_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
@@ -1536,8 +1565,6 @@ async def update_protection(guild_id, field, value, guild, ctx):
     {"_id": str(guild_id)},
     {"$set": {field: value, "last_updated": datetime.utcnow()}}
 )
-
-        
         # Vérification si la mise à jour a bien été effectuée
         if result.modified_count == 0:
             print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
@@ -1573,12 +1600,9 @@ async def update_protection(guild_id, field, value, guild, ctx):
         print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
         raise
 
-# Vérification de l'autorisation de l'utilisateur
-AUTHORIZED_USER_ID = 792755123587645461
-
 async def is_authorized(ctx):
     """Vérifie si l'utilisateur a l'autorisation de modifier les protections"""
-    if ctx.author.id == AUTHORIZED_USER_ID or ctx.author.guild_permissions.administrator:
+    if ctx.author.id == Iseyg_ID or ctx.author.guild_permissions.administrator:
         return True
 
     guild_id = str(ctx.guild.id)
@@ -1801,12 +1825,10 @@ async def on_guild_role_delete(role):
             print(f"Erreur lors de la recréation du rôle : {e}")
 #------------------------------------------------------------------------- wl:
 
-AUTHORIZED_USER_ID = 792755123587645461
-
 @bot.command()
 async def addwl(ctx, member: discord.Member):
     try:
-        if ctx.author.id != AUTHORIZED_USER_ID:
+        if ctx.author.id != Iceygo_91:
             return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
         
         guild_id = str(ctx.guild.id)
@@ -1830,7 +1852,7 @@ async def addwl(ctx, member: discord.Member):
 
 @bot.command()
 async def removewl(ctx, member: discord.Member):
-    if ctx.author.id != AUTHORIZED_USER_ID:
+    if ctx.author.id != Iceygo_91:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -1845,7 +1867,7 @@ async def removewl(ctx, member: discord.Member):
 
 @bot.command()
 async def listwl(ctx):
-    if ctx.author.id != AUTHORIZED_USER_ID:
+    if ctx.author.id != Iceygo_91:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -1859,11 +1881,6 @@ async def listwl(ctx):
     else:
         await ctx.send("La whitelist est vide.")
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
-# Configuration
-ADMIN_ID = 792755123587645461
-# ID du salon ciblé et du rôle à mentionner
-partnership_channel_id = 1355158081855688745
-ROLE_ID = 1355157749994098860
 
 # Mots sensibles
 sensitive_words = [
@@ -2022,10 +2039,6 @@ async def send_alert_to_admin(message, detected_word):
 
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
 private_threads = {}  # Stocke les fils privés des nouveaux membres
-
-ETHERYA_SERVER_ID = 1034007767050104892  # L'ID du serveur Etherya
-# ID du salon de bienvenue
-WELCOME_CHANNEL_ID = 1355198748296351854
 
 # Liste des salons à pinguer
 salon_ids = [
@@ -2289,7 +2302,6 @@ async def guide_command(interaction: discord.Interaction):
 
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
-#---------------------------------------------------------------------------- Snipe Isey:
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
@@ -3434,10 +3446,6 @@ async def blague(ctx):
     # Envoyer la blague dans le salon
     await ctx.send(blague_choisie)
 #------------------------------------------------------------------------- Commandes d'économie : +prison, +evasion, +arrestation, +liberation, +cautionpayer, +ticket_euro_million
-
-# ID du serveur autorisé (Etherya)
-AUTORIZED_SERVER_ID = 1034007767050104892
-
 # Commande +prison
 @bot.command()
 @commands.has_role (1355157681882664981)
@@ -3654,9 +3662,6 @@ async def ticket_euro_million(ctx, user: discord.Member):
         await ctx.send("Erreur : Le salon d'annonce est introuvable.")
 
 #------------------------------------------------------------------------- Commandes de Moderation : +ban, +unban, +mute, +unmute, +kick, +warn
-
-# Gestion des erreurs pour les commandes
-AUTHORIZED_USER_ID = 792755123587645461
 
 # 🎨 Fonction pour créer un embed formaté
 def create_embed(title, description, color, ctx, member=None, action=None, reason=None, duration=None):
@@ -4030,7 +4035,6 @@ async def uptime(ctx):
     embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
 
-BOUNTY_CHANNEL_ID = 1355298449829920950  # Salon où les victoires sont annoncées
 PRIME_IMAGE_URL = "https://cdn.gamma.app/m6u5udkwwfl3cxy/generated-images/MUnIIu5yOv6nMFAXKteig.jpg"
 
 class DuelView(discord.ui.View):
@@ -4357,8 +4361,6 @@ async def disconnect(interaction: discord.Interaction):
         await interaction.response.send_message(embed=embed)
 #------------------------------------------------------------------------------------------
 
-from discord.ui import Select, View
-
 # Commande pour ajouter une idée (sans restriction d'administrateur)
 @bot.tree.command(name="idée", description="Rajoute une idée dans la liste")
 async def ajouter_idee(interaction: discord.Interaction, idee: str):
@@ -4454,10 +4456,6 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
-
-SUGGESTION_CHANNEL_ID = 1355191928467230792  # ID du salon des suggestions
-NEW_USER_ID = 1355157752950821046  # Nouvel ID à mentionner
-
 # Stockage des suggestions
 suggestions = []
 
@@ -4520,7 +4518,7 @@ class SuggestionModal(discord.ui.Modal, title="💡 Nouvelle Suggestion"):
         if not channel:
             return await interaction.response.send_message("❌ Je n'ai pas pu trouver le salon des suggestions.", ephemeral=True)
 
-        new_user_mention = f"<@&{NEW_USER_ID}>"
+        new_user_mention = f"<@&{SUGGESTION_ROLE}>"
 
         # Envoie un message de notification à l'utilisateur spécifique
         await channel.send(f"{new_user_mention} 🔔 **Nouvelle suggestion concernant {choice} !**")
@@ -4609,9 +4607,6 @@ async def suggestions_command(interaction: discord.Interaction):
     await interaction.response.send_message(embeds=embeds)
 #-------------------------------------------------------------------------------- Sondage: /sondage
 
-SONDAGE_CHANNEL_ID = 1355157860438376479  # ID du salon des sondages
-NEW_USER_ID = 1355157752950821046  # Nouvel ID à mentionner
-
 # Stockage des sondages
 polls = []
 
@@ -4660,7 +4655,7 @@ class PollModal(discord.ui.Modal):
         if not channel:
             return await interaction.response.send_message("❌ Je n'ai pas pu trouver le salon des sondages.", ephemeral=True)
 
-        new_user_mention = f"<@&{NEW_USER_ID}>"
+        new_user_mention = f"<@&{SONDAGE_ID}>"
 
         # Envoie un message de notification à l'utilisateur spécifique
         await channel.send(f"{new_user_mention} 🔔 **Nouveau sondage à répondre !**")
