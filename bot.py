@@ -300,6 +300,14 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
                 "clients": [client_data]
             })
 
+        # Ajouter le rôle à l'utilisateur
+        role = discord.utils.get(interaction.guild.roles, id=1359963854389379241)
+        if role:
+            await user.add_roles(role)
+            print(f"🔧 Rôle ajouté à {user} avec succès.")
+        else:
+            print("⚠️ Rôle introuvable.")
+
         # Embed public de confirmation
         confirmation_embed = discord.Embed(
             title="🎉 Nouveau client enregistré !",
@@ -375,6 +383,14 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
             {"guild_id": interaction.guild.id},
             {"$pull": {"clients": {"user_id": user.id}}}
         )
+
+        # Retirer le rôle de l'utilisateur
+        role = discord.utils.get(interaction.guild.roles, id=1359963854389379241)
+        if role:
+            await user.remove_roles(role)
+            print(f"🔧 Rôle retiré de {user} avec succès.")
+        else:
+            print("⚠️ Rôle introuvable.")
 
         # Embed public de confirmation
         embed = discord.Embed(
