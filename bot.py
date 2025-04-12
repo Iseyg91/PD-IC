@@ -33,9 +33,9 @@ start_time = time.time()
 client = discord.Client(intents=intents)
 
 #Configuration du Bot:
-Project_Delta = 1359963854200639498
+PROJECT_DELTA = 1359963854200639498
 BOT_OWNER_ID = 792755123587645461
-Cass_Isey = [792755123587645461, 873176863965589564]
+CASS_ISEY = [792755123587645461, 873176863965589564]
 LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 ISEY_ID = 792755123587645461
 Icey_ID = 792755123587645461
@@ -244,10 +244,10 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
     await interaction.response.defer(thinking=True)
 
     # Vérifier que la commande est exécutée sur le bon serveur
-    if interaction.guild.id != Project_Delta:
+    if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in Cass_Isey:
+    if interaction.user.id not in CASS_ISEY:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
@@ -326,10 +326,10 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
     await interaction.response.defer(thinking=True)
 
     # Vérifier que la commande est exécutée sur le bon serveur
-    if interaction.guild.id != Project_Delta:
+    if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in Cass_Isey:
+    if interaction.user.id not in CASS_ISEY:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
@@ -447,10 +447,10 @@ async def list_clients(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
     # Vérifier que la commande est exécutée sur le bon serveur
-    if interaction.guild.id != Project_Delta:
+    if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in Cass_Isey:
+    if interaction.user.id not in CASS_ISEY
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     try:
