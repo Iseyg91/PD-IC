@@ -40,7 +40,7 @@ LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 ISEY_ID = 792755123587645461
 ICEY_ID = 792755123587645461
 ISEYG_ID = 792755123587645461
-ICEYGO_91 = 792755123587645461
+ICEYGO = 792755123587645461
 ADMIN_ID = 792755123587645461
 partnership_channel_id = 1355158081855688745
 ROLE_ID = 1355157749994098860
@@ -450,8 +450,9 @@ async def list_clients(interaction: discord.Interaction):
     if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in CASS_ISEY
+    if interaction.user.id not in CASS_ISEY:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+
 
     try:
         data = collection5.find_one({"guild_id": interaction.guild.id})
@@ -1828,7 +1829,7 @@ async def on_guild_role_delete(role):
 @bot.command()
 async def addwl(ctx, member: discord.Member):
     try:
-        if ctx.author.id != ICEYGO_91:
+        if ctx.author.id != ICEYGO:
             return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
         
         guild_id = str(ctx.guild.id)
@@ -1852,7 +1853,7 @@ async def addwl(ctx, member: discord.Member):
 
 @bot.command()
 async def removewl(ctx, member: discord.Member):
-    if ctx.author.id != ICEYGO_91:
+    if ctx.author.id != ICEYGO:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -1867,7 +1868,7 @@ async def removewl(ctx, member: discord.Member):
 
 @bot.command()
 async def listwl(ctx):
-    if ctx.author.id != ICEYGO_91:
+    if ctx.author.id != ICEYGO:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
