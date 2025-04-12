@@ -259,56 +259,53 @@ async def on_error(event, *args, **kwargs):
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
     await interaction.response.defer(thinking=True)
 
-    # Vérifier que la commande est exécutée sur le bon serveur
-    if interaction.guild.id != PROJECT_DELTA:
+    if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
     if interaction.user.id not in CASS_ISEY:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
-    if not interaction.guild:
-        return await interaction.followup.send("❌ Cette commande ne peut être utilisée qu'en serveur.", ephemeral=True)
-
     try:
         print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id}) pour {user} ({user.id})")
 
-        # Supprimer 'await' car collection5 est synchrone avec pymongo
         existing_data = collection5.find_one({"guild_id": interaction.guild.id}) or {}
         existing_clients = existing_data.get("clients", [])
 
         if any(client.get("user_id") == user.id for client in existing_clients):
-            return await interaction.followup.send(f"⚠️ {user.mention} est déjà enregistré comme client !")
+            return await interaction.followup.send(f"⚠️ {user.mention} est déjà enregistré comme client !", ephemeral=True)
 
         purchase_date = datetime.utcnow().strftime("%d/%m/%Y à %H:%M:%S")
         client_data = {
             "user_id": user.id,
             "service": service,
             "service_name": service_name,
-            "purchase_date": purchase_date
+            "purchase_date": purchase_date,
+            "done_by": {
+                "name": str(interaction.user),
+                "id": interaction.user.id
+            }
         }
 
         if existing_data:
-            # Supprimer 'await' ici aussi
             collection5.update_one(
                 {"guild_id": interaction.guild.id},
                 {"$push": {"clients": client_data}}
             )
         else:
-            # Supprimer 'await' ici aussi
             collection5.insert_one({
                 "guild_id": interaction.guild.id,
                 "clients": [client_data]
             })
 
-        # Ajouter le rôle à l'utilisateur
+        # Rôle client
         role = discord.utils.get(interaction.guild.roles, id=1359963854389379241)
         if role:
             await user.add_roles(role)
-            print(f"🔧 Rôle ajouté à {user} avec succès.")
+            print(f"🔧 Rôle ajouté à {user}")
         else:
             print("⚠️ Rôle introuvable.")
 
-        # Embed public de confirmation
+        # Embed de confirmation public
         confirmation_embed = discord.Embed(
             title="🎉 Nouveau client enregistré !",
             description=f"Bienvenue à {user.mention} en tant que **client officiel** ! 🛒",
@@ -316,30 +313,36 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         )
         confirmation_embed.add_field(name="🛠️ Service", value=f"`{service}`", inline=True)
         confirmation_embed.add_field(name="📌 Nom du Service", value=f"`{service_name}`", inline=True)
+        confirmation_embed.add_field(name="👨‍💻 Réalisé par", value=f"`{interaction.user}`", inline=False)
         confirmation_embed.add_field(name="🗓️ Date d'achat", value=f"`{purchase_date}`", inline=False)
         confirmation_embed.set_footer(text=f"Ajouté par {interaction.user}", icon_url=interaction.user.display_avatar.url)
         confirmation_embed.set_thumbnail(url=user.display_avatar.url)
 
         await interaction.followup.send(embed=confirmation_embed)
 
-        # Log privé pour les administrateurs
+        # Embed de log privé
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
                 title="📋 Nouveau client ajouté",
-                description=f"👤 {user.mention} (`{user.id}`)\n📎 Service : `{service}`\n🧩 Nom du Service : `{service_name}`\n🕒 {purchase_date}",
-                color=discord.Color.green()
+                color=discord.Color.green(),
+                timestamp=datetime.utcnow()
             )
-            log_embed.set_footer(text=f"Ajouté par {interaction.user}", icon_url=interaction.user.display_avatar.url)
-            log_embed.timestamp = discord.utils.utcnow()
+            log_embed.add_field(name="👤 Client", value=f"{user.mention} (`{user.id}`)", inline=False)
+            log_embed.add_field(name="🛠️ Service", value=service, inline=True)
+            log_embed.add_field(name="📌 Nom", value=service_name, inline=True)
+            log_embed.add_field(name="👨‍💻 Fait par", value=f"{interaction.user} (`{interaction.user.id}`)", inline=False)
+            log_embed.add_field(name="🗓️ Date", value=purchase_date, inline=False)
+            log_embed.set_footer(text="Log automatique", icon_url=interaction.user.display_avatar.url)
+
             await log_channel.send(embed=log_embed)
         else:
-            print("⚠️ Salon de log introuvable (ID incorrect ?)")
+            print("⚠️ Salon de log introuvable.")
 
     except Exception as e:
         print("❌ Erreur inattendue :", e)
         traceback.print_exc()
-        await interaction.followup.send("⚠️ Une erreur est survenue pendant le traitement. Merci de réessayer plus tard.", ephemeral=True)
+        await interaction.followup.send("⚠️ Une erreur est survenue. Merci de réessayer plus tard.", ephemeral=True)
 
 
 @bot.tree.command(name="remove_client", description="Supprime un client enregistré")
