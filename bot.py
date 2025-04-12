@@ -1787,7 +1787,7 @@ async def on_message(message):
         return
 
 # 📦 3. Gestion des partenariats dans un salon spécifique
-    if message.channel.id == TARGET_CHANNEL_ID:
+if message.channel.id == TARGET_CHANNEL_ID:
     role = message.guild.get_role(ROLE_ID)
     
     # Envoi de la mention dans un message séparé
@@ -1802,6 +1802,7 @@ async def on_message(message):
     )
     embed.set_footer(text="Système automatique de partenariats")
     await message.channel.send(embed=embed)
+
 
 
     # ⚙️ 4. Configuration du serveur pour sécurité
