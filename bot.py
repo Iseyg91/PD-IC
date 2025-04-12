@@ -43,6 +43,7 @@ collection2 = db['setup_premium']  # Serveurs premium
 collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
 collection5 = db ['clients'] #Stock Clients
+collection6 = db ['partner'] #Stock Partner
 collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
@@ -89,6 +90,13 @@ def update_protection(guild_id, protection_key, new_value):
         upsert=True
     )
 
+# Fonction pour récupérer le nombre de partenariats et le rank d'un utilisateur
+def get_user_partner_info(user_id: str):
+    partner_data = collection6.find_one({"user_id": user_id})
+    if partner_data:
+        return partner_data['rank'], partner_data['partnerships']
+    return None, None
+
 def get_premium_servers():
     """Récupère les IDs des serveurs premium depuis la base de données."""
     premium_docs = collection2.find({}, {"_id": 0, "guild_id": 1})
@@ -105,6 +113,7 @@ def load_guild_settings(guild_id):
     bounty_data = collection3.find_one({"guild_id": guild_id}) or {}
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
     clients_data = collection5.find_one({"guild_id": guild_id}) or {}
+    partner_data = collection6.find_one({"guild_id": guild_id}) or {}
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
@@ -116,6 +125,7 @@ def load_guild_settings(guild_id):
         "bounty": bounty_data,
         "protection": protection_data,
         "clients": clients_data,
+        "partner": partner_data,
         "idees": idees_data
     }
 
@@ -1897,20 +1907,36 @@ async def on_message(message):
         return
 
     # 📦 3. Gestion des partenariats dans un salon spécifique
-    if message.channel.id == TARGET_CHANNEL_ID:
-        role = message.guild.get_role(ROLE_ID)
-        
-        # Envoi de la mention dans un message séparé
-        mention_message = f"Merci beaucoup {message.author.mention} pour le partenariat !"
-        await message.channel.send(mention_message)
-        
-        # Envoi de l'embed
+    if message.channel.id == partnership_channel_id:
+        # On récupère les informations de l'utilisateur depuis MongoDB
+        user_id = str(message.author.id)
+        rank, partnerships = get_user_partner_info(user_id)
+
+        # Si aucune information n'est trouvée pour l'utilisateur
+        if rank is None or partnerships is None:
+            await message.channel.send(f"Il n'y a pas de données pour {message.author.mention}.")
+            return
+
+        # Premier message : mentionner le salon avec l'ID 1355157749994098860
+        mention_channel = bot.get_channel(1355157749994098860)  # Récupère le salon avec l'ID spécifié
+        if mention_channel:
+            await mention_channel.send(f"<@1355157749994098860>")
+
+        # Prépare l'embed
         embed = discord.Embed(
-            title="🤝 Partenariat reçu !",
-            description=f"Merci beaucoup pour le partenariat {role.mention} !",
-            color=discord.Color.green()
+            title="Partenariat effectué",
+            description=f"Merci du partenariat {message.author.mention}",
+            color=discord.Color.blue()
         )
-        embed.set_footer(text="Système automatique de partenariats")
+
+        embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true")
+        embed.set_footer(text="Partenariat réalisé", icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true")
+
+        # Ajoute les informations sur le rank et le nombre de partenariats
+        embed.add_field(name="Rank", value=f"Tu es rank {rank}", inline=False)
+        embed.add_field(name="Partenariats effectués", value=f"Tu as effectué {partnerships} partenariats.", inline=False)
+
+        # Deuxième message : Envoi de l'embed dans le salon de partenariats
         await message.channel.send(embed=embed)
 
     # ⚙️ 4. Configuration du serveur pour sécurité
