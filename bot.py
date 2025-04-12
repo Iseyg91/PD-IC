@@ -309,7 +309,8 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
     try:
         print(f"🗑️ Commande /remove_client lancée par {interaction.user} pour {user}")
 
-        existing_data = await collection5.find_one({"guild_id": interaction.guild.id})
+        # Suppression du await ici
+        existing_data = collection5.find_one({"guild_id": interaction.guild.id})
         if not existing_data:
             return await interaction.followup.send("❌ Aucun client enregistré pour ce serveur.")
 
@@ -324,7 +325,8 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
         if not client_found:
             return await interaction.followup.send(f"⚠️ {user.mention} n'est pas enregistré comme client.")
 
-        await collection5.update_one(
+        # Suppression du client dans la base de données
+        collection5.update_one(
             {"guild_id": interaction.guild.id},
             {"$pull": {"clients": {"user_id": user.id}}}
         )
