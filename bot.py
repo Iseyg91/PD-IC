@@ -200,6 +200,7 @@ async def on_error(event, *args, **kwargs):
     await args[0].response.send_message(embed=embed)
 
 #--------------------------------------------------------------------------- Owner Verif
+AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(user="Mentionne un membre du serveur")
