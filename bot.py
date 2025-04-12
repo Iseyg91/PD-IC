@@ -202,6 +202,7 @@ async def on_error(event, *args, **kwargs):
 #--------------------------------------------------------------------------- Owner Verif
 AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
 
+# Commande pour ajouter un client
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(user="Mentionne un membre du serveur")
 async def add_client(interaction: discord.Interaction, user: discord.Member):
@@ -232,10 +233,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member):
                 traceback.print_exc()
                 return None
 
-        existing_task = asyncio.create_task(find_existing())
-        await interaction.followup.send("🔄 Recherche en cours...")
-
-        existing = await existing_task
+        existing = await find_existing()
 
         if existing and user.id in existing.get("clients", []):
             print("⚠️ Utilisateur déjà client.")
