@@ -1784,16 +1784,23 @@ async def on_message(message):
         await message.channel.send(embed=embed, view=view)
         return
 
-    # 📦 3. Gestion des partenariats dans un salon spécifique
+# 📦 3. Gestion des partenariats dans un salon spécifique
     if message.channel.id == TARGET_CHANNEL_ID:
-        role = message.guild.get_role(ROLE_ID)
-        embed = discord.Embed(
-            title="🤝 Partenariat reçu !",
-            description=f"Merci beaucoup pour le partenariat {message.author.mention} {role.mention} !",
-            color=discord.Color.green()
-        )
-        embed.set_footer(text="Système automatique de partenariats")
-        await message.channel.send(embed=embed)
+    role = message.guild.get_role(ROLE_ID)
+    
+    # Envoi de la mention dans un message séparé
+    mention_message = f"Merci beaucoup {message.author.mention} pour le partenariat !"
+    await message.channel.send(mention_message)
+    
+    # Envoi de l'embed
+    embed = discord.Embed(
+        title="🤝 Partenariat reçu !",
+        description=f"Merci beaucoup pour le partenariat {role.mention} !",
+        color=discord.Color.green()
+    )
+    embed.set_footer(text="Système automatique de partenariats")
+    await message.channel.send(embed=embed)
+
 
     # ⚙️ 4. Configuration du serveur pour sécurité
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
