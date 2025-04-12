@@ -1804,7 +1804,6 @@ if message.channel.id == TARGET_CHANNEL_ID:
     await message.channel.send(embed=embed)
 
 
-
     # ⚙️ 4. Configuration du serveur pour sécurité
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     if not guild_data:
