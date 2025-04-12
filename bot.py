@@ -1912,10 +1912,10 @@ async def on_message(message):
         user_id = str(message.author.id)
         rank, partnerships = get_user_partner_info(user_id)
 
-        # Si aucune information n'est trouvée pour l'utilisateur
+        # Si aucune information n'est trouvée pour l'utilisateur, on attribue des valeurs par défaut
         if rank is None or partnerships is None:
-            await message.channel.send(f"Il n'y a pas de données pour {message.author.mention}.")
-            return
+            rank = 1
+            partnerships = 1
 
         # Premier message : mentionner le salon avec l'ID 1355157749994098860
         mention_channel = bot.get_channel(1355157749994098860)  # Récupère le salon avec l'ID spécifié
