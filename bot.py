@@ -1717,61 +1717,46 @@ async def listwl(ctx):
     else:
         await ctx.send("La whitelist est vide.")
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
-# Liste des mots sensibles
+# Configuration
+ADMIN_ID = 792755123587645461
+# ID du salon ciblé et du rôle à mentionner
+TARGET_CHANNEL_ID = 1355158081855688745
+ROLE_ID = 1355157749994098860
+
+# Mots sensibles
 sensitive_words = [
-    # Insultes et injures
     "connard", "salopard", "enfoiré","baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
-
-    # Discrimination et discours haineux
-    "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", 
-    "misandre", "discriminatoire", "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur",
-
-    # Violence et criminalité
-    "viol", "tuer", "assassin", "attaque", "agression", "meurtre", "génocide", "exécution", "kidnapping",
-    "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", "suicidaire",
-    "décapitation", "immolation", "torture", "lynchage", "massacre", "pillage", "extermination",
-
-    # Crimes sexuels et exploitation
-    "pédocriminel", "abus", "sexe", "pornographie", "nu", "masturbation", "prostitution", "pédophilie", 
-    "inceste", "exhibition", "fétichisme", "harcèlement", "traite humaine", "esclavage sexuel", "viol collectif",
-
-    # Drogues et substances illicites
-    "drogue", "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "méthamphétamine", "opium", "cannabis", "alcool", 
-    "ivresse", "overdose", "trafic de drogue", "toxicomanie", "drogue de synthèse", "GHB", "fentanyl",
-
-    # Cybercriminalité et piratage
-    "hack", "pirater", "voler des données", "phishing", "ddos", "raid", "flood", "spam", "crasher", "exploiter",
-    "ransomware", "trojan", "virus informatique", "keylogger", "backdoor", "brute force", "scam", 
-    "usurpation d'identité", "darknet", "marché noir", "cheval de Troie", "spyware", "hameçonnage",
-
-    # Fraude et corruption
-    "fraude", "extorsion", "chantage", "blanchiment d'argent", "corruption", "pot-de-vin", "abus de pouvoir", 
-    "détournement de fonds", "évasion fiscale", "fraude fiscale", "marché noir", "contrefaçon",
-
-    # Manipulation et désinformation
-    "dictature", "oppression", "propagande", "fake news", "manipulation", "endoctrinement", "secte", 
-    "lavage de cerveau", "désinformation",
-
-    # Groupes criminels et troubles sociaux
-    "violence policière", "brutalité", "crime organisé", "mafia", "cartel", "milice", "mercenaire", "guérilla",
-    "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", "séparatiste"
+    "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", "misandre", "discriminatoire", 
+    "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur", "viol", "tuer", "assassin", "attaque", "agression", "meurtre", 
+    "génocide", "exécution", "kidnapping", "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", 
+    "suicidaire", "décapitation", "immolation", "torture", "lynchage", "massacre", "pillage", "extermination", "pédocriminel", "abus", 
+    "sexe", "pornographie", "nu", "masturbation", "prostitution", "pédophilie", "inceste", "exhibition", "fétichisme", "harcèlement", 
+    "traite humaine", "esclavage sexuel", "viol collectif", "drogue", "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "méthamphétamine", 
+    "opium", "cannabis", "alcool", "ivresse", "overdose", "trafic de drogue", "toxicomanie", "drogue de synthèse", "GHB", "fentanyl", 
+    "hack", "pirater", "voler des données", "phishing", "ddos", "raid", "flood", "spam", "crasher", "exploiter", "ransomware", "trojan", 
+    "virus informatique", "keylogger", "backdoor", "brute force", "scam", "usurpation d'identité", "darknet", "marché noir", "cheval de Troie", 
+    "spyware", "hameçonnage", "fraude", "extorsion", "chantage", "blanchiment d'argent", "corruption", "pot-de-vin", "abus de pouvoir", 
+    "détournement de fonds", "évasion fiscale", "fraude fiscale", "contrefaçon", "dictature", "oppression", "propagande", "fake news", 
+    "manipulation", "endoctrinement", "secte", "lavage de cerveau", "désinformation", "violence policière", "brutalité", "crime organisé", 
+    "mafia", "cartel", "milice", "mercenaire", "guérilla", "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", 
+    "séparatiste"
 ]
 
-ADMIN_ID = 792755123587645461
+user_messages = {}
 
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
-    # 🔹 Détection des mots sensibles
+    # 💬 1. Vérifie les mots sensibles
     for word in sensitive_words:
         if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
             print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
             asyncio.create_task(send_alert_to_admin(message, word))
             break
 
-    # 🔹 Fonction 2 : Répond si le bot est mentionné directement
+    # 📣 2. Répond si le bot est mentionné
     if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
         embed = discord.Embed(
             title="👋 Besoin d’aide ?",
@@ -1796,22 +1781,33 @@ async def on_message(message):
         view.add_item(button)
 
         await message.channel.send(embed=embed, view=view)
-        return  # On arrête ici pour ne pas faire d'autres traitements
+        return
 
-    # 🔹 Récupération de la configuration du serveur
+    # 📦 3. Gestion des partenariats dans un salon spécifique
+    if message.channel.id == TARGET_CHANNEL_ID:
+        role = message.guild.get_role(ROLE_ID)
+        embed = discord.Embed(
+            title="🤝 Partenariat reçu !",
+            description=f"Merci beaucoup pour le partenariat {message.author.mention} {role.mention} !",
+            color=discord.Color.green()
+        )
+        embed.set_footer(text="Système automatique de partenariats")
+        await message.channel.send(embed=embed)
+
+    # ⚙️ 4. Configuration du serveur pour sécurité
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     if not guild_data:
         await bot.process_commands(message)
         return
 
-    # 🔹 Anti-lien
+    # 🔗 5. Anti-lien
     if guild_data.get("anti_link", False):
         if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
             await message.delete()
             await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
             return
 
-    # 🔹 Anti-spam
+    # 💣 6. Anti-spam
     if guild_data.get("anti_spam_limit", False):
         now = time.time()
         user_id = message.author.id
@@ -1833,18 +1829,18 @@ async def on_message(message):
             await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
             return
 
-    # 🔹 Anti-everyone
+    # 📣 7. Anti-everyone
     if guild_data.get("anti_everyone", False):
         if "@everyone" in message.content or "@here" in message.content:
             await message.delete()
             await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
             return
 
-    # 🔹 Exécution des commandes
+    # ✅ 8. Exécution normale des commandes
     await bot.process_commands(message)
 
+# 🔔 Fonction d'envoi d'alerte à l'admin
 async def send_alert_to_admin(message, detected_word):
-    """Envoie une alerte privée à l'admin en cas de mot interdit détecté."""
     try:
         admin = await bot.fetch_user(ADMIN_ID)
         embed = discord.Embed(
