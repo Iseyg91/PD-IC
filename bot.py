@@ -3961,20 +3961,30 @@ async def warn(ctx, member: discord.Member = None, *, reason="Aucune raison spé
 @bot.command()
 async def warnlist(ctx, member: discord.Member = None):
     if member is None:
-        return await ctx.send("❌ Vous devez mentionner un membre pour consulter ses sanctions.")
+        return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre.")
+    
+    sanctions = collection7.find({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id),
+        "action": "Warn"
+    })
 
-    sanctions = collection7.find({"guild_id": ctx.guild.id, "user_id": str(member.id)})
-    if sanctions.count() == 0:
-        return await ctx.send(f"❌ Aucune sanction trouvée pour {member.mention}.")
+    count = collection7.count_documents({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id),
+        "action": "Warn"
+    })
 
-    sanctions_list = []
+    if count == 0:
+        return await ctx.send(f"✅ {member.mention} n'a aucun avertissement.")
+
+    embed = discord.Embed(title=f"Avertissements de {member.name}", color=discord.Color.orange())
     for sanction in sanctions:
-        sanction_info = f"**Action :** {sanction['action']}\n**Raison :** {sanction['reason']}\n**Durée :** {sanction['duration']}\n**Date :** {sanction['timestamp']}"
-        sanctions_list.append(sanction_info)
+        date = sanction["timestamp"].strftime("%d/%m/%Y à %Hh%M")
+        embed.add_field(name=f"Le {date}", value=sanction["reason"], inline=False)
 
-    # Envoi des sanctions sous forme de message
-    sanctions_message = "\n\n".join(sanctions_list)
-    await ctx.send(f"Sanctions de {member.mention} :\n\n{sanctions_message}")
+    await ctx.send(embed=embed)
+
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
 
