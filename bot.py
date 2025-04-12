@@ -203,9 +203,9 @@ async def on_error(event, *args, **kwargs):
 AUTHORIZED_USER_IDS = [792755123587645461, 873176863965589564]
 LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
 
-# Commande pour ajouter un client avec plus de détails
+# Commande pour ajouter un client
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
-@app_commands.describe(user="Mentionne un membre du serveur", service="Service acheté (Graphisme, Serveur, Site, Bot)", service_name="Nom du service acheté (ex: Project Delta)")
+@app_commands.describe(user="Mentionne un membre du serveur")
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
     await interaction.response.defer(ephemeral=True)
     print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id})")
@@ -223,7 +223,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
 
         print(f"🔍 Vérification si {user} ({user.id}) est déjà client...")
 
-        # Recherche MongoDB dans une tâche parallèle (en utilisant Motor)
+        # Recherche MongoDB dans une tâche parallèle
         async def find_existing():
             try:
                 print("🔄 Recherche dans MongoDB...")
@@ -242,26 +242,26 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
 
         # Ajout du client dans MongoDB avec Motor
         try:
+            purchase_date = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")  # Date d'achat
             client_data = {
+                "user_id": user.id,
                 "service": service,
                 "service_name": service_name,
-                "date_achat": datetime.now().strftime("%Y-%m-%d"),
+                "purchase_date": purchase_date
             }
 
             if existing:
                 print("📁 Ajout dans une liste de clients existante.")
-                # Utilisation de Motor pour mettre à jour
                 result = await collection5.update_one(
                     {"guild_id": interaction.guild.id},
-                    {"$push": {"clients": {**client_data, 'user_id': user.id}}}
+                    {"$push": {"clients": client_data}}
                 )
                 print(f"📝 Résultat de l'ajout : {result.raw_result}")
             else:
                 print("🆕 Création d’une nouvelle entrée pour ce serveur.")
-                # Utilisation de Motor pour insérer un nouveau document
-                result = await collection5.insert_one({
+                result = collection5.insert_one({
                     "guild_id": interaction.guild.id,
-                    "clients": [{"user_id": user.id, **client_data}]
+                    "clients": [client_data]
                 })
                 print(f"📝 Résultat de l'insertion : {result.inserted_id}")
 
@@ -271,23 +271,30 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
             await interaction.followup.send(f"❌ Une erreur est survenue lors de l'ajout : {e}")
             return
 
-        print("✅ Ajout réussi.")
-        await interaction.followup.send(f"✅ {user.mention} a été ajouté comme client.")
+        # Réponse visuelle avec un embed
+        embed = discord.Embed(
+            title="✅ Client ajouté",
+            description=f"{user.mention} a été ajouté en tant que client.",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="Service", value=service, inline=False)
+        embed.add_field(name="Nom du Service", value=service_name, inline=False)
+        embed.add_field(name="Date d'achat", value=purchase_date, inline=False)
+        await interaction.followup.send(embed=embed)
 
-        # Envoi du log dans le salon des logs avec un Embed amélioré
+        # Envoi du log dans le salon des logs
         try:
             log_channel = bot.get_channel(LOG_CHANNEL_ID)
             if log_channel:
                 print("📝 Envoi dans le salon de logs...")
-                embed = discord.Embed(
+                log_embed = discord.Embed(
                     title="🟢 Client ajouté",
-                    description=f"{user.mention} (`{user.id}`) - Service: {service} - Nom: {service_name}",
+                    description=f"{user.mention} (`{user.id}`)",
                     color=discord.Color.green()
                 )
-                embed.add_field(name="Date d'achat", value=client_data["date_achat"])
-                embed.set_footer(text=f"Ajouté par {interaction.user}")
-                embed.timestamp = discord.utils.utcnow()
-                await log_channel.send(embed=embed)
+                log_embed.set_footer(text=f"Ajouté par {interaction.user}")
+                log_embed.timestamp = discord.utils.utcnow()
+                await log_channel.send(embed=log_embed)
             else:
                 print("⚠️ Salon de log introuvable (ID invalide ?).")
 
@@ -299,6 +306,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         print("❌ Erreur générale non prévue :", e)
         traceback.print_exc()
         await interaction.followup.send(f"❌ Une erreur inattendue est survenue : {e}")
+
 # Commande pour retirer un client
 @bot.tree.command(name="remove_client", description="Retire un client via mention ou ID")
 @app_commands.describe(user="Mentionne un membre du serveur")
