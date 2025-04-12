@@ -42,6 +42,7 @@ collection = db['setup']  # Configuration générale
 collection2 = db['setup_premium']  # Serveurs premium
 collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
+collection5 = db ['clients'] #Stock Clients
 collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
@@ -103,6 +104,7 @@ def load_guild_settings(guild_id):
     setup_premium_data = collection2.find_one({"guild_id": guild_id}) or {}
     bounty_data = collection3.find_one({"guild_id": guild_id}) or {}
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
+    clients_data = collection5.find_one({"guild_id": guild_id}) or {}
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
@@ -113,10 +115,12 @@ def load_guild_settings(guild_id):
         "setup_premium": setup_premium_data,
         "bounty": bounty_data,
         "protection": protection_data,
+        "clients": clients_data
         "idees": idees_data
     }
 
     return combined_data
+
 # Fonction pour récupérer le préfixe depuis la base de données
 async def get_prefix(bot, message):
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
@@ -196,6 +200,95 @@ async def on_error(event, *args, **kwargs):
     await args[0].response.send_message(embed=embed)
 
 #--------------------------------------------------------------------------- Owner Verif
+
+@bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
+@app_commands.describe(user="Mentionne un membre du serveur")
+async def add_client(interaction: discord.Interaction, user: discord.Member):
+    await interaction.response.defer(ephemeral=True)
+    print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id})")
+
+    try:
+        if interaction.user.id not in AUTHORIZED_USER_IDS:
+            print("🚫 Utilisateur non autorisé.")
+            await interaction.followup.send("🚫 Tu n'as pas la permission.")
+            return
+
+        if not interaction.guild:
+            print("❌ Commande utilisée en DM.")
+            await interaction.followup.send("❌ À utiliser uniquement dans un serveur.")
+            return
+
+        print(f"🔍 Vérification si {user} ({user.id}) est déjà client...")
+
+        # Recherche MongoDB dans une tâche parallèle
+        async def find_existing():
+            try:
+                print("🔄 Recherche dans MongoDB...")
+                return await collection5.find_one({"guild_id": interaction.guild.id})
+            except Exception as e:
+                print("❌ Erreur pendant la recherche MongoDB :", e)
+                traceback.print_exc()
+                return None
+
+        existing_task = asyncio.create_task(find_existing())
+        await interaction.followup.send("🔄 Recherche en cours...")
+
+        existing = await existing_task
+
+        if existing and user.id in existing.get("clients", []):
+            print("⚠️ Utilisateur déjà client.")
+            await interaction.followup.send(f"{user.mention} est déjà client.")
+            return
+
+        # Ajout du client dans MongoDB
+        try:
+            if existing:
+                print("📁 Ajout dans une liste de clients existante.")
+                await collection5.update_one(
+                    {"guild_id": interaction.guild.id},
+                    {"$push": {"clients": user.id}}
+                )
+            else:
+                print("🆕 Création d’une nouvelle entrée pour ce serveur.")
+                await collection5.insert_one({
+                    "guild_id": interaction.guild.id,
+                    "clients": [user.id]
+                })
+
+        except Exception as e:
+            print("❌ Erreur lors de l'ajout dans MongoDB :", e)
+            traceback.print_exc()
+            await interaction.followup.send("❌ Une erreur est survenue lors de l'ajout.")
+            return
+
+        print("✅ Ajout réussi.")
+        await interaction.followup.send(f"✅ {user.mention} a été ajouté comme client.")
+
+        # Envoi du log dans le salon des logs
+        try:
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                print("📝 Envoi dans le salon de logs...")
+                embed = discord.Embed(
+                    title="🟢 Client ajouté",
+                    description=f"{user.mention} (`{user.id}`)",
+                    color=discord.Color.green()
+                )
+                embed.set_footer(text=f"Ajouté par {interaction.user}")
+                embed.timestamp = discord.utils.utcnow()
+                await log_channel.send(embed=embed)
+            else:
+                print("⚠️ Salon de log introuvable (ID invalide ?).")
+
+        except Exception as e:
+            print("❌ Erreur lors de l’envoi dans le salon de logs :", e)
+            traceback.print_exc()
+
+    except Exception as e:
+        print("❌ Erreur générale non prévue :", e)
+        traceback.print_exc()
+        await interaction.followup.send("❌ Une erreur inattendue est survenue.")
+
 BOT_OWNER_ID = 792755123587645461
 
 # Vérification si l'utilisateur est l'owner du bot
