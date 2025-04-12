@@ -231,7 +231,8 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
     try:
         print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id}) pour {user} ({user.id})")
 
-        existing_data = await collection5.find_one({"guild_id": interaction.guild.id}) or {}
+        # Supprimer 'await' car collection5 est synchrone avec pymongo
+        existing_data = collection5.find_one({"guild_id": interaction.guild.id}) or {}
         existing_clients = existing_data.get("clients", [])
 
         if any(client.get("user_id") == user.id for client in existing_clients):
@@ -246,12 +247,14 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         }
 
         if existing_data:
-            await collection5.update_one(
+            # Supprimer 'await' ici aussi
+            collection5.update_one(
                 {"guild_id": interaction.guild.id},
                 {"$push": {"clients": client_data}}
             )
         else:
-            await collection5.insert_one({
+            # Supprimer 'await' ici aussi
+            collection5.insert_one({
                 "guild_id": interaction.guild.id,
                 "clients": [client_data]
             })
@@ -288,6 +291,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         print("❌ Erreur inattendue :", e)
         traceback.print_exc()
         await interaction.followup.send("⚠️ Une erreur est survenue pendant le traitement. Merci de réessayer plus tard.", ephemeral=True)
+
 
 @bot.tree.command(name="remove_client", description="Supprime un client enregistré")
 @app_commands.describe(
