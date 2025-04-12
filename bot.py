@@ -280,7 +280,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
             "service": service,
             "service_name": service_name,
             "purchase_date": purchase_date,
-            "creator_id": interaction.user.id  # 👈 Ajout ici
+            "creator_id": interaction.user.id,  # 👈 Ajout ici
             "done_by": {
                 "name": str(interaction.user),
                 "id": interaction.user.id
