@@ -67,6 +67,7 @@ collection3 = db['bounty']  # Primes et récompenses des joueurs
 collection4 = db['protection'] #Serveur sous secu ameliorer
 collection5 = db ['clients'] #Stock Clients
 collection6 = db ['partner'] #Stock Partner
+collection7= db ['sanction'] #Stock Sanction
 collection8 = db['idees'] #Stock Idées
 
 # Exemple de structure de la base de données pour la collection bounty
@@ -113,6 +114,19 @@ def update_protection(guild_id, protection_key, new_value):
         upsert=True
     )
 
+def add_sanction(guild_id, user_id, action, reason, duration=None):
+    sanction_data = {
+        "guild_id": guild_id,
+        "user_id": user_id,
+        "action": action,
+        "reason": reason,
+        "duration": duration,
+        "timestamp": datetime.datetime.utcnow()
+    }
+
+    # Insertion ou mise à jour de la sanction dans la base de données
+    collection7.insert_one(sanction_data)
+
 # Fonction pour récupérer le nombre de partenariats et le rank d'un utilisateur
 def get_user_partner_info(user_id: str):
     partner_data = collection6.find_one({"user_id": user_id})
@@ -137,6 +151,7 @@ def load_guild_settings(guild_id):
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
     clients_data = collection5.find_one({"guild_id": guild_id}) or {}
     partner_data = collection6.find_one({"guild_id": guild_id}) or {}
+    sanction_data = collection7.find_one({"guild_id": guild_id}) or {}
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
@@ -149,6 +164,7 @@ def load_guild_settings(guild_id):
         "protection": protection_data,
         "clients": clients_data,
         "partner": partner_data,
+        "sanction": sanction_data,
         "idees": idees_data
     }
 
@@ -3733,11 +3749,14 @@ async def ban(ctx, member: discord.Member = None, *, reason="Aucune raison spéc
         return await ctx.send("🚫 Vous ne pouvez pas sanctionner quelqu'un de votre niveau ou supérieur.")
     
     if has_permission(ctx, "ban_members"):
-        await target_member.ban(reason=reason)
-        embed = create_embed("🔨 Ban", f"{target_member.mention} a été banni.", discord.Color.red(), ctx, target_member, "Ban", reason)
+        await member.ban(reason=reason)
+        embed = create_embed("🔨 Ban", f"{member.mention} a été banni.", discord.Color.red(), ctx, member, "Ban", reason)
         await ctx.send(embed=embed)
-        await send_log(ctx, target_member, "Ban", reason)
-        await send_dm(target_member, "Ban", reason)
+        await send_log(ctx, member, "Ban", reason)
+        await send_dm(member, "Ban", reason)
+
+        # Enregistrement de la sanction
+        add_sanction(ctx.guild.id, member.id, "Ban", reason)
 
 @bot.command()
 async def unban(ctx, user_id: int = None):
@@ -3817,13 +3836,24 @@ async def mute(ctx, member: discord.Member = None, duration_with_unit: str = Non
         await ctx.send(embed=embed)
         await send_log(ctx, member, "Mute", reason, duration_str)
         await send_dm(member, "Mute", reason, duration_str)
+
+        # Ajout des sanctions dans la base de données MongoDB
+        sanction_data = {
+            "guild_id": str(ctx.guild.id),
+            "user_id": str(member.id),
+            "action": "Mute",
+            "reason": reason,
+            "duration": duration_str,
+            "timestamp": datetime.utcnow()
+        }
+        collection7.insert_one(sanction_data)  # collection7 est la collection de sanctions
+        
     except discord.Forbidden:
         await ctx.send("❌ Je n'ai pas la permission de mute ce membre. Vérifiez les permissions du bot.")
     except discord.HTTPException as e:
         await ctx.send(f"❌ Une erreur s'est produite lors de l'application du mute : {e}")
     except Exception as e:
         await ctx.send(f"❌ Une erreur inattendue s'est produite : {str(e)}")
-
 
 @bot.command()
 async def unmute(ctx, member: discord.Member = None):
@@ -3878,7 +3908,6 @@ async def send_dm(member, action, reason):
 async def warn(ctx, member: discord.Member, *, reason="Aucune raison spécifiée"):
     try:
         if await check_permissions(ctx) and not await is_immune(member):
-            # Envoi du message de confirmation
             embed = discord.Embed(
                 title="⚠️ Avertissement donné",
                 description=f"{member.mention} a reçu un avertissement pour la raison suivante :\n**{reason}**",
@@ -3890,10 +3919,30 @@ async def warn(ctx, member: discord.Member, *, reason="Aucune raison spécifiée
             # Envoi du log et du message privé
             await send_log(ctx, member, "Warn", reason)
             await send_dm(member, "Warn", reason)
+
+            # Enregistrement de la sanction
+            add_sanction(ctx.guild.id, member.id, "Warn", reason)
     except Exception as e:
-        # Capturer l'exception et afficher le détail dans la console
         print(f"Erreur dans la commande warn: {e}")
         await ctx.send(f"Une erreur s'est produite lors de l'exécution de la commande.")
+
+@bot.command()
+async def warnlist(ctx, member: discord.Member = None):
+    if member is None:
+        return await ctx.send("❌ Vous devez mentionner un membre pour consulter ses sanctions.")
+
+    sanctions = collection7.find({"guild_id": ctx.guild.id, "user_id": str(member.id)})
+    if sanctions.count() == 0:
+        return await ctx.send(f"❌ Aucune sanction trouvée pour {member.mention}.")
+
+    sanctions_list = []
+    for sanction in sanctions:
+        sanction_info = f"**Action :** {sanction['action']}\n**Raison :** {sanction['reason']}\n**Durée :** {sanction['duration']}\n**Date :** {sanction['timestamp']}"
+        sanctions_list.append(sanction_info)
+
+    # Envoi des sanctions sous forme de message
+    sanctions_message = "\n\n".join(sanctions_list)
+    await ctx.send(f"Sanctions de {member.mention} :\n\n{sanctions_message}")
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
 
