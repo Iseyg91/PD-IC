@@ -186,7 +186,7 @@ def load_guild_settings(guild_id):
         "partner": partner_data,
         "sanction": sanction_data,
         "idees": idees_data,
-        "stats": stats_data
+        "stats": stats_data,
         "eco": eco_data
     }
 
