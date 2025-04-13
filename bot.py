@@ -502,20 +502,22 @@ async def send_alert_to_admin(message, detected_word):
 def add_coins(guild_id, user_id, amount):
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"coins": amount}},
+        {"$inc": {"cash": amount, "bank": amount, "coins": amount}},  # Ajout aux 3 champs
         upsert=True
     )
 
-@bot.command(name="bal")
+@bot.hybrid_command(name="bal", description= "Affiche ton bal ou celui d'un autre utilisateur.")
 async def balance(ctx, member: discord.Member = None):
     if ctx.guild.id != 1359963854200639498:
         return
 
     member = member or ctx.author
     user_id, guild_id = str(member.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0, "coins": 0}
 
-    cash, bank, total = user_data.get("cash", 0), user_data.get("bank", 0), user_data.get("cash", 0) + user_data.get("bank", 0)
+    cash = user_data.get("cash", 0)
+    bank = user_data.get("bank", 0)
+    coins = cash + bank
 
     embed = discord.Embed(
         title=f"💼 Portefeuille de {member.display_name}",
@@ -525,12 +527,60 @@ async def balance(ctx, member: discord.Member = None):
     embed.set_thumbnail(url=member.display_avatar.url)
     embed.add_field(name="💵 Cash", value=f"`{cash}` <:ecoEther:1341862366249357374>", inline=True)
     embed.add_field(name="🏦 Banque", value=f"`{bank}` <:ecoEther:1341862366249357374>", inline=True)
-    embed.add_field(name="💰 Total", value=f"`{total}` <:ecoEther:1341862366249357374>", inline=False)
+    embed.add_field(name="💰 Total", value=f"`{coins}` <:ecoEther:1341862366249357374>", inline=False)
     embed.set_footer(text="Économie de Project : Delta")
 
     await ctx.send(embed=embed)
 
-@bot.command(name="pay")
+@bot.hybrid_command(name="top", description= "Affiche le classement des joueurs les plus riches du serveur.")
+async def top(ctx):
+    # Créer un menu déroulant avec trois options : Cash, Bank, Total
+    select = Select(
+        placeholder="Choisissez un classement...",
+        options=[
+            discord.SelectOption(label="Par Cash", description="Classement par le montant de Cash", value="cash"),
+            discord.SelectOption(label="Par Banque", description="Classement par le montant en Banque", value="bank"),
+            discord.SelectOption(label="Par Total", description="Classement par la somme Cash + Banque", value="total")
+        ]
+    )
+
+    # Fonction de gestion des sélections
+    async def select_callback(interaction):
+        selected_value = select.values[0]
+        guild_id = str(ctx.guild.id)
+
+        if selected_value == "cash":
+            leaderboard = collection10.find({"guild_id": guild_id}).sort("cash", -1).limit(10)
+            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('cash', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
+        elif selected_value == "bank":
+            leaderboard = collection10.find({"guild_id": guild_id}).sort("bank", -1).limit(10)
+            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('bank', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
+        elif selected_value == "total":
+            leaderboard = collection10.find({"guild_id": guild_id}).sort("total", -1).limit(10)
+            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('total', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
+        
+        embed = discord.Embed(
+            title="🏆 Classement des Riches",
+            description=desc or "Personne n’a encore de Coins...",
+            color=discord.Color.gold()
+        )
+        await interaction.response.edit_message(embed=embed)
+
+    select.callback = select_callback
+
+    # Créer une vue avec le menu déroulant
+    view = View()
+    view.add_item(select)
+
+    # Envoyer l'embed initial avec le menu déroulant
+    embed = discord.Embed(
+        title="🏆 Classement des Riches",
+        description="Choisissez un type de classement en utilisant le menu déroulant.",
+        color=discord.Color.gold()
+    )
+    await ctx.send(embed=embed, view=view)
+
+@bot.hybrid_command(name="pay", description= "Permet de transférer une certaine somme d'argent à un autre utilisateur.")
 async def pay(ctx, member: discord.Member, amount: int = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -542,7 +592,7 @@ async def pay(ctx, member: discord.Member, amount: int = None):
         return await ctx.send("⚠️ Tu ne peux pas te payer toi-même.")
 
     user_id, member_id, guild_id = str(ctx.author.id), str(member.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0, "coins": 0}
 
     if user_data["cash"] < amount:
         return await ctx.send("💸 Tu n'as pas assez de **cash** pour effectuer ce paiement.")
@@ -559,11 +609,9 @@ async def pay(ctx, member: discord.Member, amount: int = None):
     embed.set_footer(text="Transaction réussie.")
     await ctx.send(embed=embed)
 
-# Commande pour utiliser 'all' (tout le solde)
 @pay.error
 async def pay_all_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
-        # Vérifier si 'all' est utilisé et payer tout le solde
         user_id = str(ctx.author.id)
         guild_id = str(ctx.guild.id)
         user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
@@ -573,9 +621,9 @@ async def pay_all_error(ctx, error):
             await ctx.send("❌ Tu n'as pas assez de **<:ecoEther:1341862366249357374>** en cash pour payer.")
             return
         
-        await pay(ctx, ctx.author, total_cash)  # Reutilise la fonction pour payer tout le cash
+        await pay(ctx, ctx.author, total_cash)
 
-@bot.command(name="dy")
+@bot.hybridcommand(name="daily", description= "Réclamez votre récompense quotidienne d'Ezryn Coins et plus ! Disponible tous les 24h.", aliases=['dy'])
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
     user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
@@ -611,13 +659,13 @@ async def daily(ctx):
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
-@bot.command(name="with")
+@bot.hybrid_command(name="withdraw", description= "Retirez une somme spécifique de votre solde actuel.", aliases=['with'])
 async def withdraw(ctx, amount: str):
     if ctx.guild.id != 1359963854200639498:
         return
 
     user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"bank": 0}
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"bank": 0, "cash": 0}
 
     if amount.lower() == "all":
         if user_data["bank"] <= 0:
@@ -643,7 +691,7 @@ async def withdraw(ctx, amount: str):
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
-@bot.command(name="dep")
+@bot.hybrid_command(name="deposit", description = "Déposez une somme dans votre solde.", aliases=['dep'])
 async def deposit(ctx, amount: str = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -677,21 +725,6 @@ async def deposit(ctx, amount: str = None):
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
-@bot.command(name="top")
-async def top(ctx):
-    leaderboard = collection10.find({"guild_id": str(ctx.guild.id)}).sort("coins", -1).limit(10)
-
-    desc = ""
-    for i, user in enumerate(leaderboard):
-        desc += f"**#{i+1}** <@{user['user_id']}> — `{user.get('coins', 0)}` <:ecoEther:1341862366249357374>\n"
-
-    embed = discord.Embed(
-        title="🏆 Classement des Riches",
-        description=desc or "Personne n’a encore de Coins...",
-        color=discord.Color.gold()
-    )
-    await ctx.send(embed=embed)
-
 # Commande pour ajouter des coins à un utilisateur
 @bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui ajouter des coins", amount="Montant à ajouter")
@@ -704,7 +737,6 @@ async def add_money(interaction: discord.Interaction, user: discord.Member, amou
 
     user_id, guild_id = str(user.id), str(interaction.guild.id)
 
-    # Mise à jour des coins de l'utilisateur
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"coins": amount}},
@@ -720,7 +752,6 @@ async def add_money(interaction: discord.Interaction, user: discord.Member, amou
     embed.set_footer(text="Transaction réussie.")
     await interaction.response.send_message(embed=embed)
 
-
 # Commande pour retirer des coins à un utilisateur
 @bot.tree.command(name="remove_money", description="Retire de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui retirer des coins", amount="Montant à retirer")
@@ -733,7 +764,6 @@ async def remove_money(interaction: discord.Interaction, user: discord.Member, a
 
     user_id, guild_id = str(user.id), str(interaction.guild.id)
 
-    # Mise à jour des coins de l'utilisateur
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"coins": -amount}},
@@ -794,7 +824,7 @@ def update_user_xp(guild_id, user_id, xp_gain):
         upsert=True
     )
 
-@bot.command(name="rank")
+@bot.hybrid_command(name="rank", description= "Affichez votre niveau actuel et votre progression dans le système de classement.", aliases=['level', 'lvl')
 async def rank(ctx, member: discord.Member = None):
     member = member or ctx.author
     guild_id = str(ctx.guild.id)
