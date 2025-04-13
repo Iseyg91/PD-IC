@@ -422,7 +422,7 @@ async def daily(ctx):
     if daily_data:
         last_daily = daily_data.get("last_daily")
         if last_daily:
-            last_time = datetime.datetime.fromisoformat(last_daily)
+            last_time = datetime.fromisoformat(last_daily)
 
             # Vérifie le temps écoulé
             if now - last_time < cooldown_time:
