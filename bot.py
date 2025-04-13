@@ -72,6 +72,7 @@ collection6 = db ['partner'] #Stock Partner
 collection7= db ['sanction'] #Stock Sanction
 collection8 = db['idees'] #Stock Idées
 collection9 = db['stats'] #Stock Salon Stats
+collection10 = db['eco'] #Stock Les infos Eco
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -108,6 +109,20 @@ def set_bounty(guild_id: int, user_id: int, prize: int):
             "prize": prize,
             "reward": 0  # Initialisation des récompenses à 0
         })
+
+# Fonction pour récupérer les données économiques d'un utilisateur
+def get_user_eco(guild_id, user_id):
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    if not user_data:
+        # Si l'utilisateur n'a pas encore de données, on les crée
+        collection10.insert_one({
+            "guild_id": guild_id,
+            "user_id": user_id,
+            "coins": 0,
+            "last_daily": None
+        })
+        return {"coins": 0, "last_daily": None}
+    return user_data
 
 # Fonction pour modifier les paramètres de protection
 def update_protection(guild_id, protection_key, new_value):
@@ -157,6 +172,7 @@ def load_guild_settings(guild_id):
     sanction_data = collection7.find_one({"guild_id": guild_id}) or {}
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
     stats_data = collection9.find_one({"guild_id": guild_id}) or {}
+    eco_data = collection10.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -171,6 +187,7 @@ def load_guild_settings(guild_id):
         "sanction": sanction_data,
         "idees": idees_data,
         "stats": stats_data
+        "eco": eco_data
     }
 
     return combined_data
@@ -185,7 +202,7 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Tâche de fond pour mettre à jour les stats toutes les 60 secondes
+# Tâche de fond pour mettre à jour les stats toutes les 5 secondes
 @tasks.loop(seconds=5)
 async def update_stats():
     all_stats = collection9.find()
@@ -217,18 +234,27 @@ async def update_stats():
         except Exception as e:
             print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
+# Tâche de fond pour donner des coins toutes les minutes en vocal
+@tasks.loop(minutes=1)
+async def reward_voice():
+    for guild in bot.guilds:
+        if guild.id == 1359963854200639498:
+            for member in guild.members:
+                if member.voice:
+                    coins_to_add = random.randint(25, 75)
+                    add_coins(guild.id, str(member.id), coins_to_add)
+
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
-    # Initialisation de l'uptime
     bot.uptime = time.time()
 
-    # Démarrage de la tâche de fond
+    # Démarrer les tâches de fond
     update_stats.start()
+    reward_voice.start()
 
-    # Statistiques globales
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
 
@@ -236,44 +262,36 @@ async def on_ready():
     print(f"➡️ **Serveurs** : {guild_count}")
     print(f"➡️ **Utilisateurs** : {member_count}")
 
-    # Liste des activités dynamiques
     activity_types = [
         discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
         discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
         discord.Activity(type=discord.ActivityType.streaming, name="Etherya"),
     ]
 
-    # Liste des statuts
     status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
 
-    # Mise à jour initiale du statut
     await bot.change_presence(
         activity=random.choice(activity_types),
         status=random.choice(status_types)
     )
 
     print(f"\n🎉 **{bot.user}** est maintenant connecté et affiche ses statistiques dynamiques avec succès !")
-
-    # Affichage des commandes chargées
     print("📌 Commandes disponibles 😊")
     for command in bot.commands:
         print(f"- {command.name}")
 
-    # Synchronisation des commandes slash
     try:
         synced = await bot.tree.sync()
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
 
-    # Mise à jour du statut/activité en boucle
     while True:
         for activity in activity_types:
             for status in status_types:
                 await bot.change_presence(activity=activity, status=status)
                 await asyncio.sleep(10)
 
-        # (Optionnel) Recharger les settings pour chaque serveur
         for guild in bot.guilds:
             GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
@@ -288,7 +306,98 @@ async def on_error(event, *args, **kwargs):
         color=discord.Color.red()
     )
     await args[0].response.send_message(embed=embed)
-    
+
+#--------------------------------------------------------------------------- Eco:
+# Fonction pour ajouter des coins à un utilisateur
+def add_coins(guild_id, user_id, amount):
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": amount}},
+        upsert=True
+    )
+
+# Commande pour afficher le solde
+@bot.command(name="bal")
+async def balance(ctx):
+    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
+    coins = user_data['coins']
+    embed = discord.Embed(
+        title=f"Solde de {ctx.author.name}",
+        description=f"Tu as actuellement **{coins} Coins**.",
+        color=discord.Color.green()
+    )
+    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/ecoEther_Original.png?raw=true")
+    await ctx.send(embed=embed)
+
+# Commande pour payer un autre utilisateur
+@bot.command(name="pay")
+async def pay(ctx, recipient: discord.Member, amount: int):
+    if amount <= 0:
+        await ctx.send("Le montant doit être positif.")
+        return
+    sender_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
+    if sender_data['coins'] < amount:
+        await ctx.send("Tu n'as pas assez de Coins.")
+        return
+    add_coins(ctx.guild.id, str(ctx.author.id), -amount)
+    add_coins(ctx.guild.id, str(recipient.id), amount)
+    await ctx.send(f"{ctx.author.name} a payé {recipient.name} **{amount} Coins**.")
+
+# Commande pour effectuer un dépôt de coins
+@bot.command(name="dep_all")
+async def deposit_all(ctx):
+    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
+    amount = user_data['coins']
+    if amount == 0:
+        await ctx.send("Tu n'as pas de Coins à déposer.")
+        return
+    add_coins(ctx.guild.id, str(ctx.author.id), -amount)
+    await ctx.send(f"Tous tes **{amount} Coins** ont été déposés.")
+
+# Commande pour effectuer un retrait de coins
+@bot.command(name="with_all")
+async def withdraw_all(ctx):
+    # Exemple simple : on peut définir un montant maximum que l'utilisateur peut retirer
+    amount = 1000  # Tu peux personnaliser cette valeur selon la logique de ton serveur
+    add_coins(ctx.guild.id, str(ctx.author.id), amount)
+    await ctx.send(f"Tu as retiré **{amount} Coins**.")
+
+# Commande Daily (dy)
+@bot.command(name="dy")
+async def daily(ctx):
+    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
+    last_daily = user_data['last_daily']
+    if last_daily and (datetime.datetime.utcnow() - last_daily).days < 1:
+        await ctx.send("Tu as déjà récupéré ton Daily aujourd'hui.")
+        return
+    amount = random.randint(1, 300)
+    add_coins(ctx.guild.id, str(ctx.author.id), amount)
+    collection10.update_one(
+        {"guild_id": ctx.guild.id, "user_id": str(ctx.author.id)},
+        {"$set": {"last_daily": datetime.datetime.utcnow()}}
+    )
+    await ctx.send(f"Tu as reçu **{amount} Coins** pour ton Daily !")
+
+# Commande Top (affiche les meilleurs joueurs)
+@bot.command(name="top")
+async def top(ctx):
+    top_users = collection10.find({"guild_id": ctx.guild.id}).sort("coins", -1).limit(10)
+    leaderboard = "\n".join([f"{i+1}. <@{user['user_id']}>: {user['coins']} Coins" for i, user in enumerate(top_users)])
+    embed = discord.Embed(
+        title="Classement des meilleurs joueurs",
+        description=leaderboard,
+        color=discord.Color.gold()
+    )
+    await ctx.send(embed=embed)
+
+# Événement pour donner des Coins si un utilisateur streame
+@bot.event
+async def on_member_update(before, after):
+    if before.activity != after.activity:
+        if after.activity and isinstance(after.activity, discord.Streaming):
+            coins_to_add = random.randint(50, 75)
+            add_coins(after.guild.id, str(after.id), coins_to_add)
+            await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
 #--------------------------------------------------------------------------- Stats
 
 @bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
@@ -2045,9 +2154,16 @@ async def listwl(ctx):
         await ctx.send("La whitelist est vide.")
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
-# Mots sensibles
+import random
+import re
+import time
+import asyncio
+import discord
+from discord.ui import View, Button
+from datetime import datetime
+
 sensitive_words = [
-    "connard", "salopard", "enfoiré","baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
+    "connard", "salopard", "enfoiré", "baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
     "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", "misandre", "discriminatoire", 
     "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur", "viol", "tuer", "assassin", "attaque", "agression", "meurtre", 
     "génocide", "exécution", "kidnapping", "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", 
@@ -2133,7 +2249,6 @@ async def on_message(message):
 
         await message.channel.send(embed=embed)
 
-
     # ⚙️ 4. Configuration du serveur pour sécurité
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     if not guild_data:
@@ -2176,7 +2291,14 @@ async def on_message(message):
             await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
             return
 
-    # ✅ 8. Exécution normale des commandes
+    # 🎉 8. Ajouter des Coins pour chaque message
+    if message.guild.id == 1359963854200639498:  # S'assurer que le serveur correspond
+        if message.author.bot:
+            return
+        coins_to_add = random.randint(3, 5)
+        add_coins(message.guild.id, str(message.author.id), coins_to_add)
+
+    # ✅ 9. Exécution normale des commandes
     await bot.process_commands(message)
 
 # 🔔 Fonction d'envoi d'alerte à l'admin
