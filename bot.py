@@ -183,7 +183,7 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Tâche de fond pour mettre à jour les stats toutes les 5 secondes
+# Tâche de fond pour mettre à jour les stats toutes les 60 secondes
 @tasks.loop(seconds=5)
 async def update_stats():
     all_stats = collection9.find()
@@ -199,12 +199,9 @@ async def update_stats():
         role_channel = guild.get_channel(data.get("role_channel_id"))
         bots_channel = guild.get_channel(data.get("bots_channel_id"))
 
-        total_members = len([m for m in guild.members if not m.bot])
+        total_members = guild.member_count
+        role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
         total_bots = len([m for m in guild.members if m.bot])
-        role_members = len([
-            member for member in guild.members
-            if role and role in member.roles and not member.bot
-        ])
 
         try:
             if member_channel:
@@ -333,6 +330,40 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
         await interaction.response.send_message("❌ Je n'ai pas les permissions pour créer des salons.", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"❌ Une erreur est survenue : {e}", ephemeral=True)
+
+@bot.tree.command(name="reset_stats", description="Réinitialise les salons de stats")
+async def reset_stats(interaction: discord.Interaction):
+    author = interaction.user
+
+    # Vérification des permissions
+    if not author.guild_permissions.administrator and author.id != 792755123587645461:
+        await interaction.response.send_message("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
+    guild = interaction.guild
+    stats_data = collection9.find_one({"guild_id": str(guild.id)})
+
+    if not stats_data:
+        await interaction.response.send_message("⚠️ Aucun salon de stats enregistré pour ce serveur.", ephemeral=True)
+        return
+
+    deleted_channels = []
+
+    try:
+        for channel_id_key in ["member_channel_id", "role_channel_id", "bots_channel_id"]:
+            channel_id = stats_data.get(channel_id_key)
+            channel = guild.get_channel(channel_id)
+            if channel:
+                await channel.delete()
+                deleted_channels.append(channel.name)
+
+        collection9.delete_one({"guild_id": str(guild.id)})
+
+        await interaction.response.send_message(
+            f"✅ Salons de stats supprimés : {', '.join(deleted_channels)}", ephemeral=True
+        )
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Une erreur est survenue lors de la suppression : {e}", ephemeral=True)
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
