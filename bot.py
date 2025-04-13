@@ -5,14 +5,13 @@ import os
 import random
 import asyncio
 import time
-import datetime
 import re
 import subprocess
 import sys
 import traceback
 from keep_alive import keep_alive
 from discord.ui import Button, View
-from datetime import datetime
+from datetime import datetime, timedelta
 from discord.ui import View, Select
 from discord.ext import tasks
 from collections import defaultdict
@@ -415,7 +414,7 @@ async def daily(ctx):
     guild_id = str(ctx.guild.id)
 
     now = datetime.utcnow()
-    cooldown_time = datetime.timedelta(hours=24)
+    cooldown_time = timedelta(hours=24)
 
     # Cherche si l'utilisateur a un enregistrement dans eco_daily
     daily_data = collection11.find_one({"guild_id": guild_id, "user_id": user_id})
