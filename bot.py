@@ -707,6 +707,63 @@ async def on_member_update(before, after):
             add_coins(after.guild.id, str(after.id), coins_to_add)
             await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
 
+#-------------------------------------------------------------------------------- Niveau:
+
+xp_rate = {
+    "message": 50,
+    "voice": 150,
+    "camera": 250,
+    "stream": 175
+}
+
+def xp_needed_for_level(level):
+    return int(100 + (level - 1) * 100 * 1.15)
+
+def get_user_rank_data(guild_id, user_id):
+    user_id, guild_id = str(user_id), str(guild_id)
+    data = collection12.find_one({"guild_id": guild_id, "user_id": user_id})
+    if not data:
+        collection12.insert_one({"guild_id": guild_id, "user_id": user_id, "xp": 0, "level": 1})
+        return {"xp": 0, "level": 1}
+    return data
+
+def update_user_xp(guild_id, user_id, xp_gain):
+    user_id, guild_id = str(user_id), str(guild_id)
+    data = get_user_rank_data(guild_id, user_id)
+    new_xp = data["xp"] + xp_gain
+    new_level = data["level"]
+
+    while new_xp >= xp_needed_for_level(new_level + 1):
+        new_level += 1
+        add_coins(guild_id, user_id, new_level * 100)  # 💰 100 coins par niveau gagné
+
+    collection12.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"xp": new_xp, "level": new_level}},
+        upsert=True
+    )
+
+@bot.command(name="rank")
+async def rank(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    guild_id = str(ctx.guild.id)
+    user_id = str(member.id)
+
+    data = get_user_rank_data(guild_id, user_id)
+    xp = data["xp"]
+    level = data["level"]
+    next_level_xp = xp_needed_for_level(level + 1)
+    xp_progress = xp - xp_needed_for_level(level)
+    progress_pct = (xp_progress / (next_level_xp - xp_needed_for_level(level))) * 100
+
+    embed = discord.Embed(
+        title=f"🏅 Rang de {member.display_name}",
+        color=discord.Color.gold(),
+        description=f"**Niveau :** {level}\n**XP :** {xp} / {next_level_xp} ({progress_pct:.2f}%)"
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+
 #--------------------------------------------------------------------------- Stats
 
 @bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
