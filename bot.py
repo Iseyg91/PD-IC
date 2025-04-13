@@ -69,6 +69,7 @@ collection5 = db ['clients'] #Stock Clients
 collection6 = db ['partner'] #Stock Partner
 collection7= db ['sanction'] #Stock Sanction
 collection8 = db['idees'] #Stock Idées
+collection9 = db['stats'] #Stock Salon Stats
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -153,6 +154,7 @@ def load_guild_settings(guild_id):
     partner_data = collection6.find_one({"guild_id": guild_id}) or {}
     sanction_data = collection7.find_one({"guild_id": guild_id}) or {}
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
+    stats_data = collection9.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -165,7 +167,8 @@ def load_guild_settings(guild_id):
         "clients": clients_data,
         "partner": partner_data,
         "sanction": sanction_data,
-        "idees": idees_data
+        "idees": idees_data,
+        "stats": stats_data
     }
 
     return combined_data
@@ -186,7 +189,8 @@ async def on_ready():
 
     # Initialisation de l'uptime du bot
     bot.uptime = time.time()
-    
+        update_stats.start()
+
     # Récupération du nombre de serveurs et d'utilisateurs
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
@@ -249,6 +253,70 @@ async def on_error(event, *args, **kwargs):
     await args[0].response.send_message(embed=embed)
 
 #--------------------------------------------------------------------------- Owner Verif
+@bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
+@discord.app_commands.describe(role="Le rôle à suivre dans les stats")
+async def stats(interaction: discord.Interaction, role: discord.Role):
+    guild = interaction.guild
+
+    stats_data = collection9.find_one({"guild_id": str(guild.id)})
+
+    if stats_data:
+        collection9.update_one(
+            {"guild_id": str(guild.id)},
+            {"$set": {"role_id": role.id}}
+        )
+        await interaction.response.send_message(f"🔁 Rôle mis à jour pour les stats : {role.name}", ephemeral=True)
+        return
+
+    try:
+        member_channel = await guild.create_voice_channel(name="👥 Membres : 0")
+        role_channel = await guild.create_voice_channel(name=f"🎯 {role.name} : 0")
+        bots_channel = await guild.create_voice_channel(name="🤖 Bots : 0")
+
+        collection9.insert_one({
+            "guild_id": str(guild.id),
+            "member_channel_id": member_channel.id,
+            "role_channel_id": role_channel.id,
+            "bots_channel_id": bots_channel.id,
+            "role_id": role.id
+        })
+
+        await interaction.response.send_message("📊 Salons de stats créés et synchronisés !", ephemeral=True)
+    except discord.Forbidden:
+        await interaction.response.send_message("❌ Je n'ai pas les permissions pour créer des salons.", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Une erreur est survenue : {e}", ephemeral=True)
+
+@tasks.loop(seconds=60)
+async def update_stats():
+    all_stats = collection9.find()
+
+    for data in all_stats:
+        guild_id = int(data["guild_id"])
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            continue
+
+        role = guild.get_role(data.get("role_id"))
+        member_channel = guild.get_channel(data.get("member_channel_id"))
+        role_channel = guild.get_channel(data.get("role_channel_id"))
+        bots_channel = guild.get_channel(data.get("bots_channel_id"))
+
+        total_members = guild.member_count
+        role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
+        total_bots = len([m for m in guild.members if m.bot])
+
+        try:
+            if member_channel:
+                await member_channel.edit(name=f"👥 Membres : {total_members}")
+            if role_channel:
+                await role_channel.edit(name=f"🎯 {role.name if role else 'Rôle'} : {role_members}")
+            if bots_channel:
+                await bots_channel.edit(name=f"🤖 Bots : {total_bots}")
+        except discord.Forbidden:
+            print(f"⛔ Permissions insuffisantes pour modifier les salons dans {guild.name}")
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
