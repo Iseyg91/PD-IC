@@ -623,7 +623,7 @@ async def pay_all_error(ctx, error):
         
         await pay(ctx, ctx.author, total_cash)
 
-@bot.hybridcommand(name="daily", description= "Réclamez votre récompense quotidienne d'Ezryn Coins et plus ! Disponible tous les 24h.", aliases=['dy'])
+@bot.hybrid_command(name="daily", description= "Réclamez votre récompense quotidienne d'Ezryn Coins et plus ! Disponible tous les 24h.", aliases=['dy'])
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
     user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
