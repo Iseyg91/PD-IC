@@ -316,20 +316,17 @@ def add_coins(guild_id, user_id, amount):
         upsert=True
     )
 
-# Commande pour afficher le solde
 @bot.command(name="bal")
 async def balance(ctx):
     user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
     coins = user_data['coins']
     embed = discord.Embed(
         title=f"Solde de {ctx.author.name}",
-        description=f"Tu as actuellement **{coins} Coins**.",
+        description=f"Tu as actuellement **{coins} <:ecoEther:1341862366249357374>**.",
         color=discord.Color.green()
     )
-    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/ecoEther_Original.png?raw=true")
     await ctx.send(embed=embed)
 
-# Commande pour payer un autre utilisateur
 @bot.command(name="pay")
 async def pay(ctx, recipient: discord.Member, amount: int):
     if amount <= 0:
@@ -337,31 +334,80 @@ async def pay(ctx, recipient: discord.Member, amount: int):
         return
     sender_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
     if sender_data['coins'] < amount:
-        await ctx.send("Tu n'as pas assez de Coins.")
+        await ctx.send("Tu n'as pas assez de <:ecoEther:1341862366249357374>.")
         return
     add_coins(ctx.guild.id, str(ctx.author.id), -amount)
     add_coins(ctx.guild.id, str(recipient.id), amount)
-    await ctx.send(f"{ctx.author.name} a payé {recipient.name} **{amount} Coins**.")
+    await ctx.send(f"{ctx.author.name} a payé {recipient.name} **{amount} <:ecoEther:1341862366249357374>**.")
 
-# Commande pour effectuer un dépôt de coins
-@bot.command(name="dep_all")
-async def deposit_all(ctx):
-    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
-    amount = user_data['coins']
-    if amount == 0:
-        await ctx.send("Tu n'as pas de Coins à déposer.")
+@bot.command(name="dep")
+async def deposit(ctx, amount: str):
+    if ctx.guild.id != 1359963854200639498:
         return
-    add_coins(ctx.guild.id, str(ctx.author.id), -amount)
-    await ctx.send(f"Tous tes **{amount} Coins** ont été déposés.")
+    
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
 
-# Commande pour effectuer un retrait de coins
-@bot.command(name="with_all")
-async def withdraw_all(ctx):
-    # Exemple simple : on peut définir un montant maximum que l'utilisateur peut retirer
-    amount = 1000  # Tu peux personnaliser cette valeur selon la logique de ton serveur
-    add_coins(ctx.guild.id, str(ctx.author.id), amount)
-    await ctx.send(f"Tu as retiré **{amount} Coins**.")
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
 
+    if amount.lower() == "all":
+        if user_data["cash"] <= 0:
+            return await ctx.send(f"❌ Tu n'as aucun cash à déposer.")
+        amount_to_deposit = user_data["cash"]
+    else:
+        if not amount.isdigit():
+            return await ctx.send("❌ Montant invalide. Utilise un nombre ou 'all'.")
+        amount_to_deposit = int(amount)
+        if amount_to_deposit > user_data["cash"]:
+            return await ctx.send("❌ Tu n'as pas assez de cash pour ça.")
+
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"cash": -amount_to_deposit, "bank": amount_to_deposit}},
+        upsert=True
+    )
+
+    await ctx.send(
+        embed=discord.Embed(
+            description=f"💰 Tu as déposé **{amount_to_deposit} <:ecoEther:1341862366249357374>** dans ta banque.",
+            color=0x2ecc71
+        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    )
+
+
+@bot.command(name="with")
+async def withdraw(ctx, amount: str):
+    if ctx.guild.id != 1359963854200639498:
+        return
+    
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+
+    if amount.lower() == "all":
+        if user_data["bank"] <= 0:
+            return await ctx.send(f"❌ Tu n'as rien à retirer de la banque.")
+        amount_to_withdraw = user_data["bank"]
+    else:
+        if not amount.isdigit():
+            return await ctx.send("❌ Montant invalide. Utilise un nombre ou 'all'.")
+        amount_to_withdraw = int(amount)
+        if amount_to_withdraw > user_data["bank"]:
+            return await ctx.send("❌ Tu n'as pas assez en banque pour ça.")
+
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"bank": -amount_to_withdraw, "cash": amount_to_withdraw}},
+        upsert=True
+    )
+
+    await ctx.send(
+        embed=discord.Embed(
+            description=f"🏦 Tu as retiré **{amount_to_withdraw} <:ecoEther:1341862366249357374>** de ta banque.",
+            color=0xe67e22
+        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    )
 # Commande Daily (dy)
 @bot.command(name="dy")
 async def daily(ctx):
