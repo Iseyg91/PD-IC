@@ -691,16 +691,18 @@ async def top(ctx):
         color=discord.Color.gold()
     )
     await ctx.send(embed=embed)
-# Fonction pour ajouter des coins à un utilisateur
-@bot.command(name="add_money")
-async def add_money(ctx, user: discord.Member, amount: int):
-    if ctx.guild.id != 1359963854200639498:
+
+# Commande pour ajouter des coins à un utilisateur
+@bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
+@app_commands.describe(user="Utilisateur à qui ajouter des coins", amount="Montant à ajouter")
+async def add_money(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if interaction.guild.id != 1359963854200639498:
         return
 
     if amount <= 0:
-        return await ctx.send("❌ **Montant invalide.** Utilise une somme positive.")
+        return await interaction.response.send_message("❌ **Montant invalide.** Utilise une somme positive.", ephemeral=True)
 
-    user_id, guild_id = str(user.id), str(ctx.guild.id)
+    user_id, guild_id = str(user.id), str(interaction.guild.id)
 
     # Mise à jour des coins de l'utilisateur
     collection10.update_one(
@@ -711,24 +713,25 @@ async def add_money(ctx, user: discord.Member, amount: int):
 
     embed = discord.Embed(
         title="💰 Coins ajoutés avec succès",
-        description=f"Tu as ajouté **{amount} <:ecoEther:1341862366249357374>** à {user.mention}.",
+        description=f"**{amount} <:ecoEther:1341862366249357374>** ont été ajoutés à {user.mention}.",
         color=discord.Color.green()
     )
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text="Transaction réussie.")
-    await ctx.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 
-# Fonction pour retirer des coins à un utilisateur
-@bot.command(name="remove_money")
-async def remove_money(ctx, user: discord.Member, amount: int):
-    if ctx.guild.id != 1359963854200639498:
+# Commande pour retirer des coins à un utilisateur
+@bot.tree.command(name="remove_money", description="Retire de l'argent à un utilisateur")
+@app_commands.describe(user="Utilisateur à qui retirer des coins", amount="Montant à retirer")
+async def remove_money(interaction: discord.Interaction, user: discord.Member, amount: int):
+    if interaction.guild.id != 1359963854200639498:
         return
 
     if amount <= 0:
-        return await ctx.send("❌ **Montant invalide.** Utilise une somme positive.")
+        return await interaction.response.send_message("❌ **Montant invalide.** Utilise une somme positive.", ephemeral=True)
 
-    user_id, guild_id = str(user.id), str(ctx.guild.id)
+    user_id, guild_id = str(user.id), str(interaction.guild.id)
 
     # Mise à jour des coins de l'utilisateur
     collection10.update_one(
@@ -739,12 +742,12 @@ async def remove_money(ctx, user: discord.Member, amount: int):
 
     embed = discord.Embed(
         title="💸 Coins retirés avec succès",
-        description=f"Tu as retiré **{amount} <:ecoEther:1341862366249357374>** à {user.mention}.",
+        description=f"**{amount} <:ecoEther:1341862366249357374>** ont été retirés à {user.mention}.",
         color=discord.Color.red()
     )
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text="Transaction réussie.")
-    await ctx.send(embed=embed)
+    await interaction.response.send_message(embed=embed)
 
 # Événement pour donner des Coins si un utilisateur streame
 @bot.event
@@ -810,20 +813,20 @@ async def rank(ctx, member: discord.Member = None):
     embed.set_thumbnail(url=member.display_avatar.url)
     await ctx.send(embed=embed)
 
-@bot.command(name="add_xp")
-async def add_xp(ctx, member: discord.Member, xp_amount: int):
-    guild_id = str(ctx.guild.id)
+@bot.tree.command(name="add_xp")
+async def add_xp(interaction: discord.Interaction, member: discord.Member, xp_amount: int):
+    guild_id = str(interaction.guild.id)
     user_id = str(member.id)
 
     # Mise à jour de l'XP de l'utilisateur
     update_user_xp(guild_id, user_id, xp_amount)
 
     # Réponse confirmant l'ajout d'XP
-    await ctx.send(f"{member.mention} a reçu {xp_amount} XP ! 🎉")
+    await interaction.response.send_message(f"{member.mention} a reçu {xp_amount} XP ! 🎉", ephemeral=True)
 
-@bot.command(name="remove_xp")
-async def remove_xp(ctx, member: discord.Member, xp_amount: int):
-    guild_id = str(ctx.guild.id)
+@bot.tree.command(name="remove_xp")
+async def remove_xp(interaction: discord.Interaction, member: discord.Member, xp_amount: int):
+    guild_id = str(interaction.guild.id)
     user_id = str(member.id)
 
     # Mise à jour de l'XP de l'utilisateur
@@ -832,14 +835,14 @@ async def remove_xp(ctx, member: discord.Member, xp_amount: int):
 
     # S'assurer qu'on ne retire pas plus d'XP que ce que l'utilisateur possède
     if xp_amount > current_xp:
-        await ctx.send(f"{member.mention} n'a pas assez d'XP pour retirer cette quantité.")
+        await interaction.response.send_message(f"{member.mention} n'a pas assez d'XP pour retirer cette quantité.", ephemeral=True)
         return
 
     # Mise à jour de l'XP de l'utilisateur après retrait
     update_user_xp(guild_id, user_id, -xp_amount)
 
     # Réponse confirmant le retrait d'XP
-    await ctx.send(f"{xp_amount} XP ont été retirés à {member.mention}. 😔")
+    await interaction.response.send_message(f"{xp_amount} XP ont été retirés à {member.mention}. 😔", ephemeral=True)
 
 @bot.command(name="reset_all_rank")
 async def reset_all_rank(ctx):
