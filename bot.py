@@ -317,14 +317,29 @@ def add_coins(guild_id, user_id, amount):
     )
 
 @bot.command(name="bal")
-async def balance(ctx):
-    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
-    coins = user_data['coins']
+async def balance(ctx, member: discord.Member = None):
+    if ctx.guild.id != 1359963854200639498:
+        return
+
+    member = member or ctx.author
+    user_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    cash = user_data.get("cash", 0)
+    bank = user_data.get("bank", 0)
+    total = cash + bank
+
     embed = discord.Embed(
-        title=f"Solde de {ctx.author.name}",
-        description=f"Tu as actuellement **{coins} <:ecoEther:1341862366249357374>**.",
-        color=discord.Color.green()
+        title=f"Portefeuille de {member.display_name} 💼",
+        color=0x3498db
     )
+    embed.add_field(name="💵 Cash", value=f"{cash} <:ecoEther:1341862366249357374>", inline=False)
+    embed.add_field(name="🏦 Banque", value=f"{bank} <:ecoEther:1341862366249357374>", inline=False)
+    embed.add_field(name="💰 Total", value=f"{total} <:ecoEther:1341862366249357374>", inline=False)
+    embed.set_thumbnail(url=member.display_avatar.url)
+    embed.set_footer(text="Économie de Project : Delta")
+
     await ctx.send(embed=embed)
 
 @bot.command(name="pay")
@@ -340,39 +355,43 @@ async def pay(ctx, recipient: discord.Member, amount: int):
     add_coins(ctx.guild.id, str(recipient.id), amount)
     await ctx.send(f"{ctx.author.name} a payé {recipient.name} **{amount} <:ecoEther:1341862366249357374>**.")
 
-@bot.command(name="dep")
-async def deposit(ctx, amount: str):
+@bot.command(name="dy")
+@commands.cooldown(1, 86400, commands.BucketType.user)  # 1 fois toutes les 24h
+async def daily(ctx):
     if ctx.guild.id != 1359963854200639498:
         return
     
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    # Récompense aléatoire entre 1 et 300 Coins
+    reward = random.randint(1, 300)
 
-    if amount.lower() == "all":
-        if user_data["cash"] <= 0:
-            return await ctx.send(f"❌ Tu n'as aucun cash à déposer.")
-        amount_to_deposit = user_data["cash"]
-    else:
-        if not amount.isdigit():
-            return await ctx.send("❌ Montant invalide. Utilise un nombre ou 'all'.")
-        amount_to_deposit = int(amount)
-        if amount_to_deposit > user_data["cash"]:
-            return await ctx.send("❌ Tu n'as pas assez de cash pour ça.")
-
+    # Mise à jour du cash du joueur dans la base de données
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": -amount_to_deposit, "bank": amount_to_deposit}},
+        {"$inc": {"cash": reward}, "$setOnInsert": {"bank": 0}},  # Si l'utilisateur n'a pas de banque, elle est initialisée à 0
         upsert=True
     )
 
-    await ctx.send(
-        embed=discord.Embed(
-            description=f"💰 Tu as déposé **{amount_to_deposit} <:ecoEther:1341862366249357374>** dans ta banque.",
-            color=0x2ecc71
-        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    # Création de l'embed pour afficher la récompense
+    embed = discord.Embed(
+        title="Récompense quotidienne 💸",
+        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** en cash aujourd'hui !",
+        color=0xf1c40f
     )
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    await ctx.send(embed=embed)
+
+# Gestion de l'erreur de cooldown
+@daily.error
+async def daily_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        remaining = timedelta(seconds=int(error.retry_after))
+        hours, remainder = divmod(remaining.seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        await ctx.send(f"⏳ Tu as déjà réclamé ton daily ! Réessaie dans **{hours}h {minutes}m {seconds}s**.")
+
 
 
 @bot.command(name="with")
@@ -408,21 +427,31 @@ async def withdraw(ctx, amount: str):
             color=0xe67e22
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
-# Commande Daily (dy)
 @bot.command(name="dy")
+@commands.cooldown(1, 86400, commands.BucketType.user)  # 1 fois toutes les 24h
 async def daily(ctx):
-    user_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
-    last_daily = user_data['last_daily']
-    if last_daily and (datetime.datetime.utcnow() - last_daily).days < 1:
-        await ctx.send("Tu as déjà récupéré ton Daily aujourd'hui.")
+    if ctx.guild.id != 1359963854200639498:
         return
-    amount = random.randint(1, 300)
-    add_coins(ctx.guild.id, str(ctx.author.id), amount)
+    
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+
+    reward = random.randint(1, 300)
+
     collection10.update_one(
-        {"guild_id": ctx.guild.id, "user_id": str(ctx.author.id)},
-        {"$set": {"last_daily": datetime.datetime.utcnow()}}
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"cash": reward}, "$setOnInsert": {"bank": 0}},
+        upsert=True
     )
-    await ctx.send(f"Tu as reçu **{amount} Coins** pour ton Daily !")
+
+    embed = discord.Embed(
+        title="Récompense quotidienne 💸",
+        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** en cash aujourd'hui !",
+        color=0xf1c40f
+    )
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    await ctx.send(embed=embed)
+
 
 # Commande Top (affiche les meilleurs joueurs)
 @bot.command(name="top")
