@@ -405,42 +405,53 @@ async def pay_all_error(ctx, error):
         
         await pay(ctx, ctx.author, total_cash)  # Reutilise la fonction pour payer tout le cash
 
+from discord.ext import commands
+import random
+import datetime
+
+DAILY_COOLDOWN = 86400  # 24 heures en secondes
+
 @bot.command(name="dy")
-@commands.cooldown(1, 86400, commands.BucketType.user)  # 1 fois toutes les 24h
+@commands.cooldown(1, DAILY_COOLDOWN, commands.BucketType.user)
 async def daily(ctx):
     if ctx.guild.id != 1359963854200639498:
         return
-    
+
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
-    # Récompense aléatoire entre 1 et 300 Coins
     reward = random.randint(1, 300)
 
-    # Mise à jour du cash du joueur dans la base de données
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": reward}, "$setOnInsert": {"bank": 0}},  # Si l'utilisateur n'a pas de banque, elle est initialisée à 0
+        {"$inc": {"cash": reward}},
         upsert=True
     )
 
-    # Création de l'embed pour afficher la récompense
     embed = discord.Embed(
-        title="Récompense quotidienne 💸",
-        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** en cash aujourd'hui !",
-        color=0xf1c40f
+        title="Récompense quotidienne 🎁",
+        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** aujourd’hui !",
+        color=0x3498db
     )
+    embed.set_footer(text="Reviens demain pour plus de Coins !")
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     await ctx.send(embed=embed)
 
-# Gestion de l'erreur de cooldown
+
 @daily.error
 async def daily_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
-        remaining = timedelta(seconds=int(error.retry_after))
-        hours, remainder = divmod(remaining.seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        await ctx.send(f"⏳ Tu as déjà réclamé ton daily ! Réessaie dans **{hours}h {minutes}m {seconds}s**.")
+        remaining = str(datetime.timedelta(seconds=int(error.retry_after)))
+        hours, minutes, seconds = map(int, remaining.split(':'))
+
+        embed = discord.Embed(
+            title="⏳ Daily déjà réclamé",
+            description=f"Tu pourras refaire `+dy` dans **{hours}h {minutes}m {seconds}s**.",
+            color=0xe67e22
+        )
+        embed.set_footer(text="Patience, les Coins reviendront bientôt...")
+        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+        await ctx.send(embed=embed)
 
 
 @bot.command(name="with")
@@ -476,6 +487,51 @@ async def withdraw(ctx, amount: str):
             color=0xe67e22
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
+
+@bot.command(name="dep")
+async def deposit(ctx, amount: str = None):
+    if ctx.guild.id != 1359963854200639498:
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    cash = user_data.get("cash", 0)
+
+    # Vérifier le cas "all" ou aucun montant
+    if amount is None or amount.lower() == "all":
+        if cash <= 0:
+            await ctx.send("❌ Tu n'as pas de <:ecoEther:1341862366249357374> en cash à déposer.")
+            return
+        deposit_amount = cash
+    else:
+        # Vérifier si le montant est un chiffre valide
+        try:
+            deposit_amount = int(amount)
+            if deposit_amount <= 0:
+                raise ValueError
+        except ValueError:
+            await ctx.send("❌ Spécifie un montant valide ou utilise `dep all`.")
+            return
+        if deposit_amount > cash:
+            await ctx.send("❌ Tu n'as pas assez de <:ecoEther:1341862366249357374> en cash pour ça.")
+            return
+
+    # Met à jour la base de données
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"cash": -deposit_amount, "bank": deposit_amount}},
+        upsert=True
+    )
+
+    embed = discord.Embed(
+        title="Dépôt effectué 🏦",
+        description=f"Tu as déposé **{deposit_amount} <:ecoEther:1341862366249357374>** dans ta banque.",
+        color=0x1abc9c
+    )
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    await ctx.send(embed=embed)
 
 # Commande Top (affiche les meilleurs joueurs)
 @bot.command(name="top")
