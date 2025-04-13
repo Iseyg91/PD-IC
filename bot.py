@@ -758,6 +758,14 @@ async def rank(ctx, member: discord.Member = None):
     embed.set_thumbnail(url=member.display_avatar.url)
     await ctx.send(embed=embed)
 
+@bot.command(name="reset_all_rank")
+async def reset_all_rank(ctx):
+    if ctx.author.id != 792755123587645461:
+        return await ctx.send("🚫 Tu n'as pas la permission d'utiliser cette commande.")
+
+    result = collection12.delete_many({"guild_id": str(ctx.guild.id)})
+    await ctx.send(f"✅ Toutes les données de rang ont été supprimées pour ce serveur. ({result.deleted_count} entrées supprimées)")
+
 #--------------------------------------------------------------------------- Stats
 
 @bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
