@@ -324,23 +324,20 @@ async def balance(ctx, member: discord.Member = None):
         return
 
     member = member or ctx.author
-    user_id = str(member.id)
-    guild_id = str(ctx.guild.id)
-
+    user_id, guild_id = str(member.id), str(ctx.guild.id)
     user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
-    cash = user_data.get("cash", 0)
-    bank = user_data.get("bank", 0)
-    total = cash + bank
+
+    cash, bank, total = user_data.get("cash", 0), user_data.get("bank", 0), user_data.get("cash", 0) + user_data.get("bank", 0)
 
     embed = discord.Embed(
-        title=f"Portefeuille de {member.display_name} 💼",
-        description=f"Voici ton solde économique actuel :",
-        color=0x3498db
+        title=f"💼 Portefeuille de {member.display_name}",
+        color=discord.Color.blue(),
+        description="Voici un aperçu de tes fonds actuels :"
     )
-    embed.add_field(name="💵 Cash", value=f"{cash} <:ecoEther:1341862366249357374>", inline=False)
-    embed.add_field(name="🏦 Banque", value=f"{bank} <:ecoEther:1341862366249357374>", inline=False)
-    embed.add_field(name="💰 Total", value=f"{total} <:ecoEther:1341862366249357374>", inline=False)
     embed.set_thumbnail(url=member.display_avatar.url)
+    embed.add_field(name="💵 Cash", value=f"`{cash}` <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="🏦 Banque", value=f"`{bank}` <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="💰 Total", value=f"`{total}` <:ecoEther:1341862366249357374>", inline=False)
     embed.set_footer(text="Économie de Project : Delta")
 
     await ctx.send(embed=embed)
@@ -349,43 +346,26 @@ async def balance(ctx, member: discord.Member = None):
 async def pay(ctx, member: discord.Member, amount: int = None):
     if ctx.guild.id != 1359963854200639498:
         return
-    
-    user_id = str(ctx.author.id)
-    member_id = str(member.id)
-    guild_id = str(ctx.guild.id)
 
-    # Vérification du montant
     if amount is None or amount <= 0:
-        await ctx.send("💡 Vous devez spécifier un montant valide pour payer.")
-        return
-    
-    # Récupérer les données du joueur et du membre
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
-    member_data = collection10.find_one({"guild_id": guild_id, "user_id": member_id}) or {"cash": 0, "bank": 0}
-    
-    cash = user_data.get("cash", 0)
+        return await ctx.send("❌ **Montant invalide.** Utilise une somme positive pour effectuer un paiement.")
 
-    # Si l'utilisateur a assez de cash
-    if cash < amount:
-        await ctx.send(f"💸 Tu n'as pas assez de **<:ecoEther:1341862366249357374>** en cash pour payer {amount}.")
-        return
+    if member == ctx.author:
+        return await ctx.send("⚠️ Tu ne peux pas te payer toi-même.")
 
-    # Mise à jour des balances
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": -amount}},
-        upsert=True
-    )
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": member_id},
-        {"$inc": {"cash": amount}},
-        upsert=True
-    )
+    user_id, member_id, guild_id = str(ctx.author.id), str(member.id), str(ctx.guild.id)
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
+
+    if user_data["cash"] < amount:
+        return await ctx.send("💸 Tu n'as pas assez de **cash** pour effectuer ce paiement.")
+
+    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"cash": -amount}}, upsert=True)
+    collection10.update_one({"guild_id": guild_id, "user_id": member_id}, {"$inc": {"cash": amount}}, upsert=True)
 
     embed = discord.Embed(
-        title="Paiement effectué ✅",
-        description=f"Tu as payé **{amount} <:ecoEther:1341862366249357374>** à {member.display_name}.",
-        color=0x2ecc71
+        title="💸 Paiement envoyé !",
+        description=f"Tu as envoyé **{amount} <:ecoEther:1341862366249357374>** à {member.mention}.",
+        color=discord.Color.green()
     )
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     embed.set_footer(text="Transaction réussie.")
@@ -410,77 +390,57 @@ async def pay_all_error(ctx, error):
 @bot.command(name="dy")
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
-    user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
+    user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
+    now, cooldown = datetime.utcnow(), timedelta(hours=24)
 
-    now = datetime.utcnow()
-    cooldown_time = timedelta(hours=24)
+    last_daily = collection11.find_one({"guild_id": guild_id, "user_id": user_id})
+    if last_daily and (now - datetime.fromisoformat(last_daily.get("last_daily", "")) < cooldown):
+        remaining = cooldown - (now - datetime.fromisoformat(last_daily["last_daily"]))
+        h, rem = divmod(remaining.total_seconds(), 3600)
+        m, s = divmod(rem, 60)
+        return await ctx.send(
+            f"⏳ Tu as déjà réclamé ton daily.\nReviens dans **{int(h)}h {int(m)}m {int(s)}s**."
+        )
 
-    # Cherche si l'utilisateur a un enregistrement dans eco_daily
-    daily_data = collection11.find_one({"guild_id": guild_id, "user_id": user_id})
-
-    if daily_data:
-        last_daily = daily_data.get("last_daily")
-        if last_daily:
-            last_time = datetime.fromisoformat(last_daily)
-
-            # Vérifie le temps écoulé
-            if now - last_time < cooldown_time:
-                remaining = cooldown_time - (now - last_time)
-                hours, remainder = divmod(remaining.total_seconds(), 3600)
-                minutes, seconds = divmod(remainder, 60)
-                return await ctx.send(
-                    f"❌ Tu as déjà récupéré ton daily !\n⏳ Réessaye dans **{int(hours)}h {int(minutes)}m {int(seconds)}s**."
-                )
-
-    # Montant du daily
     reward = random.randint(250, 350)
 
-    # Update ou insert dans la collection eco (cash du joueur)
-    user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
-    if user_eco:
-        collection10.update_one(
-            {"guild_id": guild_id, "user_id": user_id},
-            {"$inc": {"cash": reward}}
-        )
-    else:
-        collection10.insert_one({
-            "guild_id": guild_id,
-            "user_id": user_id,
-            "cash": reward,
-            "bank": 0
-        })
-
-    # Stock le daily dans collection11
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"cash": reward}},
+        upsert=True
+    )
     collection11.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$set": {"last_daily": now.isoformat()}},
         upsert=True
     )
 
-    await ctx.send(f"✅ Tu as récupéré ton daily ! Tu gagnes **{reward} <:ecoEther:1341862366249357374>** !")
-
+    await ctx.send(
+        embed=discord.Embed(
+            title="🎁 Récompense quotidienne",
+            description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** !",
+            color=discord.Color.blurple()
+        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    )
 
 @bot.command(name="with")
 async def withdraw(ctx, amount: str):
     if ctx.guild.id != 1359963854200639498:
         return
-    
-    user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
 
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"bank": 0}
 
     if amount.lower() == "all":
         if user_data["bank"] <= 0:
-            return await ctx.send(f"❌ Tu n'as rien à retirer de la banque.")
+            return await ctx.send("❌ Tu n’as rien à retirer de la banque.")
         amount_to_withdraw = user_data["bank"]
-    else:
-        if not amount.isdigit():
-            return await ctx.send("❌ Montant invalide. Utilise un nombre ou 'all'.")
+    elif amount.isdigit() and int(amount) > 0:
         amount_to_withdraw = int(amount)
         if amount_to_withdraw > user_data["bank"]:
-            return await ctx.send("❌ Tu n'as pas assez en banque pour ça.")
+            return await ctx.send("❌ Tu n’as pas assez en banque pour retirer ça.")
+    else:
+        return await ctx.send("⚠️ Montant invalide. Utilise un nombre ou `with all`.")
 
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
@@ -490,8 +450,8 @@ async def withdraw(ctx, amount: str):
 
     await ctx.send(
         embed=discord.Embed(
-            description=f"🏦 Tu as retiré **{amount_to_withdraw} <:ecoEther:1341862366249357374>** de ta banque.",
-            color=0xe67e22
+            description=f"💸 Tu as retiré **{amount_to_withdraw} <:ecoEther:1341862366249357374>** de ta banque.",
+            color=discord.Color.orange()
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
@@ -500,54 +460,46 @@ async def deposit(ctx, amount: str = None):
     if ctx.guild.id != 1359963854200639498:
         return
 
-    user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
+    user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
+    cash = user_data["cash"]
 
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
-    cash = user_data.get("cash", 0)
-
-    # Vérifier le cas "all" ou aucun montant
     if amount is None or amount.lower() == "all":
         if cash <= 0:
-            await ctx.send("❌ Tu n'as pas de <:ecoEther:1341862366249357374> en cash à déposer.")
-            return
+            return await ctx.send("❌ Tu n’as aucun cash à déposer.")
         deposit_amount = cash
-    else:
-        # Vérifier si le montant est un chiffre valide
-        try:
-            deposit_amount = int(amount)
-            if deposit_amount <= 0:
-                raise ValueError
-        except ValueError:
-            await ctx.send("❌ Spécifie un montant valide ou utilise `dep all`.")
-            return
+    elif amount.isdigit() and int(amount) > 0:
+        deposit_amount = int(amount)
         if deposit_amount > cash:
-            await ctx.send("❌ Tu n'as pas assez de <:ecoEther:1341862366249357374> en cash pour ça.")
-            return
+            return await ctx.send("❌ Tu n’as pas assez de cash pour ce dépôt.")
+    else:
+        return await ctx.send("⚠️ Montant invalide. Utilise un nombre ou `dep all`.")
 
-    # Met à jour la base de données
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"cash": -deposit_amount, "bank": deposit_amount}},
         upsert=True
     )
 
-    embed = discord.Embed(
-        title="Dépôt effectué 🏦",
-        description=f"Tu as déposé **{deposit_amount} <:ecoEther:1341862366249357374>** dans ta banque.",
-        color=0x1abc9c
+    await ctx.send(
+        embed=discord.Embed(
+            title="🏦 Dépôt réussi",
+            description=f"Tu as déposé **{deposit_amount} <:ecoEther:1341862366249357374>** en banque.",
+            color=discord.Color.teal()
+        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-    await ctx.send(embed=embed)
 
-# Commande Top (affiche les meilleurs joueurs)
 @bot.command(name="top")
 async def top(ctx):
-    top_users = collection10.find({"guild_id": ctx.guild.id}).sort("coins", -1).limit(10)
-    leaderboard = "\n".join([f"{i+1}. <@{user['user_id']}>: {user['coins']} Coins" for i, user in enumerate(top_users)])
+    leaderboard = collection10.find({"guild_id": str(ctx.guild.id)}).sort("coins", -1).limit(10)
+
+    desc = ""
+    for i, user in enumerate(leaderboard):
+        desc += f"**#{i+1}** <@{user['user_id']}> — `{user.get('coins', 0)}` <:ecoEther:1341862366249357374>\n"
+
     embed = discord.Embed(
-        title="Classement des meilleurs joueurs",
-        description=leaderboard,
+        title="🏆 Classement des Riches",
+        description=desc or "Personne n’a encore de Coins...",
         color=discord.Color.gold()
     )
     await ctx.send(embed=embed)
