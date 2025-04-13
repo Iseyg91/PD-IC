@@ -208,12 +208,6 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Charger tous les COGS automatiquement
-async def load():
-    for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
-            await bot.load_extension(f"cogs.{filename[:-3]}")
-
 # Tâche de fond pour mettre à jour les stats toutes les 5 secondes
 @tasks.loop(seconds=5)
 async def update_stats():
@@ -295,7 +289,7 @@ async def on_ready():
     activity_types = [
         discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
         discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
-        discord.Activity(type=discord.ActivityType.streaming, name="Etherya"),
+        discord.Activity(type=discord.ActivityType.streaming, name="Project : Delta"),
     ]
 
     status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
@@ -710,14 +704,14 @@ async def on_member_update(before, after):
 #-------------------------------------------------------------------------------- Niveau:
 
 xp_rate = {
-    "message": 50,
-    "voice": 150,
-    "camera": 250,
-    "stream": 175
+    "message": 5,
+    "voice": 15,
+    "camera": 25,
+    "stream": 15
 }
 
 def xp_needed_for_level(level):
-    return int(100 + (level - 1) * 100 * 1.15)
+    return int(50 * (level ** 2))
 
 def get_user_rank_data(guild_id, user_id):
     user_id, guild_id = str(user_id), str(guild_id)
@@ -2981,8 +2975,8 @@ async def nuke(ctx):
 async def help(ctx):
     banner_url = "https://raw.githubusercontent.com/Cass64/EtheryaBot/refs/heads/main/images_etherya/etheryaBot_banniere.png"  # URL de la bannière
     embed = discord.Embed(
-        title="🏡 **Accueil Etherya Gestion**",
-        description=f"Hey, bienvenue {ctx.author.mention} sur la page d'accueil d'Etherya Gestion ! 🎉\n\n"
+        title="🏡 **Accueil Project : Delta **",
+        description=f"Hey, bienvenue {ctx.author.mention} sur la page d'accueil de Project : Delta! 🎉\n\n"
                     "Ici, vous trouverez toutes les informations nécessaires pour gérer et administrer votre serveur efficacement. 🌟",
         color=discord.Color(0x1abc9c)
     )
@@ -3156,7 +3150,6 @@ async def help(ctx):
     view.add_item(select)
     
     await ctx.send(embed=embed, view=view)
-
 #------------------------------------------------------------------------- Commandes Fun : Flemme de tout lister
 @bot.command()
 async def gay(ctx, member: discord.Member = None):
