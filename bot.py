@@ -183,62 +183,102 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
+from discord.ext import tasks
+import time
+import random
+import asyncio
+
+# Tâche de fond pour mettre à jour les stats toutes les 60 secondes
+@tasks.loop(seconds=60)
+async def update_stats():
+    all_stats = collection9.find()
+
+    for data in all_stats:
+        guild_id = int(data["guild_id"])
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            continue
+
+        role = guild.get_role(data.get("role_id"))
+        member_channel = guild.get_channel(data.get("member_channel_id"))
+        role_channel = guild.get_channel(data.get("role_channel_id"))
+        bots_channel = guild.get_channel(data.get("bots_channel_id"))
+
+        total_members = guild.member_count
+        role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
+        total_bots = len([m for m in guild.members if m.bot])
+
+        try:
+            if member_channel:
+                await member_channel.edit(name=f"👥 Membres : {total_members}")
+            if role_channel:
+                await role_channel.edit(name=f"🎯 {role.name if role else 'Rôle'} : {role_members}")
+            if bots_channel:
+                await bots_channel.edit(name=f"🤖 Bots : {total_bots}")
+        except discord.Forbidden:
+            print(f"⛔ Permissions insuffisantes pour modifier les salons dans {guild.name}")
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
+
+# Événement quand le bot est prêt
 @bot.event
 async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
-    # Initialisation de l'uptime du bot
+    # Initialisation de l'uptime
     bot.uptime = time.time()
-        update_stats.start()
 
-    # Récupération du nombre de serveurs et d'utilisateurs
+    # Démarrage de la tâche de fond
+    update_stats.start()
+
+    # Statistiques globales
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
-    
-    # Affichage des statistiques du bot dans la console
+
     print(f"\n📊 **Statistiques du bot :**")
     print(f"➡️ **Serveurs** : {guild_count}")
     print(f"➡️ **Utilisateurs** : {member_count}")
-    
+
     # Liste des activités dynamiques
     activity_types = [
         discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
         discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
         discord.Activity(type=discord.ActivityType.streaming, name="Etherya"),
     ]
-    
-    # Sélection d'une activité au hasard
-    activity = random.choice(activity_types)
-    
-    # Choix d'un statut aléatoire
+
+    # Liste des statuts
     status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
-    status = random.choice(status_types)
-    
-    # Mise à jour du statut et de l'activité
-    await bot.change_presence(activity=activity, status=status)
-    
+
+    # Mise à jour initiale du statut
+    await bot.change_presence(
+        activity=random.choice(activity_types),
+        status=random.choice(status_types)
+    )
+
     print(f"\n🎉 **{bot.user}** est maintenant connecté et affiche ses statistiques dynamiques avec succès !")
 
-    # Afficher les commandes chargées
+    # Affichage des commandes chargées
     print("📌 Commandes disponibles 😊")
     for command in bot.commands:
         print(f"- {command.name}")
 
+    # Synchronisation des commandes slash
     try:
-        # Synchroniser les commandes avec Discord
-        synced = await bot.tree.sync()  # Synchronisation des commandes slash
+        synced = await bot.tree.sync()
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
 
-    # Jongler entre différentes activités et statuts
+    # Mise à jour du statut/activité en boucle
     while True:
         for activity in activity_types:
             for status in status_types:
-                await bot.change_presence(status=status, activity=activity)
-                await asyncio.sleep(10)  # Attente de 10 secondes avant de changer l'activité et le statut
-    for guild in bot.guilds:
-        GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
+                await bot.change_presence(activity=activity, status=status)
+                await asyncio.sleep(10)
+
+        # (Optionnel) Recharger les settings pour chaque serveur
+        for guild in bot.guilds:
+            GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
 
 # Gestion des erreurs globales pour toutes les commandes
@@ -286,37 +326,6 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
         await interaction.response.send_message("❌ Je n'ai pas les permissions pour créer des salons.", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"❌ Une erreur est survenue : {e}", ephemeral=True)
-
-@tasks.loop(seconds=60)
-async def update_stats():
-    all_stats = collection9.find()
-
-    for data in all_stats:
-        guild_id = int(data["guild_id"])
-        guild = bot.get_guild(guild_id)
-        if not guild:
-            continue
-
-        role = guild.get_role(data.get("role_id"))
-        member_channel = guild.get_channel(data.get("member_channel_id"))
-        role_channel = guild.get_channel(data.get("role_channel_id"))
-        bots_channel = guild.get_channel(data.get("bots_channel_id"))
-
-        total_members = guild.member_count
-        role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
-        total_bots = len([m for m in guild.members if m.bot])
-
-        try:
-            if member_channel:
-                await member_channel.edit(name=f"👥 Membres : {total_members}")
-            if role_channel:
-                await role_channel.edit(name=f"🎯 {role.name if role else 'Rôle'} : {role_members}")
-            if bots_channel:
-                await bots_channel.edit(name=f"🤖 Bots : {total_bots}")
-        except discord.Forbidden:
-            print(f"⛔ Permissions insuffisantes pour modifier les salons dans {guild.name}")
-        except Exception as e:
-            print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
