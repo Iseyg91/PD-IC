@@ -824,7 +824,7 @@ def update_user_xp(guild_id, user_id, xp_gain):
         upsert=True
     )
 
-@bot.hybrid_command(name="rank", description= "Affichez votre niveau actuel et votre progression dans le système de classement.", aliases=['level', 'lvl']
+@bot.hybrid_command(name="rank", description= "Affichez votre niveau actuel et votre progression dans le système de classement.", aliases=['level', 'lvl'])
 async def rank(ctx, member: discord.Member = None):
     member = member or ctx.author
     guild_id = str(ctx.guild.id)
