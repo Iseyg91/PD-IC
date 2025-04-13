@@ -313,9 +313,9 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
         return
 
     try:
-        member_channel = await guild.create_voice_channel(name="︱👤・ Membres : 0")
-        role_channel = await guild.create_voice_channel(name=f"︱✨・ {role.name} : 0")
-        bots_channel = await guild.create_voice_channel(name="︱🤖・Bots : : 0")
+        member_channel = await guild.create_voice_channel(name="👥 Membres : 0")
+        role_channel = await guild.create_voice_channel(name=f"🎯 {role.name} : 0")
+        bots_channel = await guild.create_voice_channel(name="🤖 Bots : 0")
 
         collection9.insert_one({
             "guild_id": str(guild.id),
