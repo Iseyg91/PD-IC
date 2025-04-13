@@ -406,10 +406,10 @@ async def on_message(message):
 
         embed.set_footer(
             text="Partenariat réalisé",
-            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true"
+            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2024-09-28_211041.png?raw=true"
         )
         embed.set_image(
-            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true"
+            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2025-02-15_231405.png?raw=true"
         )
 
         await message.channel.send(embed=embed)
