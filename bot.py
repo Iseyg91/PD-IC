@@ -184,7 +184,7 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 GUILD_SETTINGS = {}
 
 # Tâche de fond pour mettre à jour les stats toutes les 60 secondes
-@tasks.loop(seconds=60)
+@tasks.loop(seconds=5)
 async def update_stats():
     all_stats = collection9.find()
 
