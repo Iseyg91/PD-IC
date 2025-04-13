@@ -414,7 +414,7 @@ async def daily(ctx):
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     cooldown_time = datetime.timedelta(hours=24)
 
     # Cherche si l'utilisateur a un enregistrement dans eco_daily
