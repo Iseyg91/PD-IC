@@ -392,8 +392,6 @@ async def daily_error(ctx, error):
         minutes, seconds = divmod(remainder, 60)
         await ctx.send(f"⏳ Tu as déjà réclamé ton daily ! Réessaie dans **{hours}h {minutes}m {seconds}s**.")
 
-
-
 @bot.command(name="with")
 async def withdraw(ctx, amount: str):
     if ctx.guild.id != 1359963854200639498:
@@ -427,31 +425,6 @@ async def withdraw(ctx, amount: str):
             color=0xe67e22
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
-@bot.command(name="dy")
-@commands.cooldown(1, 86400, commands.BucketType.user)  # 1 fois toutes les 24h
-async def daily(ctx):
-    if ctx.guild.id != 1359963854200639498:
-        return
-    
-    user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
-
-    reward = random.randint(1, 300)
-
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": reward}, "$setOnInsert": {"bank": 0}},
-        upsert=True
-    )
-
-    embed = discord.Embed(
-        title="Récompense quotidienne 💸",
-        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** en cash aujourd'hui !",
-        color=0xf1c40f
-    )
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-    await ctx.send(embed=embed)
-
 
 # Commande Top (affiche les meilleurs joueurs)
 @bot.command(name="top")
