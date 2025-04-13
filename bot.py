@@ -8,6 +8,7 @@ import time
 import re
 import subprocess
 import sys
+import math
 import traceback
 from keep_alive import keep_alive
 from discord.ui import Button, View
@@ -73,6 +74,7 @@ collection8 = db['idees'] #Stock Idées
 collection9 = db['stats'] #Stock Salon Stats
 collection10 = db['eco'] #Stock Les infos Eco
 collection11 = db['eco_daily'] #Stock le temps de daily
+collection12 = db['rank'] #Stock les Niveau
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -174,6 +176,7 @@ def load_guild_settings(guild_id):
     stats_data = collection9.find_one({"guild_id": guild_id}) or {}
     eco_data = collection10.find_one({"guild_id": guild_id}) or {}
     eco_daily_data = collection11.find_one({"guild_id": guild_id}) or {}
+    rank_data = collection12.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -189,7 +192,8 @@ def load_guild_settings(guild_id):
         "idees": idees_data,
         "stats": stats_data,
         "eco": eco_data,
-        "eco_daily": eco_daily_data
+        "eco_daily": eco_daily_data,
+        "rank": rank_data
     }
 
     return combined_data
@@ -246,6 +250,23 @@ async def reward_voice():
                     coins_to_add = random.randint(25, 75)
                     add_coins(guild.id, str(member.id), coins_to_add)
 
+# Tâche de fond pour mettre à jour les XP en vocal toutes les 60 secondes
+@tasks.loop(seconds=60)
+async def update_voice_xp():
+    for guild in bot.guilds:
+        for vc in guild.voice_channels:
+            for member in vc.members:
+                if member.bot:
+                    continue
+
+                base_xp = xp_rate["voice"]
+                if member.voice.self_video:
+                    base_xp = xp_rate["camera"]
+                elif member.voice.self_stream:
+                    base_xp = xp_rate["stream"]
+
+                update_user_xp(str(guild.id), str(member.id), base_xp)
+
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
@@ -256,6 +277,7 @@ async def on_ready():
     # Démarrer les tâches de fond
     update_stats.start()
     reward_voice.start()
+    update_voice_xp.start()
 
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
@@ -297,7 +319,6 @@ async def on_ready():
         for guild in bot.guilds:
             GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
-
 # Gestion des erreurs globales pour toutes les commandes
 @bot.event
 async def on_error(event, *args, **kwargs):
@@ -308,6 +329,173 @@ async def on_error(event, *args, **kwargs):
         color=discord.Color.red()
     )
     await args[0].response.send_message(embed=embed)
+#------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
+
+sensitive_words = [
+    "connard", "salopard", "enfoiré", "baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
+    "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", "misandre", "discriminatoire", 
+    "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur", "viol", "tuer", "assassin", "attaque", "agression", "meurtre", 
+    "génocide", "exécution", "kidnapping", "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", 
+    "suicidaire", "décapitation", "immolation", "torture", "lynchage", "massacre", "pillage", "extermination", "pédocriminel", "abus", 
+    "sexe", "pornographie", "nu", "masturbation", "prostitution", "pédophilie", "inceste", "exhibition", "fétichisme", "harcèlement", 
+    "traite humaine", "esclavage sexuel", "viol collectif", "drogue", "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "méthamphétamine", 
+    "opium", "cannabis", "alcool", "ivresse", "overdose", "trafic de drogue", "toxicomanie", "drogue de synthèse", "GHB", "fentanyl", 
+    "hack", "pirater", "voler des données", "phishing", "ddos", "raid", "flood", "spam", "crasher", "exploiter", "ransomware", "trojan", 
+    "virus informatique", "keylogger", "backdoor", "brute force", "scam", "usurpation d'identité", "darknet", "marché noir", "cheval de Troie", 
+    "spyware", "hameçonnage", "fraude", "extorsion", "chantage", "blanchiment d'argent", "corruption", "pot-de-vin", "abus de pouvoir", 
+    "détournement de fonds", "évasion fiscale", "fraude fiscale", "contrefaçon", "dictature", "oppression", "propagande", "fake news", 
+    "manipulation", "endoctrinement", "secte", "lavage de cerveau", "désinformation", "violence policière", "brutalité", "crime organisé", 
+    "mafia", "cartel", "milice", "mercenaire", "guérilla", "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", 
+    "séparatiste"
+]
+
+user_messages = {}
+cooldowns = {}
+
+@bot.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    # 💬 1. Vérifie les mots sensibles
+    for word in sensitive_words:
+        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
+            asyncio.create_task(send_alert_to_admin(message, word))
+            break
+
+    # 📣 2. Répond si le bot est mentionné
+    if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
+        embed = discord.Embed(
+            title="👋 Besoin d’aide ?",
+            description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
+                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
+                         "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
+                         "✨ **Profite bien du serveur et amuse-toi !**"),
+            color=discord.Color.blue()
+        )
+        embed.set_thumbnail(url=bot.user.avatar.url)
+        embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
+
+        view = View()
+        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
+
+        async def button_callback(interaction: discord.Interaction):
+            ctx = await bot.get_context(interaction.message)
+            await ctx.invoke(bot.get_command("help"))
+            await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
+
+        button.callback = button_callback
+        view.add_item(button)
+
+        await message.channel.send(embed=embed, view=view)
+        return
+
+    # 📦 3. Gestion des partenariats dans un salon spécifique
+    if message.channel.id == partnership_channel_id:
+        user_id = str(message.author.id)
+        rank, partnerships = get_user_partner_info(user_id)
+
+        await message.channel.send("<@&1355157749994098860>")
+
+        embed = discord.Embed(
+            title="Merci du partenariat 🤝",
+            description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
+            color=discord.Color.green()
+        )
+
+        embed.set_footer(
+            text="Partenariat réalisé",
+            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true"
+        )
+        embed.set_image(
+            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true"
+        )
+
+        await message.channel.send(embed=embed)
+
+    # ⚙️ 4. Configuration du serveur pour sécurité
+    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
+    if not guild_data:
+        await bot.process_commands(message)
+        return
+
+    # 🔗 5. Anti-lien
+    if guild_data.get("anti_link", False):
+        if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
+            await message.delete()
+            await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
+            return
+
+    # 💣 6. Anti-spam
+    if guild_data.get("anti_spam_limit", False):
+        now = time.time()
+        user_id = message.author.id
+
+        if user_id not in user_messages:
+            user_messages[user_id] = []
+        user_messages[user_id].append(now)
+
+        recent_messages = [t for t in user_messages[user_id] if t > now - 5]
+        user_messages[user_id] = recent_messages
+
+        if len(recent_messages) > 10:
+            await message.guild.ban(message.author, reason="Spam excessif")
+            return
+
+        spam_messages = [t for t in user_messages[user_id] if t > now - 60]
+        if len(spam_messages) > guild_data["anti_spam_limit"]:
+            await message.delete()
+            await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
+            return
+
+    # 📣 7. Anti-everyone
+    if guild_data.get("anti_everyone", False):
+        if "@everyone" in message.content or "@here" in message.content:
+            await message.delete()
+            await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
+            return
+
+    # 🎉 8. Ajouter des Coins pour chaque message
+    if message.guild.id == 1359963854200639498:
+        if message.author.bot:
+            return
+        coins_to_add = random.randint(3, 5)
+        add_coins(message.guild.id, str(message.author.id), coins_to_add)
+
+    # 🔄 9. Cooldown et mise à jour des XP
+    user_id = str(message.author.id)
+    guild_id = str(message.guild.id)
+    now = datetime.utcnow()
+
+    # Cooldown de 60s
+    if user_id not in cooldowns or now > cooldowns[user_id]:
+        update_user_xp(guild_id, user_id, xp_rate["message"])
+        cooldowns[user_id] = now + timedelta(seconds=60)
+
+    # ✅ 10. Exécution normale des commandes
+    await bot.process_commands(message)
+
+# 🔔 Fonction d'envoi d'alerte à l'admin
+async def send_alert_to_admin(message, detected_word):
+    try:
+        admin = await bot.fetch_user(ADMIN_ID)
+        embed = discord.Embed(
+            title="🚨 Alerte : Mot sensible détecté !",
+            description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
+        )
+        embed.add_field(name="📍 Salon", value=f"{message.channel.mention}", inline=True)
+        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
+        embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
+        embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
+        if message.guild:
+            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+        embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
+        await admin.send(embed=embed)
+    except Exception as e:
+        print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
 #--------------------------------------------------------------------------- Eco:
 # Fonction pour ajouter des coins à un utilisateur
@@ -512,6 +700,67 @@ async def on_member_update(before, after):
             coins_to_add = random.randint(50, 75)
             add_coins(after.guild.id, str(after.id), coins_to_add)
             await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
+
+#-------------------------------------------------------------------------------- Niveau:
+
+def xp_needed_for_level(level):
+    return 100 + (level - 1) * 100 * 1.15
+
+xp_rate = {
+    "message": 50,
+    "voice": 150,
+    "camera": 250,
+    "stream": 175
+}
+
+def xp_needed_for_level(level):
+    return int(100 + (level - 1) * 100 * 1.15)
+
+def get_user_rank_data(guild_id, user_id):
+    user_id, guild_id = str(user_id), str(guild_id)
+    data = collection12.find_one({"guild_id": guild_id, "user_id": user_id})
+    if not data:
+        collection12.insert_one({"guild_id": guild_id, "user_id": user_id, "xp": 0, "level": 1})
+        return {"xp": 0, "level": 1}
+    return data
+
+def update_user_xp(guild_id, user_id, xp_gain):
+    user_id, guild_id = str(user_id), str(guild_id)
+    data = get_user_rank_data(guild_id, user_id)
+    new_xp = data["xp"] + xp_gain
+    new_level = data["level"]
+
+    while new_xp >= xp_needed_for_level(new_level + 1):
+        new_level += 1
+        add_coins(guild_id, user_id, new_level * 100)  # 💰 100 coins par niveau gagné
+
+    collection12.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"xp": new_xp, "level": new_level}},
+        upsert=True
+    )
+
+@bot.command(name="rank")
+async def rank(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    guild_id = str(ctx.guild.id)
+    user_id = str(member.id)
+
+    data = get_user_rank_data(guild_id, user_id)
+    xp = data["xp"]
+    level = data["level"]
+    next_level_xp = xp_needed_for_level(level + 1)
+    xp_progress = xp - xp_needed_for_level(level)
+    progress_pct = (xp_progress / (next_level_xp - xp_needed_for_level(level))) * 100
+
+    embed = discord.Embed(
+        title=f"🏅 Rang de {member.display_name}",
+        color=discord.Color.gold(),
+        description=f"**Niveau :** {level}\n**XP :** {xp} / {next_level_xp} ({progress_pct:.2f}%)"
+    )
+    embed.set_thumbnail(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+
 #--------------------------------------------------------------------------- Stats
 
 @bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
@@ -2266,175 +2515,6 @@ async def listwl(ctx):
         await ctx.send("Membres dans la whitelist :\n" + "\n".join(members))
     else:
         await ctx.send("La whitelist est vide.")
-#------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
-
-import random
-import re
-import time
-import asyncio
-import discord
-from discord.ui import View, Button
-from datetime import datetime
-
-sensitive_words = [
-    "connard", "salopard", "enfoiré", "baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
-    "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", "misandre", "discriminatoire", 
-    "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur", "viol", "tuer", "assassin", "attaque", "agression", "meurtre", 
-    "génocide", "exécution", "kidnapping", "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", 
-    "suicidaire", "décapitation", "immolation", "torture", "lynchage", "massacre", "pillage", "extermination", "pédocriminel", "abus", 
-    "sexe", "pornographie", "nu", "masturbation", "prostitution", "pédophilie", "inceste", "exhibition", "fétichisme", "harcèlement", 
-    "traite humaine", "esclavage sexuel", "viol collectif", "drogue", "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "méthamphétamine", 
-    "opium", "cannabis", "alcool", "ivresse", "overdose", "trafic de drogue", "toxicomanie", "drogue de synthèse", "GHB", "fentanyl", 
-    "hack", "pirater", "voler des données", "phishing", "ddos", "raid", "flood", "spam", "crasher", "exploiter", "ransomware", "trojan", 
-    "virus informatique", "keylogger", "backdoor", "brute force", "scam", "usurpation d'identité", "darknet", "marché noir", "cheval de Troie", 
-    "spyware", "hameçonnage", "fraude", "extorsion", "chantage", "blanchiment d'argent", "corruption", "pot-de-vin", "abus de pouvoir", 
-    "détournement de fonds", "évasion fiscale", "fraude fiscale", "contrefaçon", "dictature", "oppression", "propagande", "fake news", 
-    "manipulation", "endoctrinement", "secte", "lavage de cerveau", "désinformation", "violence policière", "brutalité", "crime organisé", 
-    "mafia", "cartel", "milice", "mercenaire", "guérilla", "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", 
-    "séparatiste"
-]
-
-user_messages = {}
-
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
-
-    # 💬 1. Vérifie les mots sensibles
-    for word in sensitive_words:
-        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
-            asyncio.create_task(send_alert_to_admin(message, word))
-            break
-
-    # 📣 2. Répond si le bot est mentionné
-    if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
-        embed = discord.Embed(
-            title="👋 Besoin d’aide ?",
-            description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
-                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
-                         "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
-                         "✨ **Profite bien du serveur et amuse-toi !**"),
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=bot.user.avatar.url)
-        embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
-
-        view = View()
-        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
-
-        async def button_callback(interaction: discord.Interaction):
-            ctx = await bot.get_context(interaction.message)
-            await ctx.invoke(bot.get_command("help"))
-            await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
-
-        button.callback = button_callback
-        view.add_item(button)
-
-        await message.channel.send(embed=embed, view=view)
-        return
-
-    # 📦 3. Gestion des partenariats dans un salon spécifique
-    if message.channel.id == partnership_channel_id:
-        user_id = str(message.author.id)
-        rank, partnerships = get_user_partner_info(user_id)
-
-        # ✅ Envoyer le premier message : mention du rôle
-        await message.channel.send("<@&1355157749994098860>")
-
-        # ✅ Créer l'embed
-        embed = discord.Embed(
-            title="Merci du partenariat 🤝",
-            description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
-            color=discord.Color.green()
-        )
-
-        # Footer avec image
-        embed.set_footer(
-            text="Partenariat réalisé",
-            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2024-09-28_211041.png?raw=true"
-        )
-
-        # ✅ Ajout d'une image en grand EN BAS (via image)
-        embed.set_image(
-            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Capture_decran_2025-02-15_231405.png?raw=true"
-        )
-
-        await message.channel.send(embed=embed)
-
-    # ⚙️ 4. Configuration du serveur pour sécurité
-    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
-    if not guild_data:
-        await bot.process_commands(message)
-        return
-
-    # 🔗 5. Anti-lien
-    if guild_data.get("anti_link", False):
-        if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
-            await message.delete()
-            await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
-            return
-
-    # 💣 6. Anti-spam
-    if guild_data.get("anti_spam_limit", False):
-        now = time.time()
-        user_id = message.author.id
-
-        if user_id not in user_messages:
-            user_messages[user_id] = []
-        user_messages[user_id].append(now)
-
-        recent_messages = [t for t in user_messages[user_id] if t > now - 5]
-        user_messages[user_id] = recent_messages
-
-        if len(recent_messages) > 10:
-            await message.guild.ban(message.author, reason="Spam excessif")
-            return
-
-        spam_messages = [t for t in user_messages[user_id] if t > now - 60]
-        if len(spam_messages) > guild_data["anti_spam_limit"]:
-            await message.delete()
-            await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
-            return
-
-    # 📣 7. Anti-everyone
-    if guild_data.get("anti_everyone", False):
-        if "@everyone" in message.content or "@here" in message.content:
-            await message.delete()
-            await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
-            return
-
-    # 🎉 8. Ajouter des Coins pour chaque message
-    if message.guild.id == 1359963854200639498:  # S'assurer que le serveur correspond
-        if message.author.bot:
-            return
-        coins_to_add = random.randint(3, 5)
-        add_coins(message.guild.id, str(message.author.id), coins_to_add)
-
-    # ✅ 9. Exécution normale des commandes
-    await bot.process_commands(message)
-
-# 🔔 Fonction d'envoi d'alerte à l'admin
-async def send_alert_to_admin(message, detected_word):
-    try:
-        admin = await bot.fetch_user(ADMIN_ID)
-        embed = discord.Embed(
-            title="🚨 Alerte : Mot sensible détecté !",
-            description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
-            color=discord.Color.red(),
-            timestamp=datetime.utcnow()
-        )
-        embed.add_field(name="📍 Salon", value=f"{message.channel.mention}", inline=True)
-        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
-        embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
-        embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
-        if message.guild:
-            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
-        embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
-        await admin.send(embed=embed)
-    except Exception as e:
-        print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
 #------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
 private_threads = {}  # Stocke les fils privés des nouveaux membres
