@@ -183,63 +183,37 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Fonction centrale de mise à jour
-async def update_stats_for_guild(guild_id):
-    data = collection9.find_one({"guild_id": str(guild_id)})
-    if not data:
-        return
-
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        return
-
-    role = guild.get_role(data.get("role_id"))
-    member_channel = guild.get_channel(data.get("member_channel_id"))
-    role_channel = guild.get_channel(data.get("role_channel_id"))
-    bots_channel = guild.get_channel(data.get("bots_channel_id"))
-
-    total_members = guild.member_count
-    role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
-    total_bots = len([m for m in guild.members if m.bot])
-
-    try:
-        if member_channel:
-            await member_channel.edit(name=f"👥 Membres : {total_members}")
-        if role_channel:
-            await role_channel.edit(name=f"🎯 {role.name if role else 'Rôle'} : {role_members}")
-        if bots_channel:
-            await bots_channel.edit(name=f"🤖 Bots : {total_bots}")
-    except discord.Forbidden:
-        print(f"⛔ Permissions insuffisantes pour modifier les salons dans {guild.name}")
-    except Exception as e:
-        print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
-
-
-# 🎯 Événement : nouveau membre
-@bot.event
-async def on_member_join(member):
-    await update_stats_for_guild(member.guild.id)
-
-# 🎯 Événement : membre quitte
-@bot.event
-async def on_member_remove(member):
-    await update_stats_for_guild(member.guild.id)
-
-# 🎯 Événement : rôle ajouté ou retiré
-@bot.event
-async def on_member_update(before, after):
-    if before.roles != after.roles:
-        await update_stats_for_guild(after.guild.id)
-
-
-# 🔁 Tâche de fond pour rafraîchir toutes les stats régulièrement
-@tasks.loop(seconds=5)
+# Tâche de fond pour mettre à jour les stats toutes les 60 secondes
+@tasks.loop(seconds=60)
 async def update_stats():
     all_stats = collection9.find()
 
     for data in all_stats:
         guild_id = int(data["guild_id"])
-        await update_stats_for_guild(guild_id)
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            continue
+
+        role = guild.get_role(data.get("role_id"))
+        member_channel = guild.get_channel(data.get("member_channel_id"))
+        role_channel = guild.get_channel(data.get("role_channel_id"))
+        bots_channel = guild.get_channel(data.get("bots_channel_id"))
+
+        total_members = guild.member_count
+        role_members = len([m for m in guild.members if role in m.roles and not m.bot]) if role else 0
+        total_bots = len([m for m in guild.members if m.bot])
+
+        try:
+            if member_channel:
+                await member_channel.edit(name=f"👥 Membres : {total_members}")
+            if role_channel:
+                await role_channel.edit(name=f"🎯 {role.name if role else 'Rôle'} : {role_members}")
+            if bots_channel:
+                await bots_channel.edit(name=f"🤖 Bots : {total_bots}")
+        except discord.Forbidden:
+            print(f"⛔ Permissions insuffisantes pour modifier les salons dans {guild.name}")
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
 # Événement quand le bot est prêt
 @bot.event
@@ -331,7 +305,7 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
 
     try:
         member_channel = await guild.create_voice_channel(name="👥 Membres : 0")
-        role_channel = await guild.create_voice_channel(name=f"🎯 {role.name} : 0")
+        role_channel = await guild.create_voice_channel(name=f"✨ {role.name} : 0")
         bots_channel = await guild.create_voice_channel(name="🤖 Bots : 0")
 
         collection9.insert_one({
