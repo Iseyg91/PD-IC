@@ -2080,7 +2080,7 @@ class AntiSelect(Select):
         await interaction.followup.send(embed=embed_success, ephemeral=True)
         await self.view_ctx.update_embed("anti")
 
-@bot.command(name="setup")
+@bot.hybrid_command(name="setup")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
     if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
