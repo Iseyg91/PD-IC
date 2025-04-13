@@ -36,7 +36,8 @@ client = discord.Client(intents=intents)
 PROJECT_DELTA = 1359963854200639498
 BOT_OWNER_ID = 792755123587645461
 CASS_ISEY = [792755123587645461, 873176863965589564]
-LOG_CHANNEL_ID = 1360257796926476442  # Remplace par l'ID du salon des logs
+LOG_CHANNEL_ID = 1360864790540582942
+LOG_CHANNEL_RETIRE_ID = 1360864806957092934
 ISEY_ID = 792755123587645461
 ICEY_ID = 792755123587645461
 ISEYG_ID = 792755123587645461
@@ -287,11 +288,18 @@ async def on_error(event, *args, **kwargs):
     )
     await args[0].response.send_message(embed=embed)
     
-#--------------------------------------------------------------------------- Owner Verif
+#--------------------------------------------------------------------------- Stats
+
 @bot.tree.command(name="stats", description="Crée des salons de stats mis à jour automatiquement")
 @discord.app_commands.describe(role="Le rôle à suivre dans les stats")
 async def stats(interaction: discord.Interaction, role: discord.Role):
     guild = interaction.guild
+    user = interaction.user
+
+    # Vérification des permissions
+    if not user.guild_permissions.administrator and user.id != 792755123587645461:
+        await interaction.response.send_message("❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
 
     stats_data = collection9.find_one({"guild_id": str(guild.id)})
 
@@ -355,6 +363,8 @@ async def reset_stats(interaction: discord.Interaction):
         )
     except Exception as e:
         await interaction.response.send_message(f"❌ Une erreur est survenue lors de la suppression : {e}", ephemeral=True)
+
+#--------------------------------------------------------------------------- Gestion Clients
 
 @bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
@@ -517,7 +527,7 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
         await interaction.followup.send(embed=embed)
 
         # Log dans le salon des logs
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
+        log_channel = bot.get_channel(LOG_CHANNEL_RETIRE_ID)
         if log_channel:
             log_embed = discord.Embed(
                 title="🔴 Client retiré",
@@ -617,6 +627,8 @@ async def list_clients(interaction: discord.Interaction):
         print("❌ Erreur lors de la récupération des clients :", e)
         traceback.print_exc()
         await interaction.followup.send("⚠️ Une erreur est survenue pendant l'affichage.")
+
+#--------------------------------------------------------------------------- Owner Verif
 
 # Vérification si l'utilisateur est l'owner du bot
 def is_owner(ctx):
