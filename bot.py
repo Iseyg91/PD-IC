@@ -1566,40 +1566,58 @@ async def premium(interaction: discord.Interaction, code: str):
         await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
 
 
-@bot.tree.command(name="viewpremium")
+@bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
-    # Charger tous les serveurs premium de la base de données
-    premium_servers_data = collection2.find({"guild_id": {"$exists": True}})  # Rechercher les serveurs avec un champ `guild_id`
+    from datetime import datetime
 
-    # Liste des noms des serveurs premium
-    premium_servers = [guild["guild_name"] for guild in premium_servers_data]
+    # Récupération des serveurs premium
+    premium_servers_data = collection2.find({"guild_id": {"$exists": True}})
 
-    if premium_servers:
-        premium_list = "\n".join(premium_servers)  # Crée une liste des serveurs
+    premium_list = []
+    for server in premium_servers_data:
+        guild_name = server.get("guild_name", "❓ Nom inconnu")
+        activated_by = server.get("activated_by", "❓ Inconnu")
+        activation_date = server.get("activation_date")  # format ISO si possible
+        premium_code = server.get("premium_code", "❓ Aucun")
+
+        # Format de date
+        try:
+            activation_date = datetime.strptime(activation_date, "%Y-%m-%dT%H:%M:%S.%fZ")
+            formatted_date = activation_date.strftime("%d %B %Y à %Hh%M")
+        except:
+            formatted_date = "❓ Date inconnue"
+
+        premium_list.append(
+            f"📌 **{guild_name}**\n"
+            f"   ┗ 👤 Activé par : `{activated_by}`\n"
+            f"   ┗ 🔑 Code : `{premium_code}`\n"
+            f"   ┗ 📅 Date : `{formatted_date}`\n"
+        )
+
+    if premium_list:
         embed = discord.Embed(
             title="🌟 Liste des Serveurs Premium",
-            description=f"Les serveurs premium activés sont :\n{premium_list}",
-            color=discord.Color.blue()
+            description="Voici les serveurs ayant activé le **Premium** :\n\n" + "\n".join(premium_list),
+            color=discord.Color.gold()
         )
-        embed.set_footer(text="Merci pour votre soutien !")
+        embed.set_footer(text="Merci à tous pour votre soutien 💖")
         await interaction.response.send_message(embed=embed)
     else:
-        # Aucun serveur premium
         embed = discord.Embed(
             title="🔒 Aucun Serveur Premium",
-            description="Aucun serveur premium n'a été activé sur ce bot.",
+            description="Aucun serveur n'a encore activé le **Premium** sur ce bot.",
             color=discord.Color.red()
         )
         embed.add_field(
-            name="Pourquoi devenir premium ?",
-            value="Devenez premium pour profiter de fonctionnalités exclusives et de plus de personnalisation pour votre serveur !\n\n"
-                  "👉 **Contactez-nous** pour en savoir plus sur les avantages et les fonctionnalités offertes.",
+            name="Pourquoi devenir premium ? 💎",
+            value="Obtenez des **fonctionnalités exclusives**, plus de **personnalisation** et un **support prioritaire** !\n\n"
+                  "📬 **Contactez-nous** pour plus d'informations.",
             inline=False
         )
-        embed.set_footer(text="Rejoignez notre programme premium.")
-        
-        # Ajout d'un bouton pour rejoindre le programme premium
-        join_button = discord.ui.Button(label="Rejoindre Premium", style=discord.ButtonStyle.green, url="https://votre-lien-premium.com")
+        embed.set_footer(text="Rejoignez le programme Premium dès aujourd'hui ✨")
+
+        # Bouton d'action
+        join_button = discord.ui.Button(label="🚀 Rejoindre Premium", style=discord.ButtonStyle.green, url="https://votre-lien-premium.com")
 
         view = discord.ui.View()
         view.add_item(join_button)
@@ -2082,7 +2100,7 @@ class AntiSelect(Select):
         await interaction.followup.send(embed=embed_success, ephemeral=True)
         await self.view_ctx.update_embed("anti")
 
-@bot.hybrid_command(name="setup")
+@bot.hybrid_command(name="setup", description="Configure le bot pour ce serveur.")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
     if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
