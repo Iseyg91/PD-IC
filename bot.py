@@ -183,29 +183,28 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
-# Tâche de fond pour mettre à jour les stats toutes les 60 secondes
+# Tâche de fond pour mettre à jour les stats toutes les 5 secondes
 @tasks.loop(seconds=5)
 async def update_stats():
     all_stats = collection9.find()
 
-for data in all_stats:
-    guild_id = int(data["guild_id"])
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        continue
+    for data in all_stats:
+        guild_id = int(data["guild_id"])
+        guild = bot.get_guild(guild_id)
+        if not guild:
+            continue
 
-    role = guild.get_role(data.get("role_id"))
-    member_channel = guild.get_channel(data.get("member_channel_id"))
-    role_channel = guild.get_channel(data.get("role_channel_id"))
-    bots_channel = guild.get_channel(data.get("bots_channel_id"))
+        role = guild.get_role(data.get("role_id"))
+        member_channel = guild.get_channel(data.get("member_channel_id"))
+        role_channel = guild.get_channel(data.get("role_channel_id"))
+        bots_channel = guild.get_channel(data.get("bots_channel_id"))
 
-    total_members = len([m for m in guild.members if not m.bot])
-    total_bots = len([m for m in guild.members if m.bot])
-    role_members = len([
-        member for member in guild.members
-        if role and role in member.roles and not member.bot
-    ])
-
+        total_members = len([m for m in guild.members if not m.bot])
+        total_bots = len([m for m in guild.members if m.bot])
+        role_members = len([
+            member for member in guild.members
+            if role and role in member.roles and not member.bot
+        ])
 
         try:
             if member_channel:
