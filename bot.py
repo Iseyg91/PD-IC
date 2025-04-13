@@ -73,6 +73,7 @@ collection7= db ['sanction'] #Stock Sanction
 collection8 = db['idees'] #Stock Idées
 collection9 = db['stats'] #Stock Salon Stats
 collection10 = db['eco'] #Stock Les infos Eco
+collection11 = db['eco_daily'] #Stock le temps de daily
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -173,6 +174,7 @@ def load_guild_settings(guild_id):
     idees_data = collection8.find_one({"guild_id": guild_id}) or {}
     stats_data = collection9.find_one({"guild_id": guild_id}) or {}
     eco_data = collection10.find_one({"guild_id": guild_id}) or {}
+    eco_daily_data = collection11.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -187,7 +189,8 @@ def load_guild_settings(guild_id):
         "sanction": sanction_data,
         "idees": idees_data,
         "stats": stats_data,
-        "eco": eco_data
+        "eco": eco_data,
+        "eco_daily": eco_daily_data
     }
 
     return combined_data
@@ -405,53 +408,58 @@ async def pay_all_error(ctx, error):
         
         await pay(ctx, ctx.author, total_cash)  # Reutilise la fonction pour payer tout le cash
 
-from discord.ext import commands
-import random
-import datetime
-
-DAILY_COOLDOWN = 86400  # 24 heures en secondes
-
 @bot.command(name="dy")
-@commands.cooldown(1, DAILY_COOLDOWN, commands.BucketType.user)
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
-    if ctx.guild.id != 1359963854200639498:
-        return
-
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
-    reward = random.randint(1, 300)
+    now = datetime.datetime.utcnow()
+    cooldown_time = datetime.timedelta(hours=24)
 
-    collection10.update_one(
+    # Cherche si l'utilisateur a un enregistrement dans eco_daily
+    daily_data = collection11.find_one({"guild_id": guild_id, "user_id": user_id})
+
+    if daily_data:
+        last_daily = daily_data.get("last_daily")
+        if last_daily:
+            last_time = datetime.datetime.fromisoformat(last_daily)
+
+            # Vérifie le temps écoulé
+            if now - last_time < cooldown_time:
+                remaining = cooldown_time - (now - last_time)
+                hours, remainder = divmod(remaining.total_seconds(), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                return await ctx.send(
+                    f"❌ Tu as déjà récupéré ton daily !\n⏳ Réessaye dans **{int(hours)}h {int(minutes)}m {int(seconds)}s**."
+                )
+
+    # Montant du daily
+    reward = random.randint(250, 350)
+
+    # Update ou insert dans la collection eco (cash du joueur)
+    user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    if user_eco:
+        collection10.update_one(
+            {"guild_id": guild_id, "user_id": user_id},
+            {"$inc": {"cash": reward}}
+        )
+    else:
+        collection10.insert_one({
+            "guild_id": guild_id,
+            "user_id": user_id,
+            "cash": reward,
+            "bank": 0
+        })
+
+    # Stock le daily dans collection11
+    collection11.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": reward}},
+        {"$set": {"last_daily": now.isoformat()}},
         upsert=True
     )
 
-    embed = discord.Embed(
-        title="Récompense quotidienne 🎁",
-        description=f"Tu as reçu **{reward} <:ecoEther:1341862366249357374>** aujourd’hui !",
-        color=0x3498db
-    )
-    embed.set_footer(text="Reviens demain pour plus de Coins !")
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-    await ctx.send(embed=embed)
-
-
-@daily.error
-async def daily_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
-        remaining = str(datetime.timedelta(seconds=int(error.retry_after)))
-        hours, minutes, seconds = map(int, remaining.split(':'))
-
-        embed = discord.Embed(
-            title="⏳ Daily déjà réclamé",
-            description=f"Tu pourras refaire `+dy` dans **{hours}h {minutes}m {seconds}s**.",
-            color=0xe67e22
-        )
-        embed.set_footer(text="Patience, les Coins reviendront bientôt...")
-        embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-        await ctx.send(embed=embed)
+    await ctx.send(f"✅ Tu as récupéré ton daily ! Tu gagnes **{reward} <:ecoEther:1341862366249357374>** !")
 
 
 @bot.command(name="with")
