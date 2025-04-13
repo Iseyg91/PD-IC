@@ -1583,6 +1583,10 @@ async def on_guild_remove(guild):
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
+    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+        print("Utilisateur non autorisé.")
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
     await interaction.response.defer(thinking=True)
 
     try:
@@ -1684,7 +1688,10 @@ async def premium(interaction: discord.Interaction, code: str):
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
-    from datetime import datetime
+    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+        print("Utilisateur non autorisé.")
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
 
     # Récupération des serveurs premium
     premium_servers_data = collection2.find({"guild_id": {"$exists": True}})
@@ -1742,6 +1749,10 @@ async def viewpremium(interaction: discord.Interaction):
 
 @bot.tree.command(name="devenirpremium")
 async def devenirpremium(interaction: discord.Interaction):
+    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+        print("Utilisateur non autorisé.")
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
     # Charger les données de ce serveur spécifique
     data = load_guild_settings(interaction.guild.id)
     setup_premium_data = data["setup_premium"]
