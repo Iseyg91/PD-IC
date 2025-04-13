@@ -2609,7 +2609,7 @@ async def massrole(ctx, action: str = None, role: discord.Role = None):
             except discord.DiscordException as e:
                 print(f"Erreur avec {member.name}: {e}")
 
-    await ctx.send(f"Le rôle '{role.name}' a été {action}é à tous les membres humains du serveur.")
+    await ctx.send(f"Le rôle '{role.name}' a été {action} à tous les membres humains du serveur.")
 
 @bot.command()
 async def nuke(ctx):
