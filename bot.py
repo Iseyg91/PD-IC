@@ -332,6 +332,7 @@ async def balance(ctx, member: discord.Member = None):
 
     embed = discord.Embed(
         title=f"Portefeuille de {member.display_name} 💼",
+        description=f"Voici ton solde économique actuel :",
         color=0x3498db
     )
     embed.add_field(name="💵 Cash", value=f"{cash} <:ecoEther:1341862366249357374>", inline=False)
@@ -343,17 +344,66 @@ async def balance(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
 @bot.command(name="pay")
-async def pay(ctx, recipient: discord.Member, amount: int):
-    if amount <= 0:
-        await ctx.send("Le montant doit être positif.")
+async def pay(ctx, member: discord.Member, amount: int = None):
+    if ctx.guild.id != 1359963854200639498:
         return
-    sender_data = get_user_eco(ctx.guild.id, str(ctx.author.id))
-    if sender_data['coins'] < amount:
-        await ctx.send("Tu n'as pas assez de <:ecoEther:1341862366249357374>.")
+    
+    user_id = str(ctx.author.id)
+    member_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    # Vérification du montant
+    if amount is None or amount <= 0:
+        await ctx.send("💡 Vous devez spécifier un montant valide pour payer.")
         return
-    add_coins(ctx.guild.id, str(ctx.author.id), -amount)
-    add_coins(ctx.guild.id, str(recipient.id), amount)
-    await ctx.send(f"{ctx.author.name} a payé {recipient.name} **{amount} <:ecoEther:1341862366249357374>**.")
+    
+    # Récupérer les données du joueur et du membre
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    member_data = collection10.find_one({"guild_id": guild_id, "user_id": member_id}) or {"cash": 0, "bank": 0}
+    
+    cash = user_data.get("cash", 0)
+
+    # Si l'utilisateur a assez de cash
+    if cash < amount:
+        await ctx.send(f"💸 Tu n'as pas assez de **<:ecoEther:1341862366249357374>** en cash pour payer {amount}.")
+        return
+
+    # Mise à jour des balances
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"cash": -amount}},
+        upsert=True
+    )
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": member_id},
+        {"$inc": {"cash": amount}},
+        upsert=True
+    )
+
+    embed = discord.Embed(
+        title="Paiement effectué ✅",
+        description=f"Tu as payé **{amount} <:ecoEther:1341862366249357374>** à {member.display_name}.",
+        color=0x2ecc71
+    )
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
+    embed.set_footer(text="Transaction réussie.")
+    await ctx.send(embed=embed)
+
+# Commande pour utiliser 'all' (tout le solde)
+@pay.error
+async def pay_all_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        # Vérifier si 'all' est utilisé et payer tout le solde
+        user_id = str(ctx.author.id)
+        guild_id = str(ctx.guild.id)
+        user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
+
+        total_cash = user_data.get("cash", 0)
+        if total_cash <= 0:
+            await ctx.send("❌ Tu n'as pas assez de **<:ecoEther:1341862366249357374>** en cash pour payer.")
+            return
+        
+        await pay(ctx, ctx.author, total_cash)  # Reutilise la fonction pour payer tout le cash
 
 @bot.command(name="dy")
 @commands.cooldown(1, 86400, commands.BucketType.user)  # 1 fois toutes les 24h
@@ -391,6 +441,7 @@ async def daily_error(ctx, error):
         hours, remainder = divmod(remaining.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         await ctx.send(f"⏳ Tu as déjà réclamé ton daily ! Réessaie dans **{hours}h {minutes}m {seconds}s**.")
+
 
 @bot.command(name="with")
 async def withdraw(ctx, amount: str):
