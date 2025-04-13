@@ -2568,6 +2568,11 @@ def has_permission(ctx):
     # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
     return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
+# Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
+def has_permission(ctx):
+    # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
+    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+
 @bot.command()
 async def massrole(ctx, action: str = None, role: discord.Role = None):
     # Vérifie si les arguments sont présents
