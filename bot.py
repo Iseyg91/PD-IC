@@ -189,7 +189,7 @@ import random
 import asyncio
 
 # Tâche de fond pour mettre à jour les stats toutes les 60 secondes
-@tasks.loop(seconds=60)
+@tasks.loop(seconds=5)
 async def update_stats():
     all_stats = collection9.find()
 
@@ -309,9 +309,9 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
         return
 
     try:
-        member_channel = await guild.create_voice_channel(name="👥 Membres : 0")
-        role_channel = await guild.create_voice_channel(name=f"🎯 {role.name} : 0")
-        bots_channel = await guild.create_voice_channel(name="🤖 Bots : 0")
+        member_channel = await guild.create_voice_channel(name="︱👤・ Membres : 0")
+        role_channel = await guild.create_voice_channel(name=f"︱✨・ {role.name} : 0")
+        bots_channel = await guild.create_voice_channel(name="︱🤖・Bots : : 0")
 
         collection9.insert_one({
             "guild_id": str(guild.id),
