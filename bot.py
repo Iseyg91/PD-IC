@@ -2563,8 +2563,17 @@ def has_permission(ctx):
     # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
     return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
+# Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
+def has_permission(ctx):
+    # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
+    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+
 @bot.command()
-async def massrole(ctx, action: str, role: discord.Role):
+async def massrole(ctx, action: str = None, role: discord.Role = None):
+    # Vérifie si les arguments sont présents
+    if action is None or role is None:
+        return await ctx.send("Erreur : tu dois spécifier l'action ('add' ou 'remove') et le rôle. Exemple : `+massrole add @role` ou `+massrole remove @role`.")
+
     # Vérifie si l'utilisateur a la permission nécessaire
     if not has_permission(ctx):
         return await ctx.send("Tu n'as pas les permissions nécessaires pour utiliser cette commande.")
