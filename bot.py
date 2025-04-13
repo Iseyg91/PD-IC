@@ -54,6 +54,7 @@ SUGGESTION_CHANNEL_ID = 1355191928467230792
 SUGGESTION_ROLE= 1355157752950821046
 SONDAGE_CHANNEL_ID = 1355157860438376479
 SONDAGE_ID = 1355157752950821046
+PERMISSION_ID = 792755123587645461
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -2552,6 +2553,37 @@ async def delrole(ctx, user: discord.Member = None, role: discord.Role = None):
         await ctx.send("Je n'ai pas les permissions nécessaires pour retirer ce rôle.")
     except discord.HTTPException as e:
         await ctx.send(f"Une erreur est survenue : {e}")
+
+# Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
+def has_permission(ctx):
+    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+
+@bot.command()
+async def massrole(ctx, action: str, role: discord.Role):
+    # Vérifie si l'utilisateur a la permission nécessaire
+    if not has_permission(ctx):
+        return await ctx.send("Tu n'as pas les permissions nécessaires pour utiliser cette commande.")
+
+    # Vérifie que l'action soit correcte (add ou remove)
+    if action not in ['add', 'remove']:
+        return await ctx.send("Erreur : l'action doit être 'add' ou 'remove'.")
+
+    # Action pour ajouter ou retirer le rôle
+    for member in ctx.guild.members:
+        # S'assurer que ce n'est pas un bot
+        if not member.bot:
+            try:
+                if action == 'add':
+                    # Ajoute le rôle à l'utilisateur
+                    await member.add_roles(role)
+                elif action == 'remove':
+                    # Retire le rôle à l'utilisateur
+                    await member.remove_roles(role)
+                print(f"Le rôle a été {action}é pour {member.name}")
+            except discord.DiscordException as e:
+                print(f"Erreur avec {member.name}: {e}")
+
+    await ctx.send(f"Le rôle '{role.name}' a été {action}é à tous les membres humains du serveur.")
 
 @bot.command()
 async def nuke(ctx):
