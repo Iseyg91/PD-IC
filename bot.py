@@ -208,6 +208,12 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
 
+# Charger tous les COGS automatiquement
+async def load():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"cogs.{filename[:-3]}")
+
 # Tâche de fond pour mettre à jour les stats toutes les 5 secondes
 @tasks.loop(seconds=5)
 async def update_stats():
@@ -702,9 +708,6 @@ async def on_member_update(before, after):
             await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
 
 #-------------------------------------------------------------------------------- Niveau:
-
-def xp_needed_for_level(level):
-    return 100 + (level - 1) * 100 * 1.15
 
 xp_rate = {
     "message": 50,
