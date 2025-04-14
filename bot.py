@@ -499,12 +499,14 @@ async def on_message(message):
     # ✅ 10. Exécution normale des commandes
     await bot.process_commands(message)
 
-# 🔔 Fonction d'envoi d'alerte dans un salon spécifique
 async def send_alert_to_admin(message, detected_word):
     try:
         # Récupération du salon et du rôle
         alert_channel = message.guild.get_channel(1361288726361411584)  # Salon pour les alertes
         role_to_mention = message.guild.get_role(1361306900981092548)  # Rôle à mentionner
+        
+        # Log pour vérifier les objets récupérés
+        print(f"Alert Channel: {alert_channel}, Role: {role_to_mention}")
         
         # Vérifier si le salon et le rôle existent
         if not alert_channel:
@@ -530,12 +532,13 @@ async def send_alert_to_admin(message, detected_word):
         embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
 
         # Envoi de l'alerte dans le salon spécifique et mention du rôle
+        print(f"Envoi du message d'alerte dans {alert_channel.name}")
         await alert_channel.send(f"<@&{role_to_mention.id}> 🚨 Attention, un mot sensible a été détecté !")
         await alert_channel.send(embed=embed)
+        print(f"✅ Alerte envoyée avec succès à {role_to_mention.name} dans {alert_channel.name}.")
         
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
-
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
