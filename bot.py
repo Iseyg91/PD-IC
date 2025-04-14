@@ -335,6 +335,8 @@ async def on_error(event, *args, **kwargs):
     )
     await args[0].response.send_message(embed=embed)
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
+
+# Liste des mots sensibles
 sensitive_words = [
     # Insultes graves
     "fils de pute", "enfoiré", "connard", "salopard", "bâtard", "déchet", "branleur", "crasseux", "charognard",
@@ -384,7 +386,8 @@ async def on_message(message):
     for word in sensitive_words:
         if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
             print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
-            asyncio.create_task(send_alert_to_admin(message, word))
+            # Envoie une alerte dans un salon spécifique
+            await send_alert_to_admin(message, word)
             break
 
     # 📣 2. Répond si le bot est mentionné
@@ -400,8 +403,8 @@ async def on_message(message):
         embed.set_thumbnail(url=bot.user.avatar.url)
         embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
 
-        view = View()
-        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
+        view = discord.ui.View()
+        button = discord.ui.Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
 
         async def button_callback(interaction: discord.Interaction):
             ctx = await bot.get_context(interaction.message)
@@ -414,7 +417,7 @@ async def on_message(message):
         await message.channel.send(embed=embed, view=view)
         return
 
-    # 📦 3. Gestion des partenariats dans un salon spécifique
+    # ⚙️ 3. Gestion des partenariats dans un salon spécifique
     if message.channel.id == partnership_channel_id:
         user_id = str(message.author.id)
         rank, partnerships = get_user_partner_info(user_id)
@@ -437,20 +440,19 @@ async def on_message(message):
 
         await message.channel.send(embed=embed)
 
-    # ⚙️ 4. Configuration du serveur pour sécurité
+    # ⚠️ 4. Anti-lien
     guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     if not guild_data:
         await bot.process_commands(message)
         return
 
-    # 🔗 5. Anti-lien
     if guild_data.get("anti_link", False):
         if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
             await message.delete()
             await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
             return
 
-    # 💣 6. Anti-spam
+    # 🧩 5. Anti-spam et autres sécurités
     if guild_data.get("anti_spam_limit", False):
         now = time.time()
         user_id = message.author.id
@@ -472,43 +474,31 @@ async def on_message(message):
             await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
             return
 
-    # 📣 7. Anti-everyone
-    if guild_data.get("anti_everyone", False):
-        if "@everyone" in message.content or "@here" in message.content:
-            await message.delete()
-            await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
-            return
-
-    # 🎉 8. Ajouter des Coins pour chaque message
+    # 🎉 6. Ajouter des Coins pour chaque message
     if message.guild.id == 1359963854200639498:
         if message.author.bot:
             return
         coins_to_add = random.randint(3, 5)
         add_coins(message.guild.id, str(message.author.id), coins_to_add)
 
-    # 🔄 9. Cooldown et mise à jour des XP
+    # 🔄 7. Cooldown et mise à jour des XP
     user_id = str(message.author.id)
     guild_id = str(message.guild.id)
     now = datetime.utcnow()
 
-    # Cooldown de 60s
     if user_id not in cooldowns or now > cooldowns[user_id]:
         update_user_xp(guild_id, user_id, xp_rate["message"])
         cooldowns[user_id] = now + timedelta(seconds=60)
 
-    # ✅ 10. Exécution normale des commandes
+    # ✅ 8. Exécution normale des commandes
     await bot.process_commands(message)
 
+# Fonction pour envoyer l'alerte dans un salon spécifique
 async def send_alert_to_admin(message, detected_word):
     try:
-        # Salon d'alerte global (qui est utilisé sur tous les serveurs où le bot est présent)
         alert_channel = bot.get_channel(1361288726361411584)  # ID du salon d'alerte
         role_to_mention = message.guild.get_role(1361306900981092548)  # Rôle à mentionner
 
-        # Log pour vérifier les objets récupérés
-        print(f"Alert Channel: {alert_channel}, Role: {role_to_mention}")
-
-        # Vérification si le salon et le rôle existent
         if not alert_channel:
             print("⚠️ Salon pour les alertes introuvable.")
             return
@@ -516,7 +506,6 @@ async def send_alert_to_admin(message, detected_word):
             print("⚠️ Rôle à mentionner introuvable.")
             return
 
-        # Création de l'embed d'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
             description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
@@ -527,19 +516,13 @@ async def send_alert_to_admin(message, detected_word):
         embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
         embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
         embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
-        if message.guild:
-            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+        embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
         embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
 
-        # Envoi de l'alerte dans le salon d'alerte et mention du rôle
-        print(f"Envoi du message d'alerte dans {alert_channel.name}")
         await alert_channel.send(f"<@&{role_to_mention.id}> 🚨 Attention, un mot sensible a été détecté !")
         await alert_channel.send(embed=embed)
-        print(f"✅ Alerte envoyée avec succès à {role_to_mention.name} dans {alert_channel.name}.")
-
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
-
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
