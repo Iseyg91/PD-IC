@@ -574,12 +574,12 @@ async def on_guild_join(guild):
 
         public_embed = discord.Embed(
             title="🎉 **Bienvenue sur le serveur !** 🎉",
-            description="Salut à tous ! Je suis **EtheryaBot**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
+            description="Salut à tous ! Je suis **Project : Delta**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
             color=discord.Color.blurple()
         )
 
-        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
-        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
+        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/ea259e01-aa5c-4f7b-82fd-0c4e45bc2499%20(1).png?raw=true")
+        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/uri_ifs___M_a08ff46b-5005-4ddb-86d9-a73f638d5cf2.jpg?raw=true")
         public_embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
 
         public_embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveurs, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
@@ -3397,7 +3397,7 @@ async def nuke(ctx):
 #------------------------------------------------------------------------- Commandes d'aide : +aide, /help
 @bot.command()
 async def help(ctx):
-    banner_url = "https://raw.githubusercontent.com/Cass64/EtheryaBot/refs/heads/main/images_etherya/etheryaBot_banniere.png"  # URL de la bannière
+    banner_url = "https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/uri_ifs___M_5e2bd04a-3995-4937-979e-1aeb20cd5fc1.jpg?raw=true"  # URL de la bannière
     embed = discord.Embed(
         title="🏡 **Accueil Project : Delta **",
         description=f"Hey, bienvenue {ctx.author.mention} sur la page d'accueil de Project : Delta! 🎉\n\n"
