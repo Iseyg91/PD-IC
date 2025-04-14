@@ -501,21 +501,21 @@ async def on_message(message):
 
 async def send_alert_to_admin(message, detected_word):
     try:
-        # Récupération du salon et du rôle
-        alert_channel = message.guild.get_channel(1361288726361411584)  # Salon pour les alertes
+        # Salon d'alerte global (qui est utilisé sur tous les serveurs où le bot est présent)
+        alert_channel = bot.get_channel(1361288726361411584)  # ID du salon d'alerte
         role_to_mention = message.guild.get_role(1361306900981092548)  # Rôle à mentionner
-        
+
         # Log pour vérifier les objets récupérés
         print(f"Alert Channel: {alert_channel}, Role: {role_to_mention}")
-        
-        # Vérifier si le salon et le rôle existent
+
+        # Vérification si le salon et le rôle existent
         if not alert_channel:
             print("⚠️ Salon pour les alertes introuvable.")
             return
         if not role_to_mention:
             print("⚠️ Rôle à mentionner introuvable.")
             return
-        
+
         # Création de l'embed d'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
@@ -531,14 +531,15 @@ async def send_alert_to_admin(message, detected_word):
             embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
         embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
 
-        # Envoi de l'alerte dans le salon spécifique et mention du rôle
+        # Envoi de l'alerte dans le salon d'alerte et mention du rôle
         print(f"Envoi du message d'alerte dans {alert_channel.name}")
         await alert_channel.send(f"<@&{role_to_mention.id}> 🚨 Attention, un mot sensible a été détecté !")
         await alert_channel.send(embed=embed)
         print(f"✅ Alerte envoyée avec succès à {role_to_mention.name} dans {alert_channel.name}.")
-        
+
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
