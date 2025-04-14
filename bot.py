@@ -671,9 +671,13 @@ async def work(ctx):
         cooldown_time = timedelta(hours=6)
         if datetime.utcnow() - last_work_time < cooldown_time:
             time_left = cooldown_time - (datetime.utcnow() - last_work_time)
+
+            # Formate l'heure restante en heures et minutes (sans les secondes)
+            time_left_str = str(time_left).split(".")[0]  # Enlève les millisecondes
+            
             embed = Embed(
                 title="Cooldown Travail",
-                description=f"Tu dois attendre encore {time_left} avant de pouvoir travailler à nouveau.",
+                description=f"Tu dois attendre encore {time_left_str} avant de pouvoir travailler à nouveau.",
                 color=0xFF0000  # Rouge pour indiquer l'attente
             )
             await ctx.send(embed=embed)
