@@ -6348,8 +6348,8 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        channel = bot.get_channel(SALON_ID)
-        role_mention = f"<@&{ROLE_ID}>"
+        channel = bot.get_channel(SALON_REPORT_ID)
+        role_mention = f"<@&{ROLE_REPORT_ID}>"
 
         # Mention du rôle
         await channel.send(content=role_mention)
