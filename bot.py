@@ -335,23 +335,42 @@ async def on_error(event, *args, **kwargs):
     )
     await args[0].response.send_message(embed=embed)
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
-
 sensitive_words = [
-    "connard", "salopard", "enfoiré", "baltringue", "fils de pute", "branleur", "crasseux", "charognard", "raté", "bâtard", "déchet",
-    "raciste", "sexiste", "homophobe", "antisémite", "xénophobe", "transphobe", "islamophobe", "misogyne", "misandre", "discriminatoire", 
-    "suprémaciste", "extrémiste", "fasciste", "nazi", "néonazi", "dictateur", "viol", "tuer", "assassin", "attaque", "agression", "meurtre", 
-    "génocide", "exécution", "kidnapping", "prise d'otage", "armes", "fusillade", "terrorisme", "attentat", "jihad", "bombardement", 
-    "suicidaire", "décapitation", "immolation", "torture", "lynchage", "massacre", "pillage", "extermination", "pédocriminel", "abus", 
-    "sexe", "pornographie", "nu", "masturbation", "prostitution", "pédophilie", "inceste", "exhibition", "fétichisme", "harcèlement", 
-    "traite humaine", "esclavage sexuel", "viol collectif", "drogue", "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "méthamphétamine", 
-    "opium", "cannabis", "alcool", "ivresse", "overdose", "trafic de drogue", "toxicomanie", "drogue de synthèse", "GHB", "fentanyl", 
-    "hack", "pirater", "voler des données", "phishing", "ddos", "raid", "flood", "spam", "crasher", "exploiter", "ransomware", "trojan", 
-    "virus informatique", "keylogger", "backdoor", "brute force", "scam", "usurpation d'identité", "darknet", "marché noir", "cheval de Troie", 
-    "spyware", "hameçonnage", "fraude", "extorsion", "chantage", "blanchiment d'argent", "corruption", "pot-de-vin", "abus de pouvoir", 
-    "détournement de fonds", "évasion fiscale", "fraude fiscale", "contrefaçon", "dictature", "oppression", "propagande", "fake news", 
-    "manipulation", "endoctrinement", "secte", "lavage de cerveau", "désinformation", "violence policière", "brutalité", "crime organisé", 
-    "mafia", "cartel", "milice", "mercenaire", "guérilla", "insurrection", "émeute", "rébellion", "coup d'état", "anarchie", "terroriste", 
-    "séparatiste"
+    # Insultes graves
+    "fils de pute", "enfoiré", "connard", "salopard", "bâtard", "déchet", "branleur", "crasseux", "charognard",
+    
+    # Discours haineux / discriminations
+    "nigger", "nigga", "chintok", "bougnoule", "pédé", "negro", "race inférieure", 
+    "sale arabe", "sale noir", "sale juif", "sale blanc", "retardé","enculé",
+    
+    # Termes liés à des idéologies haineuses
+    "raciste", "homophobe", "xénophobe", "transphobe", "antisémite", "islamophobe", "suprémaciste", 
+    "fasciste", "nazi", "néonazi", "dictateur", "extrémiste",
+    
+    # Violences et crimes graves
+    "viol", "pédophilie", "inceste", "pédocriminel", "agression", "assassin", "meurtre", "génocide", 
+    "extermination", "décapitation", "lynchage", "massacre", "torture", "suicidaire", "prise d'otage", 
+    "terrorisme", "attentat", "bombardement", "exécution", "immolation", "traite humaine", "esclavage sexuel", 
+    "viol collectif", "kidnapping",
+    
+    # Drogues & substances
+    "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "GHB", "fentanyl", "méthamphétamine", 
+    "cannabis", "opium", "drogue", "drogue de synthèse", "trafic de drogue", "toxicomanie", "overdose",
+    
+    # Contenus sexuels explicites
+    "pornographie", "porno", "prostitution", "masturbation", "fellation", "sexe", "sodomie", 
+    "exhibition", "fétichisme", "orgie", "gode", "pénétration", "nu",
+    
+    # Fraudes & crimes financiers
+    "scam", "fraude", "chantage", "extorsion", "évasion fiscale", "fraude fiscale", "détournement de fonds",
+    
+    # Groupes & activités criminelles
+    "mafia", "cartel", "crime organisé", "milice", "mercenaire", "guérilla", "terroriste", "insurrection", 
+    "émeute", "coup d'état", "anarchie", "séparatiste",
+    
+    # Propagande et manipulation
+    "endoctrinement", "secte", "lavage de cerveau", "désinformation", "propagande", "fake news", "manipulation",
+    
 ]
 
 user_messages = {}
@@ -481,10 +500,14 @@ async def on_message(message):
     # ✅ 10. Exécution normale des commandes
     await bot.process_commands(message)
 
-# 🔔 Fonction d'envoi d'alerte à l'admin
+# 🔔 Fonction d'envoi d'alerte dans un salon spécifique
 async def send_alert_to_admin(message, detected_word):
     try:
-        admin = await bot.fetch_user(ADMIN_ID)
+        # Obtention du salon et du rôle
+        alert_channel = message.guild.get_channel(1361288726361411584)  # Salon pour les alertes
+        role_to_mention = message.guild.get_role(1361306900981092548)  # Rôle à mentionner
+        
+        # Création de l'embed d'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
             description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
@@ -498,7 +521,11 @@ async def send_alert_to_admin(message, detected_word):
         if message.guild:
             embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
         embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
-        await admin.send(embed=embed)
+
+        # Envoi de l'alerte dans le salon spécifique et mention du rôle
+        await alert_channel.send(f"<@&{role_to_mention.id}> 🚨 Attention, un mot sensible a été détecté !")
+        await alert_channel.send(embed=embed)
+        
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
