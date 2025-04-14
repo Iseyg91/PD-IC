@@ -509,7 +509,7 @@ async def send_alert_to_admin(message, detected_word):
         
         if not channel:
             # Si le salon n'existe pas dans ce serveur, on va chercher dans un autre serveur
-            guild = bot.get_guild(SERVER_ID)  # Remplace SERVER_ID par l'ID du serveur où tu veux envoyer l'alerte
+            guild = bot.get_guild(1359963854200639498)  # Remplace SERVER_ID par l'ID du serveur où tu veux envoyer l'alerte
             channel = guild.get_channel(1361329246236053586)
         
         if channel:
