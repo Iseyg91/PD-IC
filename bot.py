@@ -75,6 +75,7 @@ collection9 = db['stats'] #Stock Salon Stats
 collection10 = db['eco'] #Stock Les infos Eco
 collection11 = db['eco_daily'] #Stock le temps de daily
 collection12 = db['rank'] #Stock les Niveau
+collection13 = db['eco_work'] #Stock le temps de Work
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -112,7 +113,7 @@ def set_bounty(guild_id: int, user_id: int, prize: int):
             "reward": 0  # Initialisation des récompenses à 0
         })
 
-# Fonction pour récupérer les données économiques d'un utilisateur
+# Fonction pour récupérer les données d'un utilisateur
 def get_user_eco(guild_id, user_id):
     user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     if not user_data:
@@ -177,6 +178,7 @@ def load_guild_settings(guild_id):
     eco_data = collection10.find_one({"guild_id": guild_id}) or {}
     eco_daily_data = collection11.find_one({"guild_id": guild_id}) or {}
     rank_data = collection12.find_one({"guild_id": guild_id}) or {}
+    eco_work_data = collection13.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -194,6 +196,7 @@ def load_guild_settings(guild_id):
         "eco": eco_data,
         "eco_daily": eco_daily_data,
         "rank": rank_data
+        "eco_work": eco_work_data
     }
 
     return combined_data
@@ -638,6 +641,77 @@ async def daily(ctx):
             color=discord.Color.blurple()
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
+
+# Liste des messages à renvoyer
+messages = [
+    "Tu négocies une augmentation avec succès. 💹 :ecoEther: {coins}",
+    "Tu as travaillé dur et ça a payé ! 💼 :ecoEther: {coins}",
+    "Le boss est satisfait de tes efforts, tu gagnes une prime ! 💸 :ecoEther: {coins}",
+    "Tu as bien géré tes tâches, voilà ta récompense ! 🏆 :ecoEther: {coins}",
+    "Une journée bien remplie, et voilà ta compensation ! 💪 :ecoEther: {coins}",
+    "Tu fais une présentation brillante et ça se reflète dans ton salaire. 📊 :ecoEther: {coins}",
+    "Le patron t'a bien vu en action, récompensé pour ta productivité ! ⚡ :ecoEther: {coins}",
+    "Tes efforts sont remarqués et ta récompense suit ! 👔 :ecoEther: {coins}",
+    "Tu as pris une initiative, et ça n'est pas passé inaperçu ! 🎯 :ecoEther: {coins}",
+    "Tu as géré la situation avec brio, et la récompense suit ! 🔥 :ecoEther: {coins}"
+]
+
+# Fonction pour récupérer les données économiques d'un utilisateur
+def get_user_eco(guild_id, user_id):
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    if not user_data:
+        collection10.insert_one({
+            "guild_id": guild_id,
+            "user_id": user_id,
+            "coins": 0,
+            "last_daily": None
+        })
+        return {"coins": 0, "last_daily": None}
+    return user_data
+
+@bot.command()
+async def work(ctx):
+    guild_id = str(ctx.guild.id)
+    user_id = str(ctx.author.id)
+    
+    # Récupère les données de travail de l'utilisateur pour vérifier le cooldown
+    eco_work_data = collection13.find_one({"guild_id": guild_id, "user_id": user_id})
+
+    # Vérifie le cooldown
+    if eco_work_data and eco_work_data.get('last_work'):
+        last_work_time = eco_work_data['last_work']
+        cooldown_time = timedelta(hours=6)
+        if datetime.utcnow() - last_work_time < cooldown_time:
+            time_left = cooldown_time - (datetime.utcnow() - last_work_time)
+            await ctx.send(f"Tu dois attendre {time_left} avant de travailler à nouveau.")
+            return
+
+    # Génère le nombre de coins entre 1 et 150
+    coins = random.randint(1, 150)
+
+    # Choisis un message aléatoire parmi les 10 phrases
+    message = random.choice(messages).format(coins=coins)
+
+    # Met à jour ou insère les données de travail de l'utilisateur avec la date du dernier travail
+    collection13.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"last_work": datetime.utcnow()}},
+        upsert=True
+    )
+
+    # Récupère les données économiques actuelles de l'utilisateur
+    user_data = get_user_eco(guild_id, user_id)
+    new_coins = user_data["coins"] + coins
+
+    # Met à jour la collection eco avec le nouveau nombre de coins
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"coins": new_coins}},
+        upsert=True
+    )
+
+    # Envoie le message avec le gain
+    await ctx.send(message)
 
 @bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie des utilisateurs (Admin Only)")
 async def reset_eco_all(ctx):
