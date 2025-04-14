@@ -512,12 +512,12 @@ async def balance(ctx, member: discord.Member = None):
         return
 
     member = member or ctx.author
-    user_id, guild_id = str(member.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0, "coins": 0}
+    user_id, guild_id = member.id, ctx.guild.id  # ✅ Garde les types int
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
 
     cash = user_data.get("cash", 0)
     bank = user_data.get("bank", 0)
-    coins = cash + bank
+    total = cash + bank  # ✅ Calcul dynamique du total
 
     embed = discord.Embed(
         title=f"💼 Portefeuille de {member.display_name}",
@@ -527,14 +527,14 @@ async def balance(ctx, member: discord.Member = None):
     embed.set_thumbnail(url=member.display_avatar.url)
     embed.add_field(name="💵 Cash", value=f"`{cash}` <:ecoEther:1341862366249357374>", inline=True)
     embed.add_field(name="🏦 Banque", value=f"`{bank}` <:ecoEther:1341862366249357374>", inline=True)
-    embed.add_field(name="💰 Total", value=f"`{coins}` <:ecoEther:1341862366249357374>", inline=False)
+    embed.add_field(name="💰 Total", value=f"`{total}` <:ecoEther:1341862366249357374>", inline=False)
     embed.set_footer(text="Économie de Project : Delta")
 
     await ctx.send(embed=embed)
 
-@bot.hybrid_command(name="top", description= "Affiche le classement des joueurs les plus riches du serveur.")
+
+@bot.hybrid_command(name="top", description="Affiche le classement des joueurs les plus riches du serveur.")
 async def top(ctx):
-    # Créer un menu déroulant avec trois options : Cash, Bank, Total
     select = Select(
         placeholder="Choisissez un classement...",
         options=[
@@ -544,21 +544,24 @@ async def top(ctx):
         ]
     )
 
-    # Fonction de gestion des sélections
     async def select_callback(interaction):
         selected_value = select.values[0]
-        guild_id = str(ctx.guild.id)
+        guild_id = ctx.guild.id
+
+        users = list(collection10.find({"guild_id": guild_id}))
 
         if selected_value == "cash":
-            leaderboard = collection10.find({"guild_id": guild_id}).sort("cash", -1).limit(10)
-            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('cash', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
+            sorted_users = sorted(users, key=lambda u: u.get("cash", 0), reverse=True)
         elif selected_value == "bank":
-            leaderboard = collection10.find({"guild_id": guild_id}).sort("bank", -1).limit(10)
-            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('bank', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
+            sorted_users = sorted(users, key=lambda u: u.get("bank", 0), reverse=True)
         elif selected_value == "total":
-            leaderboard = collection10.find({"guild_id": guild_id}).sort("total", -1).limit(10)
-            desc = "\n".join([f"**#{i+1}** <@{user['user_id']}> — `{user.get('total', 0)}` <:ecoEther:1341862366249357374>" for i, user in enumerate(leaderboard)])
-        
+            sorted_users = sorted(users, key=lambda u: u.get("cash", 0) + u.get("bank", 0), reverse=True)
+
+        desc = "\n".join([
+            f"**#{i+1}** <@{u['user_id']}> — 💵 `{u.get('cash', 0)}` | 🏦 `{u.get('bank', 0)}` | 💰 `{u.get('cash', 0) + u.get('bank', 0)}` <:ecoEther:1341862366249357374>"
+            for i, u in enumerate(sorted_users[:10])
+        ])
+
         embed = discord.Embed(
             title="🏆 Classement des Riches",
             description=desc or "Personne n’a encore de Coins...",
@@ -568,11 +571,9 @@ async def top(ctx):
 
     select.callback = select_callback
 
-    # Créer une vue avec le menu déroulant
     view = View()
     view.add_item(select)
 
-    # Envoyer l'embed initial avec le menu déroulant
     embed = discord.Embed(
         title="🏆 Classement des Riches",
         description="Choisissez un type de classement en utilisant le menu déroulant.",
