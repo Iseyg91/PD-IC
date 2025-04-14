@@ -1009,7 +1009,12 @@ xp_rate = {
 }
 
 def xp_needed_for_level(level):
-    return int(50 * (level ** 2))
+    base_xp = 150
+    return base_xp * (2 ** (level - 1))
+
+# Affichage des niveaux 1 à 500
+for lvl in range(1, 501):
+    print(f"Niveau {lvl} : {xp_needed_for_level(lvl):,} XP".replace(",", " "))
 
 def get_user_rank_data(guild_id, user_id):
     user_id, guild_id = str(user_id), str(guild_id)
