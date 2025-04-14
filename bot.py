@@ -181,7 +181,7 @@ def load_guild_settings(guild_id):
     eco_daily_data = collection11.find_one({"guild_id": guild_id}) or {}
     rank_data = collection12.find_one({"guild_id": guild_id}) or {}
     eco_work_data = collection13.find_one({"guild_id": guild_id}) or {}
-    eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {]
+    eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
