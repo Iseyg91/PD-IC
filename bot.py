@@ -640,49 +640,60 @@ async def generate_transcript(channel: discord.TextChannel) -> discord.File:
     file = discord.File(fp=io.BytesIO(transcript_text.encode()), filename=f"{channel.name}_transcript.txt")
     return file
 
-class PanelModal(discord.ui.Modal, title="Création du Panel Ticket"):
-    # Champ texte
-    panel_title = discord.ui.TextInput(label="Titre Panel")
-    panel_desc = discord.ui.TextInput(label="Description Panel", style=discord.TextStyle.paragraph)
-    panel_image = discord.ui.TextInput(label="Image Panel (URL)", required=False)
-    panel_buttons = discord.ui.TextInput(label="Boutons Panel (séparés par des virgules)")
-    ticket_title = discord.ui.TextInput(label="Titre Ticket")
-    ticket_desc = discord.ui.TextInput(label="Description Ticket", style=discord.TextStyle.paragraph)
-    ticket_image = discord.ui.TextInput(label="Image Ticket (URL)", required=False)
-    emojis = discord.ui.TextInput(label="Emojis (séparés par virgule)")
-    category_id = discord.ui.TextInput(label="ID Catégorie")
-    role_id = discord.ui.TextInput(label="ID Rôle Mention")
-    staff_ids = discord.ui.TextInput(label="ID Équipe d'intervention (séparés par virgule)")
-    log_channel_id = discord.ui.TextInput(label="ID Salon de logs")
+class PanelModal(discord.ui.Modal, title="Créer un Panel de Tickets"):
+    panel_info = discord.ui.TextInput(
+        label="Infos Panel",
+        placeholder="Titre | Description | URL Image | Bouton1, Bouton2...",
+        style=discord.TextStyle.paragraph,
+        max_length=1000,
+    )
+
+    ticket_info = discord.ui.TextInput(
+        label="Infos Ticket",
+        placeholder="Titre | Description | URL Image | Emoji1, Emoji2...",
+        style=discord.TextStyle.paragraph,
+        max_length=1000,
+    )
+
+    ids_info = discord.ui.TextInput(
+        label="IDs",
+        placeholder="Catégorie ID | Rôle ping ID | Équipe ID (claim) | Logs salon ID",
+        style=discord.TextStyle.short,
+        max_length=1000,
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
-        buttons = [b.strip() for b in self.panel_buttons.value.split(",")]
-        emojis = [e.strip() for e in self.emojis.value.split(",")]
+        try:
+            # Exemple de parsing basique
+            panel_parts = self.panel_info.value.split("|")
+            ticket_parts = self.ticket_info.value.split("|")
+            ids_parts = self.ids_info.value.split("|")
 
-        panel_data = {
-            "guild_id": str(interaction.guild.id),
-            "panel_title": self.panel_title.value,
-            "panel_desc": self.panel_desc.value,
-            "panel_image": self.panel_image.value,
-            "panel_buttons": buttons,
-            "ticket_title": self.ticket_title.value,
-            "ticket_desc": self.ticket_desc.value,
-            "ticket_image": self.ticket_image.value,
-            "emojis": emojis,
-            "category_id": self.category_id.value,
-            "role_id": self.role_id.value,
-            "staff_ids": [x.strip() for x in self.staff_ids.value.split(",")],
-            "log_channel_id": self.log_channel_id.value
-        }
+            panel_data = {
+                "titre_panel": panel_parts[0].strip(),
+                "description_panel": panel_parts[1].strip(),
+                "image_panel": panel_parts[2].strip(),
+                "boutons": [b.strip() for b in panel_parts[3].split(",")],
+                "titre_ticket": ticket_parts[0].strip(),
+                "description_ticket": ticket_parts[1].strip(),
+                "image_ticket": ticket_parts[2].strip(),
+                "emojis": [e.strip() for e in ticket_parts[3].split(",")],
+                "categorie_id": int(ids_parts[0]),
+                "role_ping": int(ids_parts[1]),
+                "staff_ids": [int(i.strip()) for i in ids_parts[2].split(",")],
+                "log_channel": int(ids_parts[3])
+            }
 
-        collection16.insert_one(panel_data)
+            # Sauvegarde MongoDB
+            collection16.update_one(
+                {"guild_id": str(interaction.guild.id)},
+                {"$set": panel_data},
+                upsert=True
+            )
 
-        embed = discord.Embed(title=self.panel_title.value, description=self.panel_desc.value)
-        if self.panel_image.value:
-            embed.set_image(url=self.panel_image.value)
-
-        view = TicketPanelView(buttons, emojis, panel_data)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+            await interaction.response.send_message("✅ Panel enregistré avec succès !", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Erreur dans les données : {e}", ephemeral=True)
 
 # Vue avec boutons dynamiques
 class TicketPanelView(discord.ui.View):
