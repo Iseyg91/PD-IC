@@ -276,6 +276,8 @@ async def update_voice_xp():
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
+    bot.add_view(TicketView(author_id=ISEY_ID))  # pour bouton "Passé Commande"
+    bot.add_view(ClaimCloseView())               # pour "Claim" et "Fermer"
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
     bot.uptime = time.time()
@@ -628,36 +630,58 @@ async def on_guild_remove(guild):
 
     await channel.send(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
+# --- MODAL POUR FERMETURE ---
 class TicketModal(ui.Modal, title="Fermer le ticket"):
     reason = ui.TextInput(label="Raison de fermeture", style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
-        guild = interaction.guild
         channel = interaction.channel
+        guild = interaction.guild
         reason = self.reason.value
 
         transcript_channel = guild.get_channel(TRANSCRIPT_CHANNEL_ID)
         messages = [msg async for msg in channel.history(limit=None)]
-        transcript_text = "\n".join([f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author}: {msg.content}" for msg in messages if msg.content])
-
+        transcript_text = "\n".join([
+            f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author}: {msg.content}"
+            for msg in messages if msg.content
+        ])
         file = discord.File(fp=io.StringIO(transcript_text), filename="transcript.txt")
+
         await transcript_channel.send(
             f"📄 Ticket fermé par {interaction.user.mention}\n**Raison :** {reason}",
             file=file
         )
-
-        await interaction.response.send_message("✅ Ticket fermé avec succès.", ephemeral=True)
+        await interaction.response.send_message("✅ Ticket fermé.", ephemeral=True)
         await channel.delete()
 
+# --- VIEW AVEC CLAIM & FERMETURE ---
+class ClaimCloseView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
+    async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
+            return await interaction.response.send_message("❌ Tu n'as pas la permission de claim.", ephemeral=True)
+
+        button.disabled = True
+        await interaction.message.edit(view=self)
+        await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.")
+
+    @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
+    async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_modal(TicketModal())
+
+# --- VIEW DU PANEL (OUVERTURE DU TICKET) ---
 class TicketView(ui.View):
     def __init__(self, author_id):
         super().__init__(timeout=None)
         self.author_id = author_id
 
     @ui.button(label="Passé Commande", style=ButtonStyle.success, custom_id="open_ticket")
-    async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
+    async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.author_id:
-            return await interaction.response.send_message("Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
+            return await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
 
         guild = interaction.guild
         overwrites = {
@@ -669,9 +693,11 @@ class TicketView(ui.View):
         channel_name = f"︱🤖・{interaction.user.name}"
         ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites)
 
+        # Mention puis suppression du message
         await ticket_channel.send("@everyone")
         await ticket_channel.purge(limit=1)
 
+        # Embed d'accueil
         embed = discord.Embed(
             title="Bienvenue dans votre ticket commande",
             description=(
@@ -690,9 +716,10 @@ class TicketView(ui.View):
         )
         embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/uri_ifs___M_a08ff46b-5005-4ddb-86d9-a73f638d5cf2.jpg?raw=true")
 
-        view = ClaimCloseView()
-        await ticket_channel.send(embed=embed, view=view)
+        # Envoi de l’embed avec les boutons
+        await ticket_channel.send(embed=embed, view=ClaimCloseView())
 
+        # Sauvegarde MongoDB
         collection16.insert_one({
             "guild_id": str(guild.id),
             "user_id": str(interaction.user.id),
@@ -703,24 +730,7 @@ class TicketView(ui.View):
 
         await interaction.response.send_message(f"✅ Ton ticket a été créé : {ticket_channel.mention}", ephemeral=True)
 
-class ClaimCloseView(ui.View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    @ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
-    async def claim_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
-            return await interaction.response.send_message("Tu n'as pas la permission de claim ce ticket.", ephemeral=True)
-
-        button.disabled = True
-        await interaction.message.edit(view=self)
-
-        await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.", ephemeral=False)
-
-    @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
-    async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_modal(TicketModal())
-
+# --- COMMANDE PANEL ---
 @bot.command(name="panel")
 async def panel(ctx):
     if ctx.author.id != ISEY_ID:
@@ -731,9 +741,7 @@ async def panel(ctx):
         description="Vous souhaitez passer une commande ? N'hésitez pas à ouvrir un ticket et nous serons ravis de vous assister !",
         color=0x2ecc71
     )
-
-    view = TicketView(author_id=ctx.author.id)
-    await ctx.send(embed=embed, view=view)
+    await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
