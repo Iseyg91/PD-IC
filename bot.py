@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands, tasks
-from discord import app_commands
-from discord import Embed
+from discord import app_commands, Embed
+from discord.ui import Button, View, Select, Modal, TextInput
+from discord.utils import get
 import os
 import random
 import asyncio
@@ -12,21 +13,13 @@ import sys
 import math
 import traceback
 from keep_alive import keep_alive
-from discord.ui import Button, View
 from datetime import datetime, timedelta
-from discord.ui import View, Select
-from discord.ext import tasks
-from collections import defaultdict
-from collections import deque
+from collections import defaultdict, deque
 import pymongo
 from pymongo import MongoClient
 import psutil
 import platform
-from discord.ui import Modal, TextInput
-from discord.utils import get
 from motor.motor_asyncio import AsyncIOMotorClient
-from collections import defaultdict
-from discord.ui import Select, View
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
@@ -78,6 +71,7 @@ collection11 = db['eco_daily'] #Stock le temps de daily
 collection12 = db['rank'] #Stock les Niveau
 collection13 = db['eco_work'] #Stock le temps de Work
 collection14 = db['eco_slut'] #Stock le temps de Slut
+collection15 = db['eco_crime'] #Stock le temps de Crime
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -182,6 +176,7 @@ def load_guild_settings(guild_id):
     rank_data = collection12.find_one({"guild_id": guild_id}) or {}
     eco_work_data = collection13.find_one({"guild_id": guild_id}) or {}
     eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {}
+    eco_crime_data = collection15.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -200,7 +195,8 @@ def load_guild_settings(guild_id):
         "eco_daily": eco_daily_data,
         "rank": rank_data,
         "eco_work": eco_work_data,
-        "eco_slut": eco_slut_data
+        "eco_slut": eco_slut_data,
+        "eco_crime": eco_slut_data
     }
 
     return combined_data
@@ -816,6 +812,78 @@ async def slut(ctx):
     embed.set_footer(text=f"Action effectuée par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
     # Envoie le message avec l'embed
+    await ctx.send(embed=embed)
+
+# Liste des messages aléatoires pour la commande crime
+crime_messages = [
+    "Tu as volé un sac à main en pleine rue. 👜 💸 Tu repars avec {coins} <:ecoEther:1341862366249357374>",
+    "Coup de maître ! Tu as piraté un distributeur. 🖥️ 💰 Gagné : {coins} <:ecoEther:1341862366249357374>",
+    "Braquage express chez un marchand de bonbons... 🍬 Ce n’est pas glorieux, mais tu prends {coins} <:ecoEther:1341862366249357374>",
+    "Tu fais un cambriolage chez un riche collectionneur d’art. 🖼️ Récompense : {coins} <:ecoEther:1341862366249357374>",
+    "Tu as racketté un passant un peu trop naïf. 😈 Tu obtiens {coins} <:ecoEther:1341862366249357374>",
+    "Tu as volé une voiture… et trouvé un portefeuille dedans ! 🚗💳 Jackpot : {coins} <:ecoEther:1341862366249357374>",
+    "Tu as fraudé les impôts comme un pro. 📄💼 Récompense : {coins} <:ecoEther:1341862366249357374>",
+    "Petit vol à l’étalage, personne ne t’a vu. 🛒 Tu repars avec {coins} <:ecoEther:1341862366249357374>",
+    "Tu as cambriolé un casino, risqué mais rentable ! 🎰 Gains : {coins} <:ecoEther:1341862366249357374>",
+    "Casse éclair dans une bijouterie ! 💎 Tu fuis avec {coins} <:ecoEther:1341862366249357374>"
+]
+
+@bot.hybrid_command(name="crime", description="Tente un coup illégal pour gagner des coins ! (1h de cooldown)"])
+@check_guild()
+async def crime(ctx):
+    guild_id = str(ctx.guild.id)
+    user_id = str(ctx.author.id)
+
+    # Vérifie le cooldown
+    crime_data = collection15.find_one({"guild_id": guild_id, "user_id": user_id})
+    if crime_data and crime_data.get("last_crime"):
+        last_crime_time = crime_data["last_crime"]
+        cooldown = timedelta(hours=1)
+
+        if datetime.utcnow() - last_crime_time < cooldown:
+            time_left = cooldown - (datetime.utcnow() - last_crime_time)
+            time_left_str = str(time_left).split(".")[0]
+
+            embed = Embed(
+                title="⏳ Trop Tôt !",
+                description=f"Tu dois attendre encore {time_left_str} avant de retenter un coup.",
+                color=0xFF0000
+            )
+            await ctx.send(embed=embed)
+            return
+
+    # Génère un nombre de coins entre 1 et 50
+    coins = random.randint(1, 50)
+    message = random.choice(crime_messages).format(coins=coins)
+
+    # Met à jour le temps du dernier crime
+    collection15.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"last_crime": datetime.utcnow()}},
+        upsert=True
+    )
+
+    # Récupère les infos économiques de l'utilisateur
+    user_data = get_user_eco(guild_id, user_id)
+    new_coins = user_data["coins"] + coins
+
+    # Met à jour la collection eco avec les nouveaux coins
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"coins": new_coins}},
+        upsert=True
+    )
+
+    # Embed de retour
+    embed = Embed(
+        title="💣 Crime Commis",
+        description=message,
+        color=0x8B0000
+    )
+    embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.set_footer(text=f"Crime exécuté par {ctx.author.name}", icon_url=ctx.author.avatar.url)
+
     await ctx.send(embed=embed)
 
 @bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie des utilisateurs (Admin Only)")
