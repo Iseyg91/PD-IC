@@ -533,6 +533,92 @@ async def send_alert_to_admin(message, detected_word):
             print("⚠️ Le salon spécifié n'a pas pu être trouvé dans le serveur.")
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+#-------------------------------------------------------------------------- Bot Join:
+@bot.event
+async def on_guild_join(guild):
+    channel_id = 1361304582424232037  # ID du salon cible
+    channel = bot.get_channel(channel_id)
+
+    if channel is None:
+        # Si le bot ne trouve pas le salon (peut-être parce qu’il n’est pas dans le cache)
+        channel = await bot.fetch_channel(channel_id)
+
+    total_guilds = len(bot.guilds)
+    total_users = sum(g.member_count for g in bot.guilds)
+
+    isey_embed = discord.Embed(
+        title="✨ Nouveau serveur rejoint !",
+        description=f"Le bot a été ajouté sur un nouveau serveur.",
+        color=discord.Color.green(),
+        timestamp=datetime.utcnow()
+    )
+    isey_embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    isey_embed.add_field(name="📛 Nom", value=guild.name, inline=True)
+    isey_embed.add_field(name="🆔 ID", value=guild.id, inline=True)
+    isey_embed.add_field(name="👥 Membres", value=str(guild.member_count), inline=True)
+    isey_embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
+    isey_embed.add_field(name="🌍 Région", value=guild.preferred_locale, inline=True)
+    isey_embed.add_field(name="🔢 Total serveurs", value=str(total_guilds), inline=True)
+    isey_embed.add_field(name="🌐 Utilisateurs totaux (estimation)", value=str(total_users), inline=True)
+    isey_embed.set_footer(text="Ajouté le")
+
+    await channel.send(embed=isey_embed)
+
+    # --- Embed public pour le salon du serveur ---
+    text_channels = [channel for channel in guild.text_channels if channel.permissions_for(guild.me).send_messages]
+    
+    if text_channels:
+        top_channel = sorted(text_channels, key=lambda x: x.position)[0]
+
+        public_embed = discord.Embed(
+            title="🎉 **Bienvenue sur le serveur !** 🎉",
+            description="Salut à tous ! Je suis **EtheryaBot**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
+            color=discord.Color.blurple()
+        )
+
+        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
+        public_embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+
+        public_embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveurs, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
+        public_embed.add_field(name="💡 **Commandes principales**", value="📜 Voici les commandes essentielles pour bien commencer :\n`+help` - Afficher toutes les commandes disponibles\n`+vc` - Voir les statistiques du serveur\n`+setup` - Configurer le bot selon vos besoins", inline=False)
+        public_embed.add_field(name="🚀 **Prêt à commencer ?**", value="Tapez `+aide` pour voir toutes les commandes disponibles ou dites-moi ce que vous souhaitez faire. Si vous avez des questions, je suis là pour vous aider ! 🎉", inline=False)
+        public_embed.add_field(name="🌐 **Serveurs utiles**", value="**[Serveur de Support](https://discord.com/invite/PzTHvVKDxN)**\n**[Serveur Etherya](https://discord.com/invite/tVVYC2Ynfy)**", inline=False)
+
+        await top_channel.send(embed=public_embed)
+
+@bot.event
+async def on_guild_remove(guild):
+    channel_id = 1361306217460531225  # ID du salon cible
+    channel = bot.get_channel(channel_id)
+
+    if channel is None:
+        channel = await bot.fetch_channel(channel_id)
+
+    # Total après le départ
+    total_guilds = len(bot.guilds)
+    total_users = sum(g.member_count for g in bot.guilds if g.member_count)
+
+    embed = discord.Embed(
+        title="💔 Serveur quitté",
+        description="Le bot a été retiré d’un serveur.",
+        color=discord.Color.red(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    embed.add_field(name="📛 Nom", value=guild.name, inline=True)
+    embed.add_field(name="🆔 ID", value=guild.id, inline=True)
+    embed.add_field(name="👥 Membres lors du départ", value=str(guild.member_count), inline=True)
+    embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
+    embed.add_field(name="🌍 Région", value=guild.preferred_locale, inline=True)
+
+    # Infos globales
+    embed.add_field(name="🔢 Total serveurs restants", value=str(total_guilds), inline=True)
+    embed.add_field(name="🌐 Utilisateurs totaux (estimation)", value=str(total_users), inline=True)
+
+    embed.set_footer(text="Retiré le")
+
+    await channel.send(embed=embed)
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
@@ -862,7 +948,6 @@ async def slut(ctx):
     embed.set_footer(text=f"Action effectuée par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
     await ctx.send(embed=embed)
-
 
 # Liste des messages aléatoires pour la commande crime
 crime_messages = [
@@ -1762,70 +1847,6 @@ async def isey(ctx):
             await ctx.send(f"❌ Une erreur est survenue : `{e}`")
     else:
         await ctx.send("❌ Seul l'owner du bot peut exécuter cette commande.")
-
-#-------------------------------------------------------------------------- Bot Join:
-@bot.event
-async def on_guild_join(guild):
-    isey = await bot.fetch_user(ISEY_ID)
-
-    # --- Embed privé pour Isey ---
-    isey_embed = discord.Embed(
-        title="✨ Nouveau serveur rejoint !",
-        description=f"Le bot a été ajouté sur un serveur.",
-        color=discord.Color.green(),
-        timestamp=datetime.utcnow()
-    )
-    isey_embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
-    isey_embed.add_field(name="📛 Nom", value=guild.name, inline=True)
-    isey_embed.add_field(name="🆔 ID", value=guild.id, inline=True)
-    isey_embed.add_field(name="👥 Membres", value=str(guild.member_count), inline=True)
-    isey_embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
-    isey_embed.add_field(name="🌍 Région", value=guild.preferred_locale, inline=True)
-    isey_embed.set_footer(text="Ajouté le")
-
-    await isey.send(embed=isey_embed)
-
-    # --- Embed public pour le salon du serveur ---
-    text_channels = [channel for channel in guild.text_channels if channel.permissions_for(guild.me).send_messages]
-    
-    if text_channels:
-        top_channel = sorted(text_channels, key=lambda x: x.position)[0]
-
-        public_embed = discord.Embed(
-            title="🎉 **Bienvenue sur le serveur !** 🎉",
-            description="Salut à tous ! Je suis **EtheryaBot**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
-            color=discord.Color.blurple()
-        )
-
-        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
-        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
-        public_embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
-
-        public_embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveurs, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
-        public_embed.add_field(name="💡 **Commandes principales**", value="📜 Voici les commandes essentielles pour bien commencer :\n`+help` - Afficher toutes les commandes disponibles\n`+vc` - Voir les statistiques du serveur\n`+setup` - Configurer le bot selon vos besoins", inline=False)
-        public_embed.add_field(name="🚀 **Prêt à commencer ?**", value="Tapez `+aide` pour voir toutes les commandes disponibles ou dites-moi ce que vous souhaitez faire. Si vous avez des questions, je suis là pour vous aider ! 🎉", inline=False)
-        public_embed.add_field(name="🌐 **Serveurs utiles**", value="**[Serveur de Support](https://discord.com/invite/PzTHvVKDxN)**\n**[Serveur Etherya](https://discord.com/invite/tVVYC2Ynfy)**", inline=False)
-
-        await top_channel.send(embed=public_embed)
-
-@bot.event
-async def on_guild_remove(guild):
-    isey = await bot.fetch_user(ISEY_ID)
-
-    embed = discord.Embed(
-        title="💔 Serveur quitté",
-        description="Le bot a été retiré d’un serveur.",
-        color=discord.Color.red(),
-        timestamp=datetime.utcnow()
-    )
-    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
-    embed.add_field(name="📛 Nom", value=guild.name, inline=True)
-    embed.add_field(name="🆔 ID", value=guild.id, inline=True)
-    embed.add_field(name="👥 Membres lors du départ", value=str(guild.member_count), inline=True)
-    embed.add_field(name="👑 Propriétaire", value=str(guild.owner), inline=True)
-    embed.set_footer(text="Retiré le")
-
-    await isey.send(embed=embed)
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
 @bot.tree.command(name="premium")
