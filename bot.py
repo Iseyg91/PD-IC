@@ -637,25 +637,24 @@ class TicketModal(ui.Modal, title="Fermer le ticket"):
         reason = self.reason.value
 
         transcript_channel = guild.get_channel(TRANSCRIPT_CHANNEL_ID)
-        transcript = await channel.history(limit=None).flatten()
-        transcript_text = "\n".join([f"{msg.author}: {msg.content}" for msg in transcript if msg.content])
+        messages = [msg async for msg in channel.history(limit=None)]
+        transcript_text = "\n".join([f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author}: {msg.content}" for msg in messages if msg.content])
 
         file = discord.File(fp=io.StringIO(transcript_text), filename="transcript.txt")
         await transcript_channel.send(
-            f"Ticket fermé par {interaction.user.mention} - Raison : `{reason}`",
+            f"📄 Ticket fermé par {interaction.user.mention}\n**Raison :** {reason}",
             file=file
         )
 
-        await interaction.response.send_message("Ticket fermé avec succès.", ephemeral=True)
+        await interaction.response.send_message("✅ Ticket fermé avec succès.", ephemeral=True)
         await channel.delete()
 
 class TicketView(ui.View):
     def __init__(self, author_id):
         super().__init__(timeout=None)
         self.author_id = author_id
-        self.claimed = False
 
-    @ui.button(label="Passé Commande", style=ButtonStyle.green, custom_id="open_ticket")
+    @ui.button(label="Passé Commande", style=ButtonStyle.success, custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.user.id != self.author_id:
             return await interaction.response.send_message("Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
@@ -668,7 +667,7 @@ class TicketView(ui.View):
         }
 
         channel_name = f"︱🤖・{interaction.user.name}"
-        ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites, category=None)
+        ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites)
 
         await ticket_channel.send("@everyone")
         await ticket_channel.purge(limit=1)
@@ -689,6 +688,7 @@ class TicketView(ui.View):
             ),
             color=0x5865F2
         )
+        embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/uri_ifs___M_a08ff46b-5005-4ddb-86d9-a73f638d5cf2.jpg?raw=true")
 
         view = ClaimCloseView()
         await ticket_channel.send(embed=embed, view=view)
@@ -697,11 +697,11 @@ class TicketView(ui.View):
             "guild_id": str(guild.id),
             "user_id": str(interaction.user.id),
             "channel_id": str(ticket_channel.id),
-            "opened_at": datetime.datetime.utcnow(),
+            "opened_at": datetime.utcnow(),
             "status": "open"
         })
 
-        await interaction.response.send_message(f"Ticket créé: {ticket_channel.mention}", ephemeral=True)
+        await interaction.response.send_message(f"✅ Ton ticket a été créé : {ticket_channel.mention}", ephemeral=True)
 
 class ClaimCloseView(ui.View):
     def __init__(self):
@@ -715,7 +715,7 @@ class ClaimCloseView(ui.View):
         button.disabled = True
         await interaction.message.edit(view=self)
 
-        await interaction.response.send_message(f"Ticket claim par {interaction.user.mention}.", ephemeral=False)
+        await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.", ephemeral=False)
 
     @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
     async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
@@ -724,7 +724,7 @@ class ClaimCloseView(ui.View):
 @bot.command(name="panel")
 async def panel(ctx):
     if ctx.author.id != ISEY_ID:
-        return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
+        return await ctx.send("❌ Tu n'es pas autorisé à utiliser cette commande.")
 
     embed = discord.Embed(
         title="Passer commande",
