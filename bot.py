@@ -505,6 +505,20 @@ async def send_alert_to_admin(message, detected_word):
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
 #--------------------------------------------------------------------------- Eco:
+
+from functools import wraps
+
+def check_guild():
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(ctx, *args, **kwargs):
+            if ctx.guild is None or ctx.guild.id != PROJECT_DELTA:
+                await ctx.send("❌ **Les commandes économiques ne sont pas autorisées sur ce serveur.**")
+                return
+            return await func(ctx, *args, **kwargs)
+        return wrapper
+    return decorator
+
 # Fonction pour ajouter des coins à un utilisateur
 def add_coins(guild_id, user_id, amount):
     collection10.update_one(
@@ -515,6 +529,7 @@ def add_coins(guild_id, user_id, amount):
 
 # Commande pour afficher le solde de coins d'un utilisateur
 @bot.hybrid_command(name="balance", description="Affiche ton solde de Coins.", aliases=['bal'])
+@check_guild()
 async def balance(ctx, member: discord.Member = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -539,6 +554,7 @@ async def balance(ctx, member: discord.Member = None):
 
 # Commande pour afficher le classement des utilisateurs par nombre de coins
 @bot.hybrid_command(name="leaderboard", aliases=["lb"], description="Affiche le classement des plus riches.")
+@check_guild()
 async def leaderboard(ctx, tri: str = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -566,6 +582,7 @@ async def leaderboard(ctx, tri: str = None):
     await ctx.send(embed=embed)
 
 @bot.hybrid_command(name="pay", description="Permet de transférer une certaine somme de Coins à un autre utilisateur.")
+@check_guild()
 async def pay(ctx, member: discord.Member, amount: int = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -609,6 +626,7 @@ async def pay_all_error(ctx, error):
         await pay(ctx, ctx.author, total_cash)
 
 @bot.hybrid_command(name="daily", description="Réclamez votre récompense quotidienne de Coins. Disponible tous les 24h.", aliases=['dy'])
+@check_guild()
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
     user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
@@ -659,6 +677,7 @@ messages = [
 ]
 
 @bot.hybrid_command(name="work", description="Gagnez des coins en travaillant. Vous pouvez le faire toutes les 6 heures.", aliases=['wk'])
+@check_guild()
 async def work(ctx):
     guild_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
@@ -736,6 +755,7 @@ messages = [
 ]
 
 @bot.hybrid_command(name="slut", description="Gagnez des coins en attirant l'attention. Vous pouvez le faire toutes les 3 heures.", aliases=['sl'])
+@check_guild()
 async def slut(ctx):
     guild_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
@@ -799,6 +819,7 @@ async def slut(ctx):
     await ctx.send(embed=embed)
 
 @bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie des utilisateurs (Admin Only)")
+@check_guild()
 async def reset_eco_all(ctx):
     if ctx.author.id != 792755123587645461:
         return await ctx.send("🚫 Tu n'as pas la permission d’utiliser cette commande.")
@@ -819,8 +840,10 @@ async def reset_eco_all(ctx):
 @bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui ajouter des coins", amount="Montant à ajouter")
 async def add_money(interaction: discord.Interaction, user: discord.Member, amount: int):
-    if interaction.guild.id != 1359963854200639498:
-        return
+    if interaction.guild.id != PROJECT_DELTA:
+        return await interaction.response.send_message(
+            "❌ **Les commandes économiques ne sont pas autorisées sur ce serveur.**", ephemeral=True
+        )
 
     if amount <= 0:
         return await interaction.response.send_message("❌ **Montant invalide.** Utilise une somme positive.", ephemeral=True)
@@ -846,8 +869,10 @@ async def add_money(interaction: discord.Interaction, user: discord.Member, amou
 @bot.tree.command(name="remove_money", description="Retire de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui retirer des coins", amount="Montant à retirer")
 async def remove_money(interaction: discord.Interaction, user: discord.Member, amount: int):
-    if interaction.guild.id != 1359963854200639498:
-        return
+    if interaction.guild.id != PROJECT_DELTA:
+        return await interaction.response.send_message(
+            "❌ **Les commandes économiques ne sont pas autorisées sur ce serveur.**", ephemeral=True
+        )
 
     if amount <= 0:
         return await interaction.response.send_message("❌ **Montant invalide.** Utilise une somme positive.", ephemeral=True)
