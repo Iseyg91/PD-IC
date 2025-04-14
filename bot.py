@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
+from discord import Embed
 import os
 import random
 import asyncio
@@ -655,19 +656,6 @@ messages = [
     "Tu as pris une initiative, et ça n'est pas passé inaperçu ! 🎯 :ecoEther: {coins}",
     "Tu as géré la situation avec brio, et la récompense suit ! 🔥 :ecoEther: {coins}"
 ]
-
-# Fonction pour récupérer les données économiques d'un utilisateur
-def get_user_eco(guild_id, user_id):
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
-    if not user_data:
-        collection10.insert_one({
-            "guild_id": guild_id,
-            "user_id": user_id,
-            "coins": 0,
-            "last_daily": None
-        })
-        return {"coins": 0, "last_daily": None}
-    return user_data
 
 @bot.hybrid_command(name="work", description="Gagnez des coins en travaillant. Vous pouvez le faire toutes les 6 heures.", aliases=['wk'])
 async def work(ctx):
