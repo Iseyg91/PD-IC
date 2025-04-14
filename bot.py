@@ -533,53 +533,41 @@ async def balance(ctx, member: discord.Member = None):
     await ctx.send(embed=embed)
 
 
-@bot.hybrid_command(name="top", description="Affiche le classement des joueurs les plus riches du serveur.")
-async def top(ctx):
-    select = Select(
-        placeholder="Choisissez un classement...",
-        options=[
-            discord.SelectOption(label="Par Cash", description="Classement par le montant de Cash", value="cash"),
-            discord.SelectOption(label="Par Banque", description="Classement par le montant en Banque", value="bank"),
-            discord.SelectOption(label="Par Total", description="Classement par la somme Cash + Banque", value="total")
-        ]
-    )
+@bot.hybrid_command(name="leaderboard", aliases=["lb"], description="Affiche le classement des plus riches.")
+async def leaderboard(ctx, tri: str = None):
+    if ctx.guild.id != 1359963854200639498:
+        return
 
-    async def select_callback(interaction):
-        selected_value = select.values[0]
-        guild_id = ctx.guild.id
+    guild_id = ctx.guild.id
+    users = list(collection10.find({"guild_id": guild_id}))
 
-        users = list(collection10.find({"guild_id": guild_id}))
+    if tri == "-cash":
+        users.sort(key=lambda u: u.get("cash", 0), reverse=True)
+        title = "🏆 Classement par Cash"
+        extract_value = lambda u: u.get("cash", 0)
+    elif tri == "-bank":
+        users.sort(key=lambda u: u.get("bank", 0), reverse=True)
+        title = "🏆 Classement par Banque"
+        extract_value = lambda u: u.get("bank", 0)
+    else:
+        users.sort(key=lambda u: u.get("cash", 0) + u.get("bank", 0), reverse=True)
+        title = "🏆 Classement par Fortune Totale"
+        extract_value = lambda u: u.get("cash", 0) + u.get("bank", 0)
 
-        if selected_value == "cash":
-            sorted_users = sorted(users, key=lambda u: u.get("cash", 0), reverse=True)
-        elif selected_value == "bank":
-            sorted_users = sorted(users, key=lambda u: u.get("bank", 0), reverse=True)
-        elif selected_value == "total":
-            sorted_users = sorted(users, key=lambda u: u.get("cash", 0) + u.get("bank", 0), reverse=True)
-
-        desc = "\n".join([
-            f"**#{i+1}** <@{u['user_id']}> — 💵 `{u.get('cash', 0)}` | 🏦 `{u.get('bank', 0)}` | 💰 `{u.get('cash', 0) + u.get('bank', 0)}` <:ecoEther:1341862366249357374>"
-            for i, u in enumerate(sorted_users[:10])
-        ])
-
-        embed = discord.Embed(
-            title="🏆 Classement des Riches",
-            description=desc or "Personne n’a encore de Coins...",
-            color=discord.Color.gold()
-        )
-        await interaction.response.edit_message(embed=embed)
-
-    select.callback = select_callback
-
-    view = View()
-    view.add_item(select)
+    description = ""
+    for i, u in enumerate(users[:10]):
+        member = ctx.guild.get_member(u["user_id"])
+        name = member.display_name if member else f"Utilisateur inconnu ({u['user_id']})"
+        value = extract_value(u)
+        formatted = f"{value:,}".replace(",", " ")  # pour séparer en milliers avec un espace insécable
+        description += f"**{i+1}. {name}** • <:ecoEther:1341862366249357374> {formatted}\n"
 
     embed = discord.Embed(
-        title="🏆 Classement des Riches",
-        description="Choisissez un type de classement en utilisant le menu déroulant.",
+        title=title,
+        description=description or "Aucun utilisateur n’a encore de coins.",
         color=discord.Color.gold()
     )
-    await ctx.send(embed=embed, view=view)
+    await ctx.send(embed=embed)
 
 @bot.hybrid_command(name="pay", description= "Permet de transférer une certaine somme d'argent à un autre utilisateur.")
 async def pay(ctx, member: discord.Member, amount: int = None):
