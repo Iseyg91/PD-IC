@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 from discord import app_commands, Embed
 from discord.ui import Button, View, Select, Modal, TextInput
 from discord.utils import get
+from functools import wraps
 import os
 import random
 import asyncio
@@ -502,8 +503,6 @@ async def send_alert_to_admin(message, detected_word):
 
 #--------------------------------------------------------------------------- Eco:
 
-from functools import wraps
-
 def check_guild():
     def decorator(func):
         @wraps(func)
@@ -755,8 +754,8 @@ messages = [
 async def slut(ctx):
     guild_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
-    
-    # Récupère les données de la commande "slut" de l'utilisateur pour vérifier le cooldown
+
+    # Récupère les données de la commande "slut" pour vérifier le cooldown
     eco_slut_data = collection14.find_one({"guild_id": guild_id, "user_id": user_id})
 
     # Vérifie le cooldown
@@ -765,54 +764,62 @@ async def slut(ctx):
         cooldown_time = timedelta(hours=3)
         if datetime.utcnow() - last_slut_time < cooldown_time:
             time_left = cooldown_time - (datetime.utcnow() - last_slut_time)
+            time_left_str = str(time_left).split(".")[0]
 
-            # Formate l'heure restante en heures et minutes (sans les secondes)
-            time_left_str = str(time_left).split(".")[0]  # Enlève les millisecondes
-            
             embed = Embed(
                 title="Cooldown Slut",
-                description=f"Tu dois attendre encore {time_left_str} avant de pouvoir gagner à nouveau.",
-                color=0xFF0000  # Rouge pour indiquer l'attente
+                description=f"Tu dois attendre encore {time_left_str} avant de pouvoir recommencer.",
+                color=0xFF0000
             )
             await ctx.send(embed=embed)
             return
 
-    # Génère le nombre de coins entre 1 et 75
-    coins = random.randint(1, 75)
+    # Détermine si le joueur gagne (50% de chances)
+    success = random.choice([True, False])
 
-    # Choisis un message aléatoire parmi les 10 phrases
-    message = random.choice(messages).format(coins=coins)
+    # Récupère les données économiques actuelles de l'utilisateur
+    user_data = get_user_eco(guild_id, user_id)
+    current_coins = user_data["coins"]
 
-    # Met à jour ou insère les données de la commande "slut" de l'utilisateur avec la date du dernier usage
+    if success:
+        coins = random.randint(1, 75)
+        new_coins = current_coins + coins
+        message = random.choice(messages).format(coins=coins)
+        color = 0x00FF00
+        result_title = "✨ Séduction Réussie"
+        coins_field = ("Coins Gagnés", f"{coins} <:ecoEther:1341862366249357374>")
+    else:
+        coins = random.randint(1, 75)
+        new_coins = max(0, current_coins - coins)
+        message = f"Tu t’es ridiculisé·e… et tu perds {coins} <:ecoEther:1341862366249357374> 😔"
+        color = 0x8B0000
+        result_title = "💔 Échec de Séduction"
+        coins_field = ("Coins Perdus", f"-{coins} <:ecoEther:1341862366249357374>")
+
+    # Met à jour la base de données
     collection14.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$set": {"last_slut": datetime.utcnow()}},
         upsert=True
     )
-
-    # Récupère les données économiques actuelles de l'utilisateur
-    user_data = get_user_eco(guild_id, user_id)
-    new_coins = user_data["coins"] + coins
-
-    # Met à jour la collection eco avec le nouveau nombre de coins
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$set": {"coins": new_coins}},
         upsert=True
     )
 
-    # Crée un Embed pour afficher la récompense de manière agréable
+    # Crée l'embed
     embed = Embed(
-        title="Récompense de l'Attention",
+        title=result_title,
         description=message,
-        color=0x00FF00  # Vert pour la récompense
+        color=color
     )
-    embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name=coins_field[0], value=coins_field[1], inline=True)
     embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
     embed.set_footer(text=f"Action effectuée par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
-    # Envoie le message avec l'embed
     await ctx.send(embed=embed)
+
 
 # Liste des messages aléatoires pour la commande crime
 crime_messages = [
@@ -852,9 +859,17 @@ async def crime(ctx):
             await ctx.send(embed=embed)
             return
 
-    # Génère un nombre de coins entre 1 et 50
-    coins = random.randint(1, 50)
-    message = random.choice(crime_messages).format(coins=coins)
+    # Génère une chance sur 2 pour déterminer si le joueur gagne ou perd
+    success = random.choice([True, False])
+
+    if success:
+        # Génère un nombre de coins entre 1 et 50 pour les gains
+        coins = random.randint(1, 50)
+        message = random.choice(crime_messages).format(coins=coins)
+    else:
+        # Génère une perte de coins entre 1 et 50
+        coins = random.randint(1, 50) * -1  # Négatif pour une perte
+        message = f"Échec de ton coup, tu perds {abs(coins)} <:ecoEther:1341862366249357374>."
 
     # Met à jour le temps du dernier crime
     collection15.update_one(
@@ -878,9 +893,9 @@ async def crime(ctx):
     embed = Embed(
         title="💣 Crime Commis",
         description=message,
-        color=0x8B0000
+        color=0x8B0000 if not success else 0x00FF00  # Rouge si échec, vert si succès
     )
-    embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="Coins Gagnés/Perdus", value=f"{abs(coins)} <:ecoEther:1341862366249357374>", inline=True)
     embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
     embed.set_footer(text=f"Crime exécuté par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
