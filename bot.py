@@ -791,6 +791,8 @@ async def remove_money(interaction: discord.Interaction, user: discord.Member, a
 async def on_member_update(before, after):
     if before.activity != after.activity:
         if after.activity and isinstance(after.activity, discord.Streaming):
+            if after.guild.id != 1359963854200639498:
+                return  # 🔒 Arrêter ici si ce n'est pas le bon serveur
             coins_to_add = random.randint(50, 75)
             add_coins(after.guild.id, str(after.id), coins_to_add)
             await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
