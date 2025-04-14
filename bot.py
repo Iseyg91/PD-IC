@@ -501,10 +501,10 @@ async def on_message(message):
     # ✅ 10. Exécution normale des commandes
     await bot.process_commands(message)
 
-# 🔔 Fonction d'envoi d'alerte à l'admin
+# 🔔 Fonction d'envoi d'alerte dans le salon dédié
 async def send_alert_to_admin(message, detected_word):
     try:
-        admin = await bot.fetch_user(ADMIN_ID)
+        channel = message.guild.get_channel(1361329246236053586)  # ID du salon où envoyer l'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
             description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
@@ -518,10 +518,9 @@ async def send_alert_to_admin(message, detected_word):
         if message.guild:
             embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
         embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
-        await admin.send(embed=embed)
+        await channel.send(embed=embed)  # Envoi dans le salon
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
-
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
     async def predicate(ctx):
