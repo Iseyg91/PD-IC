@@ -721,18 +721,17 @@ async def reset_eco_all(ctx):
     if ctx.author.id != 792755123587645461:
         return await ctx.send("🚫 Tu n'as pas la permission d’utiliser cette commande.")
 
-    guild_id = str(ctx.guild.id)
-
-    # Suppression complète des données économiques pour ce serveur (seulement les coins)
-    result = collection10.update_many({"guild_id": guild_id}, {"$set": {"coins": 0}})
+    # Suppression complète de tous les documents dans la collection
+    result = collection10.delete_many({})
 
     await ctx.send(
         embed=discord.Embed(
-            title="💣 Réinitialisation de l'économie",
-            description=f"✅ Tous les profils économiques ont été réinitialisés.\n**{result.modified_count}** entrées mises à jour.",
+            title="💣 Réinitialisation complète de l'économie",
+            description=f"✅ Toute l'économie a été réinitialisée.\n**{result.deleted_count}** documents supprimés.",
             color=discord.Color.red()
         )
     )
+
 
 # Commande pour ajouter des coins à un utilisateur
 @bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
