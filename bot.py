@@ -5,6 +5,7 @@ from discord.ui import Button, View, Select, Modal, TextInput
 from discord.utils import get
 from functools import wraps
 import os
+import io
 import random
 import asyncio
 import time
