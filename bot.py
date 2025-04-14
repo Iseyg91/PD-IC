@@ -30,7 +30,7 @@ client = discord.Client(intents=intents)
 #Configuration du Bot:
 PROJECT_DELTA = 1359963854200639498
 BOT_OWNER_ID = 792755123587645461
-CASS_ISEY = [792755123587645461, 873176863965589564]
+STAFF_PROJECT = 1359963854422933876
 LOG_CHANNEL_ID = 1360864790540582942
 LOG_CHANNEL_RETIRE_ID = 1360864806957092934
 ISEY_ID = 792755123587645461
@@ -1227,7 +1227,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
     if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in CASS_ISEY:
+    if interaction.user.id not in STAFF_PROJECT:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     try:
@@ -1322,7 +1322,7 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
     if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in CASS_ISEY:
+    if interaction.user.id not in STAFF_PROJECT:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
@@ -1458,7 +1458,7 @@ async def list_clients(interaction: discord.Interaction):
     if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in CASS_ISEY:
+    if interaction.user.id not in STAFF_PROJECT:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
 
 
