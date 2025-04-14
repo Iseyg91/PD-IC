@@ -645,16 +645,16 @@ async def daily(ctx):
 
 # Liste des messages à renvoyer
 messages = [
-    "Tu négocies une augmentation avec succès. 💹 :ecoEther: {coins}",
-    "Tu as travaillé dur et ça a payé ! 💼 :ecoEther: {coins}",
-    "Le boss est satisfait de tes efforts, tu gagnes une prime ! 💸 :ecoEther: {coins}",
-    "Tu as bien géré tes tâches, voilà ta récompense ! 🏆 :ecoEther: {coins}",
-    "Une journée bien remplie, et voilà ta compensation ! 💪 :ecoEther: {coins}",
-    "Tu fais une présentation brillante et ça se reflète dans ton salaire. 📊 :ecoEther: {coins}",
-    "Le patron t'a bien vu en action, récompensé pour ta productivité ! ⚡ :ecoEther: {coins}",
-    "Tes efforts sont remarqués et ta récompense suit ! 👔 :ecoEther: {coins}",
-    "Tu as pris une initiative, et ça n'est pas passé inaperçu ! 🎯 :ecoEther: {coins}",
-    "Tu as géré la situation avec brio, et la récompense suit ! 🔥 :ecoEther: {coins}"
+    "Tu négocies une augmentation avec succès. 💹 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as travaillé dur et ça a payé ! 💼 <:ecoEther:1341862366249357374> {coins}",
+    "Le boss est satisfait de tes efforts, tu gagnes une prime ! 💸 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as bien géré tes tâches, voilà ta récompense ! 🏆 <:ecoEther:1341862366249357374> {coins}",
+    "Une journée bien remplie, et voilà ta compensation ! 💪 <:ecoEther:1341862366249357374> {coins}",
+    "Tu fais une présentation brillante et ça se reflète dans ton salaire. 📊 <:ecoEther:1341862366249357374> {coins}",
+    "Le patron t'a bien vu en action, récompensé pour ta productivité ! ⚡ <:ecoEther:1341862366249357374> {coins}",
+    "Tes efforts sont remarqués et ta récompense suit ! 👔 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as pris une initiative, et ça n'est pas passé inaperçu ! 🎯 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as géré la situation avec brio, et la récompense suit ! 🔥 <:ecoEther:1341862366249357374> {coins}"
 ]
 
 @bot.hybrid_command(name="work", description="Gagnez des coins en travaillant. Vous pouvez le faire toutes les 6 heures.", aliases=['wk'])
@@ -713,8 +713,8 @@ async def work(ctx):
         description=message,
         color=0x00FF00  # Vert pour la récompense
     )
-    embed.add_field(name="Coins Gagnés", value=f"{coins} :ecoEther:", inline=True)
-    embed.add_field(name="Total de Coins", value=f"{new_coins} :ecoEther:", inline=True)
+    embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
     embed.set_footer(text=f"Travail effectué par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
     # Envoie le message avec l'embed
