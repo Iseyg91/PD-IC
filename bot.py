@@ -77,6 +77,7 @@ collection10 = db['eco'] #Stock Les infos Eco
 collection11 = db['eco_daily'] #Stock le temps de daily
 collection12 = db['rank'] #Stock les Niveau
 collection13 = db['eco_work'] #Stock le temps de Work
+collection14 = db['eco_slut'] #Stock le temps de Slut
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -180,6 +181,7 @@ def load_guild_settings(guild_id):
     eco_daily_data = collection11.find_one({"guild_id": guild_id}) or {}
     rank_data = collection12.find_one({"guild_id": guild_id}) or {}
     eco_work_data = collection13.find_one({"guild_id": guild_id}) or {}
+    eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {]
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -197,7 +199,8 @@ def load_guild_settings(guild_id):
         "eco": eco_data,
         "eco_daily": eco_daily_data,
         "rank": rank_data,
-        "eco_work": eco_work_data
+        "eco_work": eco_work_data,
+        "eco_slut": eco_slut_data
     }
 
     return combined_data
@@ -716,6 +719,83 @@ async def work(ctx):
     embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
     embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
     embed.set_footer(text=f"Travail effectué par {ctx.author.name}", icon_url=ctx.author.avatar.url)
+
+    # Envoie le message avec l'embed
+    await ctx.send(embed=embed)
+
+# Liste des messages à renvoyer pour "slut"
+messages = [
+    "Tu as réussi à attirer l'attention et tu gagnes une récompense ! 💋 <:ecoEther:1341862366249357374> {coins}",
+    "T'as assuré, voilà ta prime ! 💄 <:ecoEther:1341862366249357374> {coins}",
+    "Ton charme fait des miracles ! 💅 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as fait des merveilles, récompensée comme il se doit ! 💋 <:ecoEther:1341862366249357374> {coins}",
+    "Félicitations, tu as remporté ta récompense ! 💃 <:ecoEther:1341862366249357374> {coins}",
+    "Le regard des autres t'a permis de récolter des Coins ! 👀 <:ecoEther:1341862366249357374> {coins}",
+    "C'est ta chance, tu récoltes ce que tu mérites ! 💋 <:ecoEther:1341862366249357374> {coins}",
+    "Un petit effort et voilà ta récompense ! 💖 <:ecoEther:1341862366249357374> {coins}",
+    "Tu as su charmer tout le monde, et ça se voit dans ta prime ! 💋 <:ecoEther:1341862366249357374> {coins}",
+    "Avec un peu d'effort, tu as mérité ta récompense ! 👠 <:ecoEther:1341862366249357374> {coins}"
+]
+
+@bot.hybrid_command(name="slut", description="Gagnez des coins en attirant l'attention. Vous pouvez le faire toutes les 3 heures.", aliases=['sl'])
+async def slut(ctx):
+    guild_id = str(ctx.guild.id)
+    user_id = str(ctx.author.id)
+    
+    # Récupère les données de la commande "slut" de l'utilisateur pour vérifier le cooldown
+    eco_slut_data = collection14.find_one({"guild_id": guild_id, "user_id": user_id})
+
+    # Vérifie le cooldown
+    if eco_slut_data and eco_slut_data.get('last_slut'):
+        last_slut_time = eco_slut_data['last_slut']
+        cooldown_time = timedelta(hours=3)
+        if datetime.utcnow() - last_slut_time < cooldown_time:
+            time_left = cooldown_time - (datetime.utcnow() - last_slut_time)
+
+            # Formate l'heure restante en heures et minutes (sans les secondes)
+            time_left_str = str(time_left).split(".")[0]  # Enlève les millisecondes
+            
+            embed = Embed(
+                title="Cooldown Slut",
+                description=f"Tu dois attendre encore {time_left_str} avant de pouvoir gagner à nouveau.",
+                color=0xFF0000  # Rouge pour indiquer l'attente
+            )
+            await ctx.send(embed=embed)
+            return
+
+    # Génère le nombre de coins entre 1 et 75
+    coins = random.randint(1, 75)
+
+    # Choisis un message aléatoire parmi les 10 phrases
+    message = random.choice(messages).format(coins=coins)
+
+    # Met à jour ou insère les données de la commande "slut" de l'utilisateur avec la date du dernier usage
+    collection14.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"last_slut": datetime.utcnow()}},
+        upsert=True
+    )
+
+    # Récupère les données économiques actuelles de l'utilisateur
+    user_data = get_user_eco(guild_id, user_id)
+    new_coins = user_data["coins"] + coins
+
+    # Met à jour la collection eco avec le nouveau nombre de coins
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"coins": new_coins}},
+        upsert=True
+    )
+
+    # Crée un Embed pour afficher la récompense de manière agréable
+    embed = Embed(
+        title="Récompense de l'Attention",
+        description=message,
+        color=0x00FF00  # Vert pour la récompense
+    )
+    embed.add_field(name="Coins Gagnés", value=f"{coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.add_field(name="Total de Coins", value=f"{new_coins} <:ecoEther:1341862366249357374>", inline=True)
+    embed.set_footer(text=f"Action effectuée par {ctx.author.name}", icon_url=ctx.author.avatar.url)
 
     # Envoie le message avec l'embed
     await ctx.send(embed=embed)
