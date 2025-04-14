@@ -743,6 +743,49 @@ async def panel(ctx):
     )
     await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
 
+# --- PANEL2 ---
+@bot.command(name="panel2")
+async def panel2(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("❌ Tu n'es pas autorisé à utiliser cette commande.")
+
+    embed = discord.Embed(
+        title="Passer commande",
+        description="Vous souhaitez passer une commande ? N'hésitez pas à ouvrir un ticket et nous serons ravis de vous assister !",
+        color=0x2ecc71
+    )
+    # Mise à jour du bouton avec l'emoji 🎨
+    await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
+
+# --- PANEL3 ---
+@bot.command(name="panel3")
+async def panel3(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("❌ Tu n'es pas autorisé à utiliser cette commande.")
+
+    embed = discord.Embed(
+        title="Passer commande",
+        description="Vous souhaitez passer une commande ? N'hésitez pas à ouvrir un ticket et nous serons ravis de vous assister !",
+        color=0x2ecc71
+    )
+    # Mise à jour du bouton avec l'emoji 🖇️
+    await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
+
+# --- PANEL4 ---
+@bot.command(name="panel4")
+async def panel4(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("❌ Tu n'es pas autorisé à utiliser cette commande.")
+
+    embed = discord.Embed(
+        title="Passer commande",
+        description="Vous souhaitez passer une commande ? N'hésitez pas à ouvrir un ticket et nous serons ravis de vous assister !",
+        color=0x2ecc71
+    )
+    # Mise à jour du bouton avec l'emoji 🎓
+    await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
+
+
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
     async def predicate(ctx):
