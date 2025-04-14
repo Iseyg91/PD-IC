@@ -714,18 +714,23 @@ async def deposit(ctx, amount: str = None):
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
-@bot.command(name="reset_eco_all", description="Réinitialise toute l'économie du serveur (Admin Only)")
+@bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie du serveur (Admin Only)")
 async def reset_eco_all(ctx):
-    # Vérifie l'identité de l'utilisateur
     if ctx.author.id != 792755123587645461:
-        return await ctx.send("🚫 Tu n'as pas la permission d'utiliser cette commande.")
+        return await ctx.send("🚫 Tu n'as pas la permission d’utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
 
+    # Suppression complète des données de l'économie pour ce serveur
     result = collection10.delete_many({"guild_id": guild_id})
 
-    await ctx.send(f"✅ Économie du serveur réinitialisée.\n**{result.deleted_count}** données supprimées.")
-
+    await ctx.send(
+        embed=discord.Embed(
+            title="💣 Réinitialisation de l'économie",
+            description=f"✅ Tous les profils économiques pour ce serveur ont été supprimés.\n**{result.deleted_count}** entrées effacées.",
+            color=discord.Color.red()
+        )
+    )
 # Commande pour ajouter des coins à un utilisateur
 @bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui ajouter des coins", amount="Montant à ajouter")
