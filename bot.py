@@ -828,7 +828,7 @@ crime_messages = [
     "Casse éclair dans une bijouterie ! 💎 Tu fuis avec {coins} <:ecoEther:1341862366249357374>"
 ]
 
-@bot.hybrid_command(name="crime", description="Tente un coup illégal pour gagner des coins ! (1h de cooldown)"])
+@bot.hybrid_command(name="crime", description="Tente un coup illégal pour gagner des coins ! (1h de cooldown).")
 @check_guild()
 async def crime(ctx):
     guild_id = str(ctx.guild.id)
