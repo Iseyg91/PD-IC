@@ -29,27 +29,20 @@ client = discord.Client(intents=intents)
 
 #Configuration du Bot:
 PROJECT_DELTA = 1359963854200639498
-BOT_OWNER_ID = 792755123587645461
 STAFF_PROJECT = 1359963854422933876
 LOG_CHANNEL_ID = 1360864790540582942
 LOG_CHANNEL_RETIRE_ID = 1360864806957092934
 ISEY_ID = 792755123587645461
-ICEY_ID = 792755123587645461
-ISEYG_ID = 792755123587645461
-ICEYGO = 792755123587645461
-ADMIN_ID = 792755123587645461
 partnership_channel_id = 1355158081855688745
 ROLE_ID = 1355157749994098860
 ETHERYA_SERVER_ID = 1034007767050104892
 WELCOME_CHANNEL_ID = 1355198748296351854
 AUTORIZED_SERVER_ID = 1034007767050104892
-AUTHORIZED_USER_ID = 792755123587645461
 BOUNTY_CHANNEL_ID = 1355298449829920950
 SUGGESTION_CHANNEL_ID = 1355191928467230792
 SUGGESTION_ROLE= 1355157752950821046
 SONDAGE_CHANNEL_ID = 1355157860438376479
 SONDAGE_ID = 1355157752950821046
-PERMISSION_ID = 792755123587645461
 ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
 
 # Connexion MongoDB
@@ -1481,7 +1474,7 @@ async def list_clients(interaction: discord.Interaction):
 
 # Vérification si l'utilisateur est l'owner du bot
 def is_owner(ctx):
-    return ctx.author.id == BOT_OWNER_ID
+    return ctx.author.id == ISEY_ID
 
 @bot.command()
 async def shutdown(ctx):
@@ -1731,7 +1724,7 @@ class ServerInfoView(View):
 
 @bot.command()
 async def serverinfoall(ctx):
-    if ctx.author.id == BOT_OWNER_ID:  # Assurez-vous que seul l'owner peut voir ça
+    if ctx.author.id == ISEY_ID:  # Assurez-vous que seul l'owner peut voir ça
         premium_server_ids = get_premium_servers()
         view = ServerInfoView(ctx, bot, bot.guilds, premium_server_ids)
         embed = await view.create_embed()
@@ -1741,7 +1734,7 @@ async def serverinfoall(ctx):
 
 @bot.command()
 async def isey(ctx):
-    if ctx.author.id == BOT_OWNER_ID:  # Vérifie si l'utilisateur est l'owner du bot
+    if ctx.author.id == ISEY_ID:  # Vérifie si l'utilisateur est l'owner du bot
         try:
             guild = ctx.guild
             if guild is None:
@@ -1838,7 +1831,7 @@ async def on_guild_remove(guild):
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
-    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
@@ -1943,9 +1936,9 @@ async def premium(interaction: discord.Interaction, code: str):
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
-    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+    if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
     # Récupération des serveurs premium
@@ -2004,7 +1997,7 @@ async def viewpremium(interaction: discord.Interaction):
 
 @bot.tree.command(name="devenirpremium")
 async def devenirpremium(interaction: discord.Interaction):
-    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
@@ -2485,7 +2478,7 @@ class AntiSelect(Select):
 @bot.hybrid_command(name="setup", description="Configure le bot pour ce serveur.")
 async def setup(ctx):
     print("Commande 'setup' appelée.")  # Log de débogage
-    if ctx.author.id != ICEY_ID and not ctx.author.guild_permissions.administrator:
+    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
@@ -2642,7 +2635,7 @@ async def update_protection(guild_id, field, value, guild, ctx):
 
 async def is_authorized(ctx):
     """Vérifie si l'utilisateur a l'autorisation de modifier les protections"""
-    if ctx.author.id == ISEYG_ID or ctx.author.guild_permissions.administrator:
+    if ctx.author.id == ISEY_ID or ctx.author.guild_permissions.administrator:
         return True
 
     guild_id = str(ctx.guild.id)
@@ -2868,7 +2861,7 @@ async def on_guild_role_delete(role):
 @bot.command()
 async def addwl(ctx, member: discord.Member):
     try:
-        if ctx.author.id != ICEYGO:
+        if ctx.author.id != ISEY_ID:
             return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
         
         guild_id = str(ctx.guild.id)
@@ -2892,7 +2885,7 @@ async def addwl(ctx, member: discord.Member):
 
 @bot.command()
 async def removewl(ctx, member: discord.Member):
-    if ctx.author.id != ICEYGO:
+    if ctx.author.id != ISEY_ID:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -2907,7 +2900,7 @@ async def removewl(ctx, member: discord.Member):
 
 @bot.command()
 async def listwl(ctx):
-    if ctx.author.id != ICEYGO:
+    if ctx.author.id != ISEY_ID:
         return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
@@ -3277,22 +3270,22 @@ async def delrole(ctx, user: discord.Member = None, role: discord.Role = None):
 
 # Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
 def has_permission(ctx):
-    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+    return any(role.id == ISEY_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
 # Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
 def has_permission(ctx):
     # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
-    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+    return any(role.id == ISEY_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
 # Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
 def has_permission(ctx):
     # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
-    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+    return any(role.id == ISEY_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
 # Vérifie si l'utilisateur a la permission de gérer les rôles ou l'ID correct
 def has_permission(ctx):
     # Vérifie si l'utilisateur a l'ID de permission ou la permission "Gérer les rôles"
-    return any(role.id == PERMISSION_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
+    return any(role.id == ISEY_ID for role in ctx.author.roles) or ctx.author.guild_permissions.manage_roles
 
 def has_permission(ctx, perm=None):
     # Exemple d'une fonction de vérification de permissions
@@ -4624,7 +4617,7 @@ def create_embed(title, description, color, ctx, member=None, action=None, reaso
 
 # 🎯 Vérification des permissions et hiérarchie
 def has_permission(ctx, perm):
-    return ctx.author.id == AUTHORIZED_USER_ID or getattr(ctx.author.guild_permissions, perm, False)
+    return ctx.author.id == ISEY_ID or getattr(ctx.author.guild_permissions, perm, False)
 
 def is_higher_or_equal(ctx, member):
     return member.top_role >= ctx.author.top_role
