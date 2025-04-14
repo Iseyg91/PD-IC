@@ -502,36 +502,31 @@ async def send_alert_to_admin(message, detected_word):
 def add_coins(guild_id, user_id, amount):
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": amount, "bank": amount, "coins": amount}},  # Ajout aux 3 champs
+        {"$inc": {"coins": amount}},  # Ajout uniquement aux coins
         upsert=True
     )
 
-@bot.hybrid_command(name="bal", description= "Affiche ton bal ou celui d'un autre utilisateur.")
+@bot.hybrid_command(name="bal", description="Affiche ton solde de Coins.")
 async def balance(ctx, member: discord.Member = None):
     if ctx.guild.id != 1359963854200639498:
         return
 
     member = member or ctx.author
     user_id, guild_id = member.id, ctx.guild.id  # ✅ Garde les types int
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0}
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"coins": 0}
 
-    cash = user_data.get("cash", 0)
-    bank = user_data.get("bank", 0)
-    total = cash + bank  # ✅ Calcul dynamique du total
+    coins = user_data.get("coins", 0)
 
     embed = discord.Embed(
         title=f"💼 Portefeuille de {member.display_name}",
         color=discord.Color.blue(),
-        description="Voici un aperçu de tes fonds actuels :"
+        description="Voici ton solde actuel :"
     )
     embed.set_thumbnail(url=member.display_avatar.url)
-    embed.add_field(name="💵 Cash", value=f"`{cash}` <:ecoEther:1341862366249357374>", inline=True)
-    embed.add_field(name="🏦 Banque", value=f"`{bank}` <:ecoEther:1341862366249357374>", inline=True)
-    embed.add_field(name="💰 Total", value=f"`{total}` <:ecoEther:1341862366249357374>", inline=False)
+    embed.add_field(name="💰 Coins", value=f"`{coins}` <:ecoEther:1341862366249357374>", inline=True)
     embed.set_footer(text="Économie de Project : Delta")
 
     await ctx.send(embed=embed)
-
 
 @bot.hybrid_command(name="leaderboard", aliases=["lb"], description="Affiche le classement des plus riches.")
 async def leaderboard(ctx, tri: str = None):
@@ -541,18 +536,14 @@ async def leaderboard(ctx, tri: str = None):
     guild_id = ctx.guild.id
     users = list(collection10.find({"guild_id": guild_id}))
 
-    if tri == "-cash":
-        users.sort(key=lambda u: u.get("cash", 0), reverse=True)
-        title = "🏆 Classement par Cash"
-        extract_value = lambda u: u.get("cash", 0)
-    elif tri == "-bank":
-        users.sort(key=lambda u: u.get("bank", 0), reverse=True)
-        title = "🏆 Classement par Banque"
-        extract_value = lambda u: u.get("bank", 0)
+    if tri == "-coins":
+        users.sort(key=lambda u: u.get("coins", 0), reverse=True)
+        title = "🏆 Classement par Coins"
+        extract_value = lambda u: u.get("coins", 0)
     else:
-        users.sort(key=lambda u: u.get("cash", 0) + u.get("bank", 0), reverse=True)
-        title = "🏆 Classement par Fortune Totale"
-        extract_value = lambda u: u.get("cash", 0) + u.get("bank", 0)
+        users.sort(key=lambda u: u.get("coins", 0), reverse=True)
+        title = "🏆 Classement par Coins"
+        extract_value = lambda u: u.get("coins", 0)
 
     description = ""
     for i, u in enumerate(users[:10]):
@@ -569,7 +560,7 @@ async def leaderboard(ctx, tri: str = None):
     )
     await ctx.send(embed=embed)
 
-@bot.hybrid_command(name="pay", description= "Permet de transférer une certaine somme d'argent à un autre utilisateur.")
+@bot.hybrid_command(name="pay", description="Permet de transférer une certaine somme de Coins à un autre utilisateur.")
 async def pay(ctx, member: discord.Member, amount: int = None):
     if ctx.guild.id != 1359963854200639498:
         return
@@ -581,13 +572,13 @@ async def pay(ctx, member: discord.Member, amount: int = None):
         return await ctx.send("⚠️ Tu ne peux pas te payer toi-même.")
 
     user_id, member_id, guild_id = str(ctx.author.id), str(member.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0, "bank": 0, "coins": 0}
+    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"coins": 0}
 
-    if user_data["cash"] < amount:
-        return await ctx.send("💸 Tu n'as pas assez de **cash** pour effectuer ce paiement.")
+    if user_data["coins"] < amount:
+        return await ctx.send("💸 Tu n'as pas assez de **coins** pour effectuer ce paiement.")
 
-    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"cash": -amount}}, upsert=True)
-    collection10.update_one({"guild_id": guild_id, "user_id": member_id}, {"$inc": {"cash": amount}}, upsert=True)
+    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"coins": -amount}}, upsert=True)
+    collection10.update_one({"guild_id": guild_id, "user_id": member_id}, {"$inc": {"coins": amount}}, upsert=True)
 
     embed = discord.Embed(
         title="💸 Paiement envoyé !",
@@ -612,7 +603,7 @@ async def pay_all_error(ctx, error):
         
         await pay(ctx, ctx.author, total_cash)
 
-@bot.hybrid_command(name="daily", description= "Réclamez votre récompense quotidienne d'Ezryn Coins et plus ! Disponible tous les 24h.", aliases=['dy'])
+@bot.hybrid_command(name="daily", description="Réclamez votre récompense quotidienne de Coins. Disponible tous les 24h.", aliases=['dy'])
 @commands.cooldown(1, 5, commands.BucketType.user)
 async def daily(ctx):
     user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
@@ -631,7 +622,7 @@ async def daily(ctx):
 
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": reward}},
+        {"$inc": {"coins": reward}},
         upsert=True
     )
     collection11.update_one(
@@ -648,89 +639,24 @@ async def daily(ctx):
         ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
     )
 
-@bot.hybrid_command(name="withdraw", description= "Retirez une somme spécifique de votre solde actuel.", aliases=['with'])
-async def withdraw(ctx, amount: str):
-    if ctx.guild.id != 1359963854200639498:
-        return
-
-    user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"bank": 0, "cash": 0}
-
-    if amount.lower() == "all":
-        if user_data["bank"] <= 0:
-            return await ctx.send("❌ Tu n’as rien à retirer de la banque.")
-        amount_to_withdraw = user_data["bank"]
-    elif amount.isdigit() and int(amount) > 0:
-        amount_to_withdraw = int(amount)
-        if amount_to_withdraw > user_data["bank"]:
-            return await ctx.send("❌ Tu n’as pas assez en banque pour retirer ça.")
-    else:
-        return await ctx.send("⚠️ Montant invalide. Utilise un nombre ou `with all`.")
-
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"bank": -amount_to_withdraw, "cash": amount_to_withdraw}},
-        upsert=True
-    )
-
-    await ctx.send(
-        embed=discord.Embed(
-            description=f"💸 Tu as retiré **{amount_to_withdraw} <:ecoEther:1341862366249357374>** de ta banque.",
-            color=discord.Color.orange()
-        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-    )
-
-@bot.hybrid_command(name="deposit", description = "Déposez une somme dans votre solde.", aliases=['dep'])
-async def deposit(ctx, amount: str = None):
-    if ctx.guild.id != 1359963854200639498:
-        return
-
-    user_id, guild_id = str(ctx.author.id), str(ctx.guild.id)
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"cash": 0}
-    cash = user_data["cash"]
-
-    if amount is None or amount.lower() == "all":
-        if cash <= 0:
-            return await ctx.send("❌ Tu n’as aucun cash à déposer.")
-        deposit_amount = cash
-    elif amount.isdigit() and int(amount) > 0:
-        deposit_amount = int(amount)
-        if deposit_amount > cash:
-            return await ctx.send("❌ Tu n’as pas assez de cash pour ce dépôt.")
-    else:
-        return await ctx.send("⚠️ Montant invalide. Utilise un nombre ou `dep all`.")
-
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"cash": -deposit_amount, "bank": deposit_amount}},
-        upsert=True
-    )
-
-    await ctx.send(
-        embed=discord.Embed(
-            title="🏦 Dépôt réussi",
-            description=f"Tu as déposé **{deposit_amount} <:ecoEther:1341862366249357374>** en banque.",
-            color=discord.Color.teal()
-        ).set_author(name=ctx.author.display_name, icon_url=ctx.author.display_avatar.url)
-    )
-
-@bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie du serveur (Admin Only)")
+@bot.hybrid_command(name="reset_eco_all", description="Réinitialise toute l'économie des utilisateurs (Admin Only)")
 async def reset_eco_all(ctx):
     if ctx.author.id != 792755123587645461:
         return await ctx.send("🚫 Tu n'as pas la permission d’utiliser cette commande.")
 
     guild_id = str(ctx.guild.id)
 
-    # Suppression complète des données de l'économie pour ce serveur
-    result = collection10.delete_many({"guild_id": guild_id})
+    # Suppression complète des données économiques pour ce serveur (seulement les coins)
+    result = collection10.update_many({"guild_id": guild_id}, {"$set": {"coins": 0}})
 
     await ctx.send(
         embed=discord.Embed(
             title="💣 Réinitialisation de l'économie",
-            description=f"✅ Tous les profils économiques pour ce serveur ont été supprimés.\n**{result.deleted_count}** entrées effacées.",
+            description=f"✅ Tous les profils économiques ont été réinitialisés.\n**{result.modified_count}** entrées mises à jour.",
             color=discord.Color.red()
         )
     )
+
 # Commande pour ajouter des coins à un utilisateur
 @bot.tree.command(name="add_money", description="Ajoute de l'argent à un utilisateur")
 @app_commands.describe(user="Utilisateur à qui ajouter des coins", amount="Montant à ajouter")
@@ -785,7 +711,6 @@ async def remove_money(interaction: discord.Interaction, user: discord.Member, a
     embed.set_footer(text="Transaction réussie.")
     await interaction.response.send_message(embed=embed)
 
-# Événement pour donner des Coins si un utilisateur streame
 @bot.event
 async def on_member_update(before, after):
     if before.activity != after.activity:
