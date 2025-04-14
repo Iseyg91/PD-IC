@@ -46,6 +46,8 @@ SONDAGE_ID = 1355157752950821046
 ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
 SALON_REPORT_ID = 1361362788672344290
 ROLE_REPORT_ID = 1361306900981092548
+SUPPORT_ROLE_ID = 1359963854422933876
+TRANSCRIPT_CHANNEL_ID = 1361447877364158564
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -625,140 +627,112 @@ async def on_guild_remove(guild):
 
     await channel.send(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
-
-class TicketModal(discord.ui.Modal, title="Configuration du Ticket"):
-    titre_ticket = discord.ui.TextInput(label="Titre du Ticket", max_length=100)
-    description_ticket = discord.ui.TextInput(label="Description du Ticket", style=discord.TextStyle.paragraph)
-    images_ticket = discord.ui.TextInput(label="URL de l'image", required=False)
-
-    emoji = discord.ui.TextInput(label="Emoji par ticket", placeholder="🎫")
-    category_id = discord.ui.TextInput(label="ID Catégorie d'ouverture")
-    mention_role = discord.ui.TextInput(label="ID rôle à mentionner à l'ouverture")
-    staff_ids = discord.ui.TextInput(label="IDs Équipe Inter (séparés par virgule)")
-    salon_logs = discord.ui.TextInput(label="Salon de logs (ID)")
+class TicketModal(ui.Modal, title="Fermer le ticket"):
+    reason = ui.TextInput(label="Raison de fermeture", style=discord.TextStyle.paragraph)
 
     async def on_submit(self, interaction: discord.Interaction):
-        panel_data = interaction.client.panel_temp_data[interaction.user.id]
-        panel_data.update({
-            "titre_ticket": self.titre_ticket.value,
-            "description_ticket": self.description_ticket.value,
-            "images_ticket": self.images_ticket.value,
-            "emoji": self.emoji.value,
-            "category_id": self.category_id.value,
-            "mention_role": self.mention_role.value,
-            "staff_ids": [int(x.strip()) for x in self.staff_ids.value.split(",")],
-            "log_channel": int(self.salon_logs.value),
-        })
-
-        ticket_collection.insert_one({
-            "guild_id": str(interaction.guild.id),
-            **panel_data
-        })
-
-        await interaction.response.send_message("✅ Panel de ticket enregistré !", ephemeral=True)
-
-
-class PanelModal(discord.ui.Modal, title="Configuration du Panel"):
-    titre_panel = discord.ui.TextInput(label="Titre du Panel", max_length=100)
-    description_panel = discord.ui.TextInput(label="Description du Panel", style=discord.TextStyle.paragraph)
-    image_panel = discord.ui.TextInput(label="URL de l'image du panel", required=False)
-    boutons_panel = discord.ui.TextInput(label="Boutons Panel (séparés par virgule)")
-
-    async def on_submit(self, interaction: discord.Interaction):
-        interaction.client.panel_temp_data[interaction.user.id] = {
-            "titre_panel": self.titre_panel.value,
-            "description_panel": self.description_panel.value,
-            "image_panel": self.image_panel.value,
-            "boutons_panel": [btn.strip() for btn in self.boutons_panel.value.split(",")],
-        }
-
-        await interaction.response.send_modal(TicketModal())
-
-
-@bot.tree.command(name="panel", description="Créer un panel de ticket")
-@app_commands.checks.has_permissions(administrator=True)
-async def panel(interaction: discord.Interaction):
-    if not hasattr(bot, "panel_temp_data"):
-        bot.panel_temp_data = {}
-
-    await interaction.response.send_modal(PanelModal())
-
-
-# ==== Gestion d'ouverture du ticket ====
-class TicketView(discord.ui.View):
-    def __init__(self, ticket_config):
-        super().__init__(timeout=None)
-        self.ticket_config = ticket_config
-        for btn_name in ticket_config["boutons_panel"]:
-            self.add_item(TicketButton(btn_name, ticket_config))
-
-class TicketButton(discord.ui.Button):
-    def __init__(self, label, config):
-        super().__init__(label=label, style=discord.ButtonStyle.primary)
-        self.config = config
-
-    async def callback(self, interaction: discord.Interaction):
         guild = interaction.guild
-        category = guild.get_channel(int(self.config["category_id"]))
-        overwrites = {
-            guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            interaction.user: discord.PermissionOverwrite(view_channel=True),
-        }
-        for staff_id in self.config["staff_ids"]:
-            overwrites[guild.get_role(staff_id)] = discord.PermissionOverwrite(view_channel=True)
+        channel = interaction.channel
+        reason = self.reason.value
 
-        channel = await guild.create_text_channel(
-            name=f"ticket-{interaction.user.name}",
-            category=category,
-            overwrites=overwrites
+        transcript_channel = guild.get_channel(TRANSCRIPT_CHANNEL_ID)
+        transcript = await channel.history(limit=None).flatten()
+        transcript_text = "\n".join([f"{msg.author}: {msg.content}" for msg in transcript if msg.content])
+
+        file = discord.File(fp=io.StringIO(transcript_text), filename="transcript.txt")
+        await transcript_channel.send(
+            f"Ticket fermé par {interaction.user.mention} - Raison : `{reason}`",
+            file=file
         )
 
-        await channel.send(
-            content=f"<@&{self.config['mention_role']}>",
-            embed=discord.Embed(
-                title=self.config["titre_ticket"],
-                description=self.config["description_ticket"],
-                color=discord.Color.blurple()
-            ).set_image(url=self.config["images_ticket"]),
-            view=ManageTicketView(self.config)
-        )
-        await interaction.response.send_message(f"🎟️ Ticket ouvert : {channel.mention}", ephemeral=True)
+        await interaction.response.send_message("Ticket fermé avec succès.", ephemeral=True)
+        await channel.delete()
 
-
-# ==== Gestion des boutons dans le ticket ====
-class ManageTicketView(discord.ui.View):
-    def __init__(self, config):
+class TicketView(ui.View):
+    def __init__(self, author_id):
         super().__init__(timeout=None)
-        self.config = config
+        self.author_id = author_id
         self.claimed = False
 
-        self.claim_button = discord.ui.Button(label="Claim", style=discord.ButtonStyle.success)
-        self.claim_button.callback = self.claim
-        self.add_item(self.claim_button)
+    @ui.button(label="Passé Commande", style=ButtonStyle.green, custom_id="open_ticket")
+    async def open_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.author_id:
+            return await interaction.response.send_message("Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
 
-        self.close_button = discord.ui.Button(label="Fermer avec raison", style=discord.ButtonStyle.danger)
-        self.close_button.callback = self.close_with_reason
-        self.add_item(self.close_button)
+        guild = interaction.guild
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+        }
 
-    async def claim(self, interaction: discord.Interaction):
-        if self.claimed:
-            return await interaction.response.send_message("Déjà claim !", ephemeral=True)
-        self.claimed = True
-        self.remove_item(self.claim_button)
+        channel_name = f"︱🤖・{interaction.user.name}"
+        ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites, category=None)
+
+        await ticket_channel.send("@everyone")
+        await ticket_channel.purge(limit=1)
+
+        embed = discord.Embed(
+            title="Bienvenue dans votre ticket commande",
+            description=(
+                "**Bonjour,**\n\n"
+                "Avant de passer votre commande, merci de vous assurer que vous disposez bien des fonds nécessaires :\n"
+                "- Si vous payez en **Coins**, vérifiez votre solde avec la commande +bal.\n"
+                "- Si vous payez en **argent réel**, assurez-vous d’avoir la somme requise avant de valider votre demande.\n\n"
+                "Pour garantir une prise en charge rapide par un graphiste, merci de fournir un maximum de détails concernant votre commande : "
+                "couleurs, style souhaité, format, usage prévu, réseaux sociaux, etc.\n\n"
+                "Plus votre demande est précise, plus nous pourrons vous offrir un service adapté dans les meilleurs délais.\n\n"
+                "En l’absence de mention d’un graphiste spécifique, tout membre de l’équipe se réserve le droit de prendre en charge votre commande.\n\n"
+                "**Cordialement,**\n"
+                "*Le staff Project : Delta*"
+            ),
+            color=0x5865F2
+        )
+
+        view = ClaimCloseView()
+        await ticket_channel.send(embed=embed, view=view)
+
+        collection16.insert_one({
+            "guild_id": str(guild.id),
+            "user_id": str(interaction.user.id),
+            "channel_id": str(ticket_channel.id),
+            "opened_at": datetime.datetime.utcnow(),
+            "status": "open"
+        })
+
+        await interaction.response.send_message(f"Ticket créé: {ticket_channel.mention}", ephemeral=True)
+
+class ClaimCloseView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
+    async def claim_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
+            return await interaction.response.send_message("Tu n'as pas la permission de claim ce ticket.", ephemeral=True)
+
+        button.disabled = True
         await interaction.message.edit(view=self)
-        await interaction.response.send_message(f"✅ Ticket claim par {interaction.user.mention}", ephemeral=False)
 
-    async def close_with_reason(self, interaction: discord.Interaction):
-        class ReasonModal(discord.ui.Modal, title="Fermer le ticket avec une raison"):
-            raison = discord.ui.TextInput(label="Raison", style=discord.TextStyle.paragraph)
+        await interaction.response.send_message(f"Ticket claim par {interaction.user.mention}.", ephemeral=False)
 
-            async def on_submit(self2, interaction2: discord.Interaction):
-                await interaction2.channel.delete()
-                log_channel = bot.get_channel(self.config["log_channel"])
-                await log_channel.send(
-                    f"📁 Ticket fermé par {interaction2.user.mention}\n**Raison :** {self2.raison.value}"
-                )
-        await interaction.response.send_modal(ReasonModal())
+    @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
+    async def close_ticket(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.send_modal(TicketModal())
+
+@bot.command(name="panel")
+async def panel(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("Tu n'es pas autorisé à utiliser cette commande.")
+
+    embed = discord.Embed(
+        title="Passer commande",
+        description="Vous souhaitez passer une commande ? N'hésitez pas à ouvrir un ticket et nous serons ravis de vous assister !",
+        color=0x2ecc71
+    )
+
+    view = TicketView(author_id=ctx.author.id)
+    await ctx.send(embed=embed, view=view)
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
