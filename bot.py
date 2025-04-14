@@ -6358,7 +6358,7 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
         embed = discord.Embed(
             title="📝 Nouveau Feedback Reçu",
             color=discord.Color.blurple(),
-            timestamp=datetime.datetime.utcnow()
+            timestamp=datetime.utcnow()
         )
         embed.add_field(name="🔖 Type", value=self.feedback_type.value, inline=False)
         embed.add_field(name="🧾 Description", value=self.description.value, inline=False)
