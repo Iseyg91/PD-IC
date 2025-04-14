@@ -50,6 +50,7 @@ SUGGESTION_ROLE= 1355157752950821046
 SONDAGE_CHANNEL_ID = 1355157860438376479
 SONDAGE_ID = 1355157752950821046
 PERMISSION_ID = 792755123587645461
+ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -502,6 +503,14 @@ async def send_alert_to_admin(message, detected_word):
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
 
 #--------------------------------------------------------------------------- Eco:
+def has_eco_vip_role():
+    async def predicate(ctx):
+        if any(role.id in ECO_ROLES_VIP for role in ctx.author.roles):
+            return True
+        else:
+            await ctx.send("⛔ Vous n'avez pas les permissions nécessaires pour utiliser cette commande.")
+            return False
+    return commands.check(predicate)
 
 def check_guild():
     def decorator(func):
@@ -673,6 +682,7 @@ messages = [
 
 @bot.hybrid_command(name="work", description="Gagnez des coins en travaillant. Vous pouvez le faire toutes les 6 heures.", aliases=['wk'])
 @check_guild()
+@has_eco_vip_role()
 async def work(ctx):
     guild_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
@@ -750,6 +760,7 @@ messages = [
 ]
 
 @bot.hybrid_command(name="slut", description="Gagnez des coins en attirant l'attention. Vous pouvez le faire toutes les 3 heures.", aliases=['sl'])
+@has_eco_vip_role()
 @check_guild()
 async def slut(ctx):
     guild_id = str(ctx.guild.id)
@@ -836,6 +847,7 @@ crime_messages = [
 ]
 
 @bot.hybrid_command(name="crime", description="Tente un coup illégal pour gagner des coins ! (1h de cooldown).")
+@has_eco_vip_role()
 @check_guild()
 async def crime(ctx):
     guild_id = str(ctx.guild.id)
