@@ -370,7 +370,6 @@ sensitive_words = [
     
     # Propagande et manipulation
     "endoctrinement", "secte", "lavage de cerveau", "désinformation", "propagande", "fake news", "manipulation",
-    
 ]
 
 user_messages = {}
@@ -503,9 +502,17 @@ async def on_message(message):
 # 🔔 Fonction d'envoi d'alerte dans un salon spécifique
 async def send_alert_to_admin(message, detected_word):
     try:
-        # Obtention du salon et du rôle
+        # Récupération du salon et du rôle
         alert_channel = message.guild.get_channel(1361288726361411584)  # Salon pour les alertes
         role_to_mention = message.guild.get_role(1361306900981092548)  # Rôle à mentionner
+        
+        # Vérifier si le salon et le rôle existent
+        if not alert_channel:
+            print("⚠️ Salon pour les alertes introuvable.")
+            return
+        if not role_to_mention:
+            print("⚠️ Rôle à mentionner introuvable.")
+            return
         
         # Création de l'embed d'alerte
         embed = discord.Embed(
@@ -528,6 +535,7 @@ async def send_alert_to_admin(message, detected_word):
         
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
