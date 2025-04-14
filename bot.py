@@ -44,6 +44,8 @@ SUGGESTION_ROLE= 1355157752950821046
 SONDAGE_CHANNEL_ID = 1355157860438376479
 SONDAGE_ID = 1355157752950821046
 ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
+SALON_REPORT_ID = 1361362788672344290
+ROLE_REPORT_ID = 1361306900981092548
 
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
@@ -6328,6 +6330,46 @@ async def unlock(ctx):
     overwrite.send_messages = True
     await ctx.channel.set_permissions(ctx.guild.default_role, overwrite=overwrite)
     await ctx.send("🔓 Salon déverrouillé. Tout le monde peut parler à nouveau.")
+
+# Modal pour le feedback
+class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
+
+    feedback_type = discord.ui.TextInput(
+        label="Type (Report ou Suggestion)",
+        placeholder="Ex: Report",
+        max_length=20
+    )
+
+    description = discord.ui.TextInput(
+        label="Description",
+        placeholder="Décris ton idée ou ton problème ici...",
+        style=discord.TextStyle.paragraph,
+        max_length=1000
+    )
+
+    async def on_submit(self, interaction: discord.Interaction):
+        channel = bot.get_channel(SALON_REPORT_ID)
+        role_mention = f"<@&{ROLE_REPORT_ID}>"
+
+        # Mention du rôle
+        await channel.send(content=role_mention)
+
+        # Embed
+        embed = discord.Embed(
+            title="📝 Nouveau Feedback",
+            color=discord.Color.blurple()
+        )
+        embed.add_field(name="Type", value=self.feedback_type.value, inline=False)
+        embed.add_field(name="Description", value=self.description.value, inline=False)
+        embed.set_footer(text=f"Envoyé par {interaction.user}", icon_url=interaction.user.display_avatar.url)
+
+        await channel.send(embed=embed)
+        await interaction.response.send_message("✅ Ton feedback a été envoyé avec succès !", ephemeral=True)
+
+# Slash command
+@bot.tree.command(name="feedback", description="Envoyer un report ou une suggestion")
+async def feedback(interaction: discord.Interaction):
+    await interaction.response.send_modal(FeedbackModal())
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
