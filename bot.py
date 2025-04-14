@@ -195,7 +195,7 @@ def load_guild_settings(guild_id):
         "stats": stats_data,
         "eco": eco_data,
         "eco_daily": eco_daily_data,
-        "rank": rank_data
+        "rank": rank_data,
         "eco_work": eco_work_data
     }
 
@@ -669,7 +669,7 @@ def get_user_eco(guild_id, user_id):
         return {"coins": 0, "last_daily": None}
     return user_data
 
-@bot.command()
+@bot.hybrid_command(name="work", description="Gagnez des coins en travaillant. Vous pouvez le faire toutes les 6 heures.", aliases=['wk'])
 async def work(ctx):
     guild_id = str(ctx.guild.id)
     user_id = str(ctx.author.id)
