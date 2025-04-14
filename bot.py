@@ -6348,23 +6348,28 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
     )
 
     async def on_submit(self, interaction: discord.Interaction):
-        channel = bot.get_channel(SALON_REPORT_ID)
-        role_mention = f"<@&{ROLE_REPORT_ID}>"
+        channel = bot.get_channel(SALON_ID)
+        role_mention = f"<@&{ROLE_ID}>"
 
         # Mention du rôle
         await channel.send(content=role_mention)
 
-        # Embed
+        # Embed amélioré
         embed = discord.Embed(
-            title="📝 Nouveau Feedback",
-            color=discord.Color.blurple()
+            title="📝 Nouveau Feedback Reçu",
+            color=discord.Color.blurple(),
+            timestamp=datetime.datetime.utcnow()
         )
-        embed.add_field(name="Type", value=self.feedback_type.value, inline=False)
-        embed.add_field(name="Description", value=self.description.value, inline=False)
-        embed.set_footer(text=f"Envoyé par {interaction.user}", icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="🔖 Type", value=self.feedback_type.value, inline=False)
+        embed.add_field(name="🧾 Description", value=self.description.value, inline=False)
+        embed.add_field(name="👤 Utilisateur", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=False)
+        embed.add_field(name="🌐 Serveur", value=f"{interaction.guild.name} (`{interaction.guild.id}`)", inline=False)
+
+        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        embed.set_footer(text="Feedback envoyé le")
 
         await channel.send(embed=embed)
-        await interaction.response.send_message("✅ Ton feedback a été envoyé avec succès !", ephemeral=True)
+        await interaction.response.send_message("✅ Ton feedback a bien été envoyé ! Merci !", ephemeral=True)
 
 # Slash command
 @bot.tree.command(name="feedback", description="Envoyer un report ou une suggestion")
