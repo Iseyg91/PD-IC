@@ -69,6 +69,7 @@ collection12 = db['rank'] #Stock les Niveau
 collection13 = db['eco_work'] #Stock le temps de Work
 collection14 = db['eco_slut'] #Stock le temps de Slut
 collection15 = db['eco_crime'] #Stock le temps de Crime
+collection16 = db['ticket'] #Stock les Tickets
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -174,6 +175,7 @@ def load_guild_settings(guild_id):
     eco_work_data = collection13.find_one({"guild_id": guild_id}) or {}
     eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {}
     eco_crime_data = collection15.find_one({"guild_id": guild_id}) or {}
+    ticket_data = collection16.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -193,7 +195,8 @@ def load_guild_settings(guild_id):
         "rank": rank_data,
         "eco_work": eco_work_data,
         "eco_slut": eco_slut_data,
-        "eco_crime": eco_slut_data
+        "eco_crime": eco_slut_data,
+        "ticket": ticket_data
     }
 
     return combined_data
@@ -621,7 +624,178 @@ async def on_guild_remove(guild):
     embed.set_footer(text="Retiré le")
 
     await channel.send(embed=embed)
+#---------------------------------------------------------------------------- Ticket:
 
+async def generate_transcript(channel: discord.TextChannel) -> discord.File:
+    messages = [message async for message in channel.history(limit=None, oldest_first=True)]
+
+    transcript_text = f"Transcript du salon: {channel.name} (ID: {channel.id})\n"
+    transcript_text += f"Généré le: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n"
+
+    for msg in messages:
+        timestamp = msg.created_at.strftime('%Y-%m-%d %H:%M:%S')
+        content = msg.content or "[embed/fichier]"
+        transcript_text += f"[{timestamp}] {msg.author} : {content}\n"
+
+    file = discord.File(fp=io.BytesIO(transcript_text.encode()), filename=f"{channel.name}_transcript.txt")
+    return file
+
+class PanelModal(discord.ui.Modal, title="Création du Panel Ticket"):
+    # Champ texte
+    panel_title = discord.ui.TextInput(label="Titre Panel")
+    panel_desc = discord.ui.TextInput(label="Description Panel", style=discord.TextStyle.paragraph)
+    panel_image = discord.ui.TextInput(label="Image Panel (URL)", required=False)
+    panel_buttons = discord.ui.TextInput(label="Boutons Panel (séparés par des virgules)")
+    ticket_title = discord.ui.TextInput(label="Titre Ticket")
+    ticket_desc = discord.ui.TextInput(label="Description Ticket", style=discord.TextStyle.paragraph)
+    ticket_image = discord.ui.TextInput(label="Image Ticket (URL)", required=False)
+    emojis = discord.ui.TextInput(label="Emojis (séparés par virgule)")
+    category_id = discord.ui.TextInput(label="ID Catégorie")
+    role_id = discord.ui.TextInput(label="ID Rôle Mention")
+    staff_ids = discord.ui.TextInput(label="ID Équipe d'intervention (séparés par virgule)")
+    log_channel_id = discord.ui.TextInput(label="ID Salon de logs")
+
+    async def on_submit(self, interaction: discord.Interaction):
+        buttons = [b.strip() for b in self.panel_buttons.value.split(",")]
+        emojis = [e.strip() for e in self.emojis.value.split(",")]
+
+        panel_data = {
+            "guild_id": str(interaction.guild.id),
+            "panel_title": self.panel_title.value,
+            "panel_desc": self.panel_desc.value,
+            "panel_image": self.panel_image.value,
+            "panel_buttons": buttons,
+            "ticket_title": self.ticket_title.value,
+            "ticket_desc": self.ticket_desc.value,
+            "ticket_image": self.ticket_image.value,
+            "emojis": emojis,
+            "category_id": self.category_id.value,
+            "role_id": self.role_id.value,
+            "staff_ids": [x.strip() for x in self.staff_ids.value.split(",")],
+            "log_channel_id": self.log_channel_id.value
+        }
+
+        collection16.insert_one(panel_data)
+
+        embed = discord.Embed(title=self.panel_title.value, description=self.panel_desc.value)
+        if self.panel_image.value:
+            embed.set_image(url=self.panel_image.value)
+
+        view = TicketPanelView(buttons, emojis, panel_data)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+
+# Vue avec boutons dynamiques
+class TicketPanelView(discord.ui.View):
+    def __init__(self, buttons, emojis, panel_data):
+        super().__init__(timeout=None)
+        for i, label in enumerate(buttons):
+            emoji = emojis[i] if i < len(emojis) else None
+            self.add_item(TicketButton(label=label, emoji=emoji, panel_data=panel_data))
+
+class TicketButton(discord.ui.Button):
+    def __init__(self, label, emoji, panel_data):
+        super().__init__(label=label, style=discord.ButtonStyle.primary, emoji=emoji)
+        self.panel_data = panel_data
+
+    async def callback(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        category = discord.utils.get(guild.categories, id=int(self.panel_data["category_id"]))
+        role = guild.get_role(int(self.panel_data["role_id"]))
+
+        overwrites = {
+            guild.default_role: discord.PermissionOverwrite(view_channel=False),
+            interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True),
+            role: discord.PermissionOverwrite(view_channel=True, send_messages=True)
+        }
+
+        # Ouvrir le salon ticket
+        channel = await guild.create_text_channel(
+            name=f"ticket-{interaction.user.name}",
+            category=category,
+            overwrites=overwrites
+        )
+
+        embed = discord.Embed(title=self.panel_data["ticket_title"], description=self.panel_data["ticket_desc"])
+        if self.panel_data["ticket_image"]:
+            embed.set_image(url=self.panel_data["ticket_image"])
+
+        await channel.send(content=f"{role.mention} Nouveau ticket de {interaction.user.mention}", embed=embed, view=TicketActionsView(self.panel_data, interaction.user.id))
+        await interaction.response.send_message(f"🎫 Ton ticket a été créé ici : {channel.mention}", ephemeral=True)
+
+# Vue des actions dans le ticket
+class TicketActionsView(discord.ui.View):
+    def __init__(self, panel_data, owner_id):
+        super().__init__(timeout=None)
+        self.panel_data = panel_data
+        self.owner_id = owner_id
+        self.claimed = False
+
+        self.claim_btn = discord.ui.Button(label="🎟️ Claim", style=discord.ButtonStyle.success)
+        self.claim_btn.callback = self.claim_callback
+        self.add_item(self.claim_btn)
+
+        close_btn = discord.ui.Button(label="❌ Fermer", style=discord.ButtonStyle.danger)
+        close_btn.callback = self.close_callback
+        self.add_item(close_btn)
+
+    async def claim_callback(self, interaction: discord.Interaction):
+        if str(interaction.user.id) not in self.panel_data["staff_ids"]:
+            return await interaction.response.send_message("⛔ Tu n’as pas la permission de claim ce ticket.", ephemeral=True)
+
+        self.clear_items()  # Supprimer les boutons
+        await interaction.message.edit(view=self)
+
+        await interaction.response.send_message(f"{interaction.user.mention} a claim ce ticket.", ephemeral=False)
+
+    async def close_callback(self, interaction: discord.Interaction):
+        if str(interaction.user.id) not in self.panel_data["staff_ids"]:
+            return await interaction.response.send_message("⛔ Tu n’as pas la permission de fermer ce ticket.", ephemeral=True)
+
+        # Formulaire pour entrer la raison
+        await interaction.response.send_modal(CloseReasonModal(self.panel_data, interaction.channel.id, interaction.user))
+
+class CloseReasonModal(discord.ui.Modal, title="Raison de la fermeture"):
+    raison = discord.ui.TextInput(label="Pourquoi tu fermes ce ticket ?", style=discord.TextStyle.paragraph)
+
+    def __init__(self, panel_data, channel_id, staff_user):
+        super().__init__()
+        self.panel_data = panel_data
+        self.channel_id = channel_id
+        self.staff_user = staff_user
+
+    async def on_submit(self, interaction: discord.Interaction):
+        channel = interaction.guild.get_channel(self.channel_id)
+        if not channel:
+            return await interaction.response.send_message("❌ Salon introuvable.", ephemeral=True)
+
+        log_channel_id = self.panel_data.get("log_channel")
+        log_channel = interaction.guild.get_channel(log_channel_id)
+        if not log_channel:
+            return await interaction.response.send_message("❌ Salon de logs introuvable.", ephemeral=True)
+
+        # Générer le transcript
+        transcript_file = await generate_transcript(channel)
+
+        # Embed de log
+        log_embed = discord.Embed(title="🎟️ Ticket Fermé", color=discord.Color.red())
+        log_embed.add_field(name="Salon", value=channel.mention, inline=False)
+        log_embed.add_field(name="Fermé par", value=self.staff_user.mention, inline=True)
+        log_embed.add_field(name="Raison", value=self.raison.value, inline=False)
+        log_embed.timestamp = interaction.created_at
+
+        await log_channel.send(embed=log_embed, file=transcript_file)
+
+        # Message de confirmation à l'utilisateur
+        await interaction.response.send_message("✅ Le ticket a été fermé et le transcript a été envoyé dans les logs.", ephemeral=True)
+
+        # Supprimer le salon
+        await channel.delete()
+
+# Commande /panel
+@bot.tree.command(name="panel", description="Créer un panel de ticket")
+@app_commands.checks.has_permissions(administrator=True)
+async def panel(interaction: discord.Interaction):
+    await interaction.response.send_modal(PanelModal())
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
     async def predicate(ctx):
