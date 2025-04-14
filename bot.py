@@ -513,15 +513,17 @@ def add_coins(guild_id, user_id, amount):
         upsert=True
     )
 
-@bot.hybrid_command(name="bal", description="Affiche ton solde de Coins.")
+# Commande pour afficher le solde de coins d'un utilisateur
+@bot.hybrid_command(name="balance", description="Affiche ton solde de Coins.", aliases=['bal'])
 async def balance(ctx, member: discord.Member = None):
     if ctx.guild.id != 1359963854200639498:
         return
 
     member = member or ctx.author
-    user_id, guild_id = member.id, ctx.guild.id  # ✅ Garde les types int
-    user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id}) or {"coins": 0}
+    user_id = str(member.id)
+    guild_id = str(ctx.guild.id)
 
+    user_data = get_user_eco(guild_id, user_id)
     coins = user_data.get("coins", 0)
 
     embed = discord.Embed(
@@ -535,29 +537,25 @@ async def balance(ctx, member: discord.Member = None):
 
     await ctx.send(embed=embed)
 
+# Commande pour afficher le classement des utilisateurs par nombre de coins
 @bot.hybrid_command(name="leaderboard", aliases=["lb"], description="Affiche le classement des plus riches.")
 async def leaderboard(ctx, tri: str = None):
     if ctx.guild.id != 1359963854200639498:
         return
 
-    guild_id = ctx.guild.id
+    guild_id = str(ctx.guild.id)
     users = list(collection10.find({"guild_id": guild_id}))
 
-    if tri == "-coins":
-        users.sort(key=lambda u: u.get("coins", 0), reverse=True)
-        title = "🏆 Classement par Coins"
-        extract_value = lambda u: u.get("coins", 0)
-    else:
-        users.sort(key=lambda u: u.get("coins", 0), reverse=True)
-        title = "🏆 Classement par Coins"
-        extract_value = lambda u: u.get("coins", 0)
+    # Tri des utilisateurs par nombre de coins décroissant
+    users.sort(key=lambda u: u.get("coins", 0), reverse=True)
 
+    title = "🏆 Classement par Coins"
     description = ""
     for i, u in enumerate(users[:10]):
-        member = ctx.guild.get_member(u["user_id"])
+        member = ctx.guild.get_member(int(u["user_id"]))
         name = member.display_name if member else f"Utilisateur inconnu ({u['user_id']})"
-        value = extract_value(u)
-        formatted = f"{value:,}".replace(",", " ")  # pour séparer en milliers avec un espace insécable
+        value = u.get("coins", 0)
+        formatted = f"{value:,}".replace(",", " ")  # Séparation des milliers avec un espace insécable
         description += f"**{i+1}. {name}** • <:ecoEther:1341862366249357374> {formatted}\n"
 
     embed = discord.Embed(
