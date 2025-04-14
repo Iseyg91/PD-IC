@@ -509,10 +509,17 @@ async def send_alert_to_admin(message, detected_word):
         
         if not channel:
             # Si le salon n'existe pas dans ce serveur, on va chercher dans un autre serveur
-            guild = bot.get_guild(1359963854200639498) 
+            guild = bot.get_guild(SERVER_ID)  # Remplace SERVER_ID par l'ID du serveur où tu veux envoyer l'alerte
             channel = guild.get_channel(1361329246236053586)
         
         if channel:
+            # Mentionner le rôle avant l'embed
+            role_mention = "<@&1361306900981092548>"  # Mentionne le rôle
+
+            # Envoyer un message avant l'embed
+            await channel.send(f"{role_mention} 🚨 Un mot sensible a été détecté ! Veuillez vérifier immédiatement.")
+
+            # Créer l'embed
             embed = discord.Embed(
                 title="🚨 Alerte : Mot sensible détecté !",
                 description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
@@ -526,7 +533,9 @@ async def send_alert_to_admin(message, detected_word):
             if message.guild:
                 embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
             embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
-            await channel.send(embed=embed)  # Envoie l'alerte dans le salon spécifique
+
+            # Envoyer l'embed après le message
+            await channel.send(embed=embed)
         else:
             print("⚠️ Le salon spécifié n'a pas pu être trouvé dans le serveur.")
     except Exception as e:
