@@ -501,26 +501,37 @@ async def on_message(message):
     # ✅ 10. Exécution normale des commandes
     await bot.process_commands(message)
 
-# 🔔 Fonction d'envoi d'alerte dans le salon dédié
+# 🔔 Fonction d'envoi d'alerte dans le salon spécifique
 async def send_alert_to_admin(message, detected_word):
     try:
-        channel = message.guild.get_channel(1361329246236053586)  # ID du salon où envoyer l'alerte
-        embed = discord.Embed(
-            title="🚨 Alerte : Mot sensible détecté !",
-            description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
-            color=discord.Color.red(),
-            timestamp=datetime.utcnow()
-        )
-        embed.add_field(name="📍 Salon", value=f"{message.channel.mention}", inline=True)
-        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
-        embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
-        embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
-        if message.guild:
-            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
-        embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
-        await channel.send(embed=embed)  # Envoi dans le salon
+        # Essayer d'abord de récupérer le salon dans le serveur où le message a été envoyé
+        channel = message.guild.get_channel(1361329246236053586)
+        
+        if not channel:
+            # Si le salon n'existe pas dans ce serveur, on va chercher dans un autre serveur
+            guild = bot.get_guild(SERVER_ID)  # Remplace SERVER_ID par l'ID du serveur où tu veux envoyer l'alerte
+            channel = guild.get_channel(1361329246236053586)
+        
+        if channel:
+            embed = discord.Embed(
+                title="🚨 Alerte : Mot sensible détecté !",
+                description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
+                color=discord.Color.red(),
+                timestamp=datetime.utcnow()
+            )
+            embed.add_field(name="📍 Salon", value=f"{message.channel.mention}", inline=True)
+            embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
+            embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
+            embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
+            if message.guild:
+                embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+            embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
+            await channel.send(embed=embed)  # Envoie l'alerte dans le salon spécifique
+        else:
+            print("⚠️ Le salon spécifié n'a pas pu être trouvé dans le serveur.")
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
     async def predicate(ctx):
