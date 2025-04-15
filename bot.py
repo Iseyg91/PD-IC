@@ -639,8 +639,9 @@ async def on_guild_remove(guild):
 #---------------------------------------------------------------------------- Logs:
 
 # Fonction pour vérifier si l'utilisateur est administrateur
-async def is_admin(ctx):
-    return ctx.author.guild_permissions.administrator
+async def is_admin(interaction: discord.Interaction):
+    return interaction.user.guild_permissions.administrator
+
 
 # Fonction pour configurer les salons de logs
 @bot.tree.command(name="setup_logs", description="Configurer les salons de logs pour ce serveur")
@@ -681,6 +682,7 @@ async def setup_logs(interaction: discord.Interaction):
         embed.add_field(name=name, value=f"Salon créé : {channel.mention}", inline=False)
 
     await interaction.response.send_message(embed=embed)
+
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
