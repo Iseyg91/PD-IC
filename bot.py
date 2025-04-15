@@ -817,7 +817,8 @@ async def on_member_join(member):
         # Message de comptage des membres
         member_count = len(member.guild.members)
         message = f"Bienvenue {member.mention}, nous sommes maintenant {member_count} <a:WelcomePengu:1361709263839428608>"
-        await member_count_channel.send(welcome_message)
+        await member_count_channel.send(message)
+
 
     # Vérifie si c'est le serveur Etherya
     if member.guild.id == ETHERYA_SERVER_ID:
