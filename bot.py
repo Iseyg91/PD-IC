@@ -7146,10 +7146,6 @@ async def embed_builder(interaction: discord.Interaction):
     response = await interaction.followup.send(embed=view.embed, view=view, ephemeral=True)
     view.message = response
 
-# Vérifie si l'utilisateur a les permissions administrateur
-async def is_admin(ctx):
-    return ctx.author.guild_permissions.administrator
-
 # Commande pour lister les utilisateurs bannis
 @bot.command()
 @commands.check(is_admin)
