@@ -75,6 +75,7 @@ collection14 = db['eco_slut'] #Stock le temps de Slut
 collection15 = db['eco_crime'] #Stock le temps de Crime
 collection16 = db['ticket'] #Stock les Tickets
 collection17 = db['team'] #Stock les Teams
+collection19 = db ['logs'] #Stock les Salons Logs
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -182,6 +183,7 @@ def load_guild_settings(guild_id):
     eco_crime_data = collection15.find_one({"guild_id": guild_id}) or {}
     ticket_data = collection16.find_one({"guild_id": guild_id}) or {}
     team_data = collection17.find_one({"guild_id": guild_id}) or {}
+    logs_data = collection18.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -203,7 +205,8 @@ def load_guild_settings(guild_id):
         "eco_slut": eco_slut_data,
         "eco_crime": eco_slut_data,
         "ticket": ticket_data,
-        "team": team_data
+        "team": team_data,
+        "logs": logs_data
     }
 
     return combined_data
@@ -633,6 +636,51 @@ async def on_guild_remove(guild):
     embed.set_footer(text="Retiré le")
 
     await channel.send(embed=embed)
+#---------------------------------------------------------------------------- Logs:
+
+# Fonction pour vérifier si l'utilisateur est administrateur
+async def is_admin(ctx):
+    return ctx.author.guild_permissions.administrator
+
+# Fonction pour configurer les salons de logs
+@bot.tree.command(name="setup_logs", description="Configurer les salons de logs pour ce serveur")
+async def setup_logs(interaction: discord.Interaction):
+    # Vérifier si l'utilisateur est administrateur
+    if not await is_admin(interaction):
+        await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
+    guild = interaction.guild
+    # Création de la catégorie "Project : Delta LOGS"
+    category = await guild.create_category("Project : Delta LOGS")
+
+    # Création des salons de logs sous la catégorie
+    logs_channels = {}
+    log_names = ["logs_membres", "logs_messages", "logs_modération", "logs_actions"]
+    
+    for name in log_names:
+        # Création du salon et l'ajout à la catégorie
+        channel = await guild.create_text_channel(name, category=category)
+        logs_channels[name] = channel.id
+
+    # Sauvegarder les ID des salons dans MongoDB
+    collection18.update_one(
+        {"guild_id": str(guild.id)},
+        {"$set": {"logs_channels": logs_channels}},
+        upsert=True
+    )
+
+    # Embeds pour la confirmation
+    embed = discord.Embed(
+        title="Configuration des salons de logs",
+        description="Les salons suivants ont été créés pour les logs.",
+        color=discord.Color.green()
+    )
+    for name, channel_id in logs_channels.items():
+        channel = guild.get_channel(channel_id)
+        embed.add_field(name=name, value=f"Salon créé : {channel.mention}", inline=False)
+
+    await interaction.response.send_message(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
