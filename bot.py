@@ -73,6 +73,7 @@ collection13 = db['eco_work'] #Stock le temps de Work
 collection14 = db['eco_slut'] #Stock le temps de Slut
 collection15 = db['eco_crime'] #Stock le temps de Crime
 collection16 = db['ticket'] #Stock les Tickets
+collection17 = db['team'] #Stock les Teams
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -179,6 +180,7 @@ def load_guild_settings(guild_id):
     eco_slut_data = collection14.find_one({"guild_id": guild_id}) or {}
     eco_crime_data = collection15.find_one({"guild_id": guild_id}) or {}
     ticket_data = collection16.find_one({"guild_id": guild_id}) or {}
+    team_data = collection17.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -199,7 +201,8 @@ def load_guild_settings(guild_id):
         "eco_work": eco_work_data,
         "eco_slut": eco_slut_data,
         "eco_crime": eco_slut_data,
-        "ticket": ticket_data
+        "ticket": ticket_data,
+        "team": team_data
     }
 
     return combined_data
@@ -819,6 +822,438 @@ async def panel4(ctx):
     )
     # Mise à jour du bouton avec l'emoji 🎓
     await ctx.send(embed=embed, view=TicketView(author_id=ctx.author.id))
+
+#--------------------------------------------------------------------------- Team
+
+def check_project_delta(ctx):
+    return ctx.guild and ctx.guild.id == PROJECT_DELTA
+
+@bot.command()
+async def tcreate(ctx):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+    user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    
+    if not user_eco or user_eco.get("coins", 0) < 1500:
+        await ctx.send("Tu n'as pas assez de coins pour créer une team. Il faut 1500 coins.")
+        return
+    
+    def check_msg(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
+    await ctx.send("Quel est le nom de ta team ?")
+    team_name_msg = await bot.wait_for('message', check=check_msg)
+    team_name = team_name_msg.content
+
+    existing = collection17.find_one({"guild_id": guild_id, "team_id": team_name})
+    if existing:
+        await ctx.send("Ce nom de team existe déjà. Choisis-en un autre.")
+        return
+
+    await ctx.send("Décris ta team :")
+    description_msg = await bot.wait_for('message', check=check_msg)
+    description = description_msg.content
+
+    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"coins": -1500}})
+    collection17.insert_one({
+        "guild_id": guild_id,
+        "team_id": team_name,
+        "owner": user_id,
+        "description": description,
+        "members": {
+            user_id: "Owner"
+        },
+        "vault": 0,
+        "banned": []
+    })
+
+    await ctx.send(f"La team **{team_name}** a été créée avec succès !")
+
+@bot.command(name="team", aliases=["t"])
+async def team_command(ctx):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    if not team:
+        await ctx.send("Tu n'es dans aucune team.")
+        return
+
+    embed = discord.Embed(title=f"Team: {team['team_id']}", description=team['description'], color=0x00ff00)
+    embed.add_field(name="Coffre-Fort", value=f"{team['vault']} coins", inline=False)
+
+    members_str = ""
+    for member_id, role in team['members'].items():
+        member = ctx.guild.get_member(int(member_id))
+        members_str += f"{member.mention if member else member_id} - {role}\n"
+
+    embed.add_field(name="Membres", value=members_str or "Aucun membre", inline=False)
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def tinvite(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    if not team:
+        await ctx.send("Tu n'es dans aucune team.")
+        return
+
+    if target_id in team['banned']:
+        await ctx.send("Cette personne est bannie de la team.")
+        return
+
+    view = discord.ui.View()
+
+    async def accept_callback(interaction: discord.Interaction):
+        if interaction.user.id != member.id:
+            await interaction.response.send_message("Ce bouton ne t’est pas destiné.", ephemeral=True)
+            return
+        collection17.update_one(
+            {"guild_id": guild_id, "team_id": team['team_id']},
+            {"$set": {f"members.{target_id}": "Membre"}}
+        )
+        await interaction.response.edit_message(content=f"{member.mention} a rejoint la team **{team['team_id']}**.", view=None)
+
+    async def refuse_callback(interaction: discord.Interaction):
+        if interaction.user.id != member.id:
+            await interaction.response.send_message("Ce bouton ne t’est pas destiné.", ephemeral=True)
+            return
+        await interaction.response.edit_message(content=f"{member.mention} a refusé l'invitation à la team.", view=None)
+
+    accept_button = discord.ui.Button(label="Accepter", style=discord.ButtonStyle.success)
+    refuse_button = discord.ui.Button(label="Refuser", style=discord.ButtonStyle.danger)
+    accept_button.callback = accept_callback
+    refuse_button.callback = refuse_callback
+    view.add_item(accept_button)
+    view.add_item(refuse_button)
+
+    await ctx.send(f"{member.mention}, tu as été invité à rejoindre la team **{team['team_id']}** !", view=view)
+
+@bot.command()
+async def tpromote(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    if not team or target_id not in team.get("members", {}):
+        await ctx.send("Cette personne n'est pas dans ta team.")
+        return
+
+    role_order = ["Membre", "Officier", "Bras-Droit", "Second"]
+    roles = team["members"]
+    
+    author_role = roles.get(user_id)
+    target_role = roles.get(target_id)
+
+    if author_role not in ["Owner", "Second"]:
+        await ctx.send("Tu n'as pas la permission de promouvoir.")
+        return
+
+    if target_role == "Second":
+        await ctx.send("Cette personne est déjà au grade le plus élevé.")
+        return
+
+    next_index = role_order.index(target_role) + 1
+    if role_order[next_index] == "Second":
+        for member_id, r in roles.items():
+            if r == "Second":
+                await ctx.send("Il y a déjà un Second dans la team.")
+                return
+
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$set": {f"members.{target_id}": role_order[next_index]}}
+    )
+    await ctx.send(f"{member.mention} a été promu au rang **{role_order[next_index]}**.")
+
+@bot.command()
+async def tdemote(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    if not team or target_id not in team.get("members", {}):
+        await ctx.send("Cette personne n'est pas dans ta team.")
+        return
+
+    role_order = ["Membre", "Officier", "Bras-Droit", "Second"]
+    roles = team["members"]
+
+    author_role = roles.get(user_id)
+    target_role = roles.get(target_id)
+
+    if author_role not in ["Owner", "Second"]:
+        await ctx.send("Tu n'as pas la permission de rétrograder.")
+        return
+
+    if target_role == "Membre":
+        await ctx.send("Cette personne est déjà au rang le plus bas.")
+        return
+
+    new_index = role_order.index(target_role) - 1
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$set": {f"members.{target_id}": role_order[new_index]}}
+    )
+    await ctx.send(f"{member.mention} a été rétrogradé au rang **{role_order[new_index]}**.")
+
+@bot.command()
+async def towner(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    new_owner_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, "owner": user_id})
+    if not team or new_owner_id not in team["members"]:
+        await ctx.send("Cette personne n'est pas dans ta team.")
+        return
+
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {
+            "$set": {
+                "owner": new_owner_id,
+                f"members.{user_id}": "Second",
+                f"members.{new_owner_id}": "Owner"
+            }
+        }
+    )
+    await ctx.send(f"{member.mention} est maintenant le nouveau propriétaire de la team.")
+from discord.ui import Select, View
+
+@bot.command()
+async def tedit(ctx):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+    team = collection17.find_one({"guild_id": guild_id, "owner": user_id})
+
+    if not team:
+        await ctx.send("Tu n'es pas propriétaire d'une team.")
+        return
+
+    class TeamEditSelect(Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(label="Changer la description", value="desc"),
+                discord.SelectOption(label="Changer le nom", value="name", description="⚠️ Cela ne change pas l'ID.")
+            ]
+            super().__init__(placeholder="Que veux-tu modifier ?", min_values=1, max_values=1, options=options)
+
+        async def callback(self, interaction: discord.Interaction):
+            if self.values[0] == "desc":
+                await interaction.response.send_message("Envoie la nouvelle description :", ephemeral=True)
+                msg = await bot.wait_for('message', check=lambda m: m.author.id == interaction.user.id and m.channel == ctx.channel)
+                collection17.update_one(
+                    {"guild_id": guild_id, "team_id": team["team_id"]},
+                    {"$set": {"description": msg.content}}
+                )
+                await interaction.followup.send("Description mise à jour.")
+            elif self.values[0] == "name":
+                await interaction.response.send_message("Envoie le nouveau nom :", ephemeral=True)
+                msg = await bot.wait_for('message', check=lambda m: m.author.id == interaction.user.id and m.channel == ctx.channel)
+                collection17.update_one(
+                    {"guild_id": guild_id, "team_id": team["team_id"]},
+                    {"$set": {"name": msg.content}}  # Nom d’affichage uniquement
+                )
+                await interaction.followup.send("Nom de la team mis à jour (l'ID reste inchangé).")
+
+    view = View()
+    view.add_item(TeamEditSelect())
+    await ctx.send("🔧 Choisis une option pour modifier ta team :", view=view)
+
+@bot.command()
+async def tdep(ctx, amount: str):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    
+    if not team:
+        return await ctx.send("Tu n'es pas dans une team.")
+    if not eco or eco["coins"] <= 0:
+        return await ctx.send("Tu n'as pas assez de coins.")
+
+    user_balance = eco["coins"]
+    if amount == "all":
+        deposit = user_balance
+    elif amount.isdigit():
+        deposit = int(amount)
+        if deposit > user_balance:
+            return await ctx.send("Tu n'as pas assez de coins.")
+    else:
+        return await ctx.send("Montant invalide.")
+
+    # Mise à jour
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": -deposit}}
+    )
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$inc": {"coffre": deposit}}
+    )
+
+    await ctx.send(f"Tu as déposé **{deposit}** 🪙 dans le coffre de ta team.")
+
+@bot.command()
+async def twith(ctx, amount: str):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    
+    if not team:
+        return await ctx.send("Tu n'es pas dans une team.")
+
+    role = team["members"][user_id]
+    if role not in ["Officier", "Bras-Droit", "Second", "Owner"]:
+        return await ctx.send("Tu n'as pas le rang requis pour faire ça.")
+
+    coffre = team.get("coffre", 0)
+    if amount == "all":
+        withdraw = coffre
+    elif amount.isdigit():
+        withdraw = int(amount)
+        if withdraw > coffre:
+            return await ctx.send("Il n'y a pas assez dans le coffre.")
+    else:
+        return await ctx.send("Montant invalide.")
+
+    # Update
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": withdraw}}
+    )
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$inc": {"coffre": -withdraw}}
+    )
+
+    await ctx.send(f"Tu as retiré **{withdraw}** 🪙 du coffre de la team.")
+
+@bot.command()
+async def ttop(ctx):
+    if not check_project_delta(ctx):
+        return
+
+    guild_id = str(ctx.guild.id)
+    teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(10)
+    
+    embed = discord.Embed(
+        title="🏆 Classement des Teams",
+        color=discord.Color.gold()
+    )
+
+    for i, team in enumerate(teams, start=1):
+        name = team.get("name", "Sans nom")
+        coffre = team.get("coffre", 0)
+        embed.add_field(name=f"{i}. {name}", value=f"💰 Coffre : **{coffre}** 🪙", inline=False)
+
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def tkick(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
+    if not team or target_id not in team["members"]:
+        return await ctx.send("Cette personne n'est pas dans ta team.")
+
+    role = team["members"][user_id]
+    if role not in ["Second", "Owner"]:
+        return await ctx.send("Tu n'as pas la permission.")
+
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$unset": {f"members.{target_id}": ""}}
+    )
+    await ctx.send(f"{member.mention} a été retiré de la team.")
+
+@bot.command()
+async def tban(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
+    if not team or target_id not in team["members"]:
+        return await ctx.send("Cette personne n'est pas dans ta team.")
+
+    role = team["members"][user_id]
+    if role not in ["Second", "Owner"]:
+        return await ctx.send("Tu n'as pas la permission.")
+
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {
+            "$unset": {f"members.{target_id}": ""},
+            "$addToSet": {"bans": target_id}
+        }
+    )
+    await ctx.send(f"{member.mention} a été **banni** de la team.")
+
+@bot.command()
+async def tunban(ctx, member: discord.Member):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    target_id = str(member.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
+    if not team:
+        return await ctx.send("Tu n'es pas dans une team.")
+
+    role = team["members"][user_id]
+    if role not in ["Second", "Owner"]:
+        return await ctx.send("Tu n'as pas la permission.")
+
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$pull": {"bans": target_id}}
+    )
+    await ctx.send(f"{member.mention} a été débanni de la team.")
 
 
 #--------------------------------------------------------------------------- Eco:
