@@ -2903,7 +2903,7 @@ messages = [
     "Avec un peu d'effort, tu as mérité ta récompense ! 👠 <:ecoEther:1341862366249357374> {coins}"
 ]
 
-@bot.hybrid_command(name="slut", description="Gagnez des coins en attirant l'attention. Vous pouvez le faire toutes les 3 heures.", aliases=['sl'])
+@bot.hybrid_command(name="slut", description="Gagnez des coins en attirant l'attention. Vous pouvez le faire toutes les 3 heures.")
 @has_eco_vip_role()
 @check_guild()
 async def slut(ctx):
