@@ -1271,18 +1271,39 @@ async def tleave(ctx):
 
     owner_id = team.get("owner_id")
 
-    if owner_id is None:
-        return await ctx.send("⚠️ Cette team n'a pas de propriétaire défini. Veuillez contacter un admin.")
-
+    # Si le membre est le propriétaire (ou le champ owner_id n'existe pas mais correspond à l'utilisateur)
     if owner_id == user_id:
         collection17.delete_one({"_id": team["_id"]})
         return await ctx.send("👑 Tu étais le propriétaire. La team a été supprimée.")
+
+    # Si l'owner_id est absent (et que le membre n'est pas owner), permettre de quitter quand même
+    collection17.update_one(
+        {"_id": team["_id"]},
+        {"$unset": {f"members.{user_id}": ""}}
+    )
+    return await ctx.send("✅ Tu as quitté la team avec succès.")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def clean_teams(ctx):
+    # Vérification que la commande est exécutée dans le bon serveur
+    if not check_project_delta(ctx):
+        return
+
+    # Recherche des teams sans propriétaire défini
+    teams_without_owner = collection17.find({"owner_id": {"$exists": False}})
+    deleted_teams_count = 0
+
+    for team in teams_without_owner:
+        # Suppression des teams sans propriétaire
+        collection17.delete_one({"_id": team["_id"]})
+        deleted_teams_count += 1
+
+    if deleted_teams_count > 0:
+        await ctx.send(f"✅ {deleted_teams_count} teams sans propriétaire ont été supprimées.")
     else:
-        collection17.update_one(
-            {"_id": team["_id"]},
-            {"$unset": {f"members.{user_id}": ""}}
-        )
-        return await ctx.send("✅ Tu as quitté la team avec succès.")
+        await ctx.send("❌ Aucune team sans propriétaire n'a été trouvée.")
+
 
 @bot.tree.command(name="reset_teams", description="⚠️ Supprime toutes les teams (réservé à l'admin).")
 async def reset_teams(interaction: discord.Interaction):
