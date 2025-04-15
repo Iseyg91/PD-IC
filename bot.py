@@ -51,6 +51,25 @@ ROLE_REPORT_ID = 1361306900981092548
 SUPPORT_ROLE_ID = 1359963854422933876
 TRANSCRIPT_CHANNEL_ID = 1361447877364158564
 
+log_channels = {
+    "sanctions": 1361669286833426473,
+    "messages": 1361669323139322066,
+    "utilisateurs": 1361669350054039683,
+    "nicknames": 1361669502839816372,
+    "roles": 1361669524071383071,
+    "vocal": 1361669536197251217,
+    "serveur": 1361669784814485534,
+    "permissions": 1361669810496209083,
+    "channels": 1361669826011201598,
+    "webhooks": 1361669963835773126,
+    "bots": 1361669985705132172,
+    "tickets": 1361669998665535499,
+    "boosts": 1361670102818230324
+}
+
+def get_log_channel(guild, key):
+    return guild.get_channel(log_channels[key])
+
 # Connexion MongoDB
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
 print("Mongo URI :", mongo_uri)  # Cela affichera l'URI de connexion (assure-toi de ne pas laisser cela en prod)
@@ -1188,26 +1207,6 @@ async def is_admin(interaction: discord.Interaction):
     return interaction.user.guild_permissions.administrator
 
 #---------------------------------------------------------------------------- Logs:
-
-log_channels = {
-    "sanctions": 1361669286833426473,
-    "messages": 1361669323139322066,
-    "utilisateurs": 1361669350054039683,
-    "nicknames": 1361669502839816372,
-    "roles": 1361669524071383071,
-    "vocal": 1361669536197251217,
-    "serveur": 1361669784814485534,
-    "permissions": 1361669810496209083,
-    "channels": 1361669826011201598,
-    "webhooks": 1361669963835773126,
-    "bots": 1361669985705132172,
-    "tickets": 1361669998665535499,
-    "boosts": 1361670102818230324
-}
-
-def get_log_channel(guild, key):
-    return guild.get_channel(log_channels[key])
-
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
