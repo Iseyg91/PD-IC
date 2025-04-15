@@ -2789,7 +2789,7 @@ async def daily(ctx):
             f"⏳ Tu as déjà réclamé ton daily.\nReviens dans **{int(h)}h {int(m)}m {int(s)}s**."
         )
 
-    reward = random.randint(250, 350)
+    reward = random.randint(1, 250)
 
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
