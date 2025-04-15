@@ -1198,17 +1198,24 @@ async def ttop(ctx):
         return
 
     guild_id = str(ctx.guild.id)
-    teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(10)
-    
+
+    top_teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(5)
+
     embed = discord.Embed(
-        title="🏆 Classement des Teams",
-        color=discord.Color.gold()
+        title="🏆 Classement des Teams les plus riches",
+        description="Voici les teams avec le plus de 💰 coins dans leur coffre.",
+        color=discord.Color.green()
     )
 
-    for i, team in enumerate(teams, start=1):
-        name = team.get("name", "Sans nom")
+    for i, team in enumerate(top_teams, start=1):
+        name = team.get("name", "Inconnue")
         coffre = team.get("coffre", 0)
-        embed.add_field(name=f"{i}. {name}", value=f"💰 Coffre : **{coffre}** 🪙", inline=False)
+        owner = f"<@{team.get('owner_id')}>" if team.get("owner_id") else "Inconnu"
+        embed.add_field(
+            name=f"#{i} ┇ {name}",
+            value=f"👑 Propriétaire : {owner}\n💰 Coins : `{coffre}`",
+            inline=False
+        )
 
     await ctx.send(embed=embed)
 
@@ -1284,6 +1291,29 @@ async def tunban(ctx, member: discord.Member):
     )
     await ctx.send(f"{member.mention} a été débanni de la team.")
 
+@bot.command()
+async def tleave(ctx):
+    if not check_project_delta(ctx):
+        return
+
+    user_id = str(ctx.author.id)
+    guild_id = str(ctx.guild.id)
+
+    team = collection17.find_one({f"members.{user_id}": {"$exists": True}, "guild_id": guild_id})
+    if not team:
+        return await ctx.send("❌ Tu n'es dans aucune team.")
+
+    is_owner = team["owner_id"] == user_id
+
+    if is_owner:
+        collection17.delete_one({"_id": team["_id"]})
+        return await ctx.send("👋 Tu étais le propriétaire. La team a été supprimée.")
+    else:
+        collection17.update_one(
+            {"_id": team["_id"]},
+            {"$unset": {f"members.{user_id}": ""}}
+        )
+        return await ctx.send("✅ Tu as quitté la team avec succès.")
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
