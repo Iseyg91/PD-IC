@@ -687,8 +687,8 @@ class ClaimCloseView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-@ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
-async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
+    async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
     if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
         return await interaction.response.send_message("❌ Tu n'as pas la permission de claim.", ephemeral=True)
 
