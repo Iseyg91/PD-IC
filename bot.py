@@ -900,39 +900,34 @@ async def team_command(ctx):
     members = team.get("members", {})
     owner_id = team.get("owner_id")
 
-    embed = discord.Embed(
-        title=f"🏰 Team : {name}",
-        description=f"📜 **Description :** {description}",
-        color=discord.Color.gold()
-    )
-    embed.set_footer(text=f"ID de la team : {team_id}")
+embed = discord.Embed(
+    title=f"🏰 Team : {team['team_id']}",
+    description=team.get("description", "Aucune description"),
+    color=discord.Color.blue()
+)
+embed.add_field(name="👑 Propriétaire", value=f"<@{team.get('owner_id', 'Non défini')}>", inline=False)
+embed.add_field(name="💰 Coins", value=str(team.get("coffre", 0)), inline=False)
 
-    embed.add_field(name="👑 Propriétaire", value=f"<@{owner_id}>", inline=True)
-    embed.add_field(name="💰 Coins", value=f"`{coffre}`", inline=True)
-    embed.add_field(name="👥 Membres", value=f"`{len(members)}`", inline=True)
+membres = team.get("members", {})
+embed.add_field(name=f"👥 Membres ({len(membres)})", value="\u200b", inline=False)
 
-    roles_order = ["Owner", "Second", "Bras-Droit", "Officier", "Membre"]
-    role_emojis = {
-        "Owner": "👑",
-        "Second": "⚔️",
-        "Bras-Droit": "🛡️",
-        "Officier": "🎖️",
-        "Membre": "👤"
-    }
+owners = []
+others = []
+for member_id, rank in membres.items():
+    mention = f"<@{member_id}>"
+    if rank.lower() == "owner":
+        owners.append(f"👑 {mention}")
+    else:
+        others.append(f"👤 {mention}")
 
-    for role in roles_order:
-        listed = [
-            f"{role_emojis[role]} <@{uid}>"
-            for uid, r in members.items() if r == role
-        ]
-        if listed:
-            embed.add_field(
-                name=f"**{role}s**",
-                value="\n".join(listed),
-                inline=False
-            )
+if owners:
+    embed.add_field(name="Owners", value="\n".join(owners), inline=False)
+if others:
+    embed.add_field(name="Membres", value="\n".join(others), inline=False)
 
-    await ctx.send(embed=embed)
+embed.add_field(name="ID de la team", value=team["team_id"], inline=False)
+
+await ctx.send(embed=embed)
 
 @bot.command()
 async def tinvite(ctx, member: discord.Member):
@@ -1164,42 +1159,46 @@ async def tdep(ctx, amount: str):
 
 @bot.command()
 async def twith(ctx, amount: str):
-    if not check_project_delta(ctx):
+    if ctx.guild.id != 1359963854200639498:
         return
 
     user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
-    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
-    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
-    
+    team = collection17.find_one({f"members.{user_id}": {"$exists": True}})
     if not team:
-        return await ctx.send("Tu n'es pas dans une team.")
+        return await ctx.send("❌ Tu n'es dans aucune team.")
 
-    role = team["members"][user_id]
-    if role not in ["Officier", "Bras-Droit", "Second", "Owner"]:
-        return await ctx.send("Tu n'as pas le rang requis pour faire ça.")
+    team_id = team["_id"]
+    team_balance = team.get("coins", 0)
 
-    coffre = team.get("coffre", 0)
-    if amount == "all":
-        withdraw = coffre
-    elif amount.isdigit():
-        withdraw = int(amount)
-        if withdraw > coffre:
-            return await ctx.send("Il n'y a pas assez dans le coffre.")
+    # Conversion du montant
+    if amount.lower() == "all":
+        withdraw_amount = team_balance
     else:
-        return await ctx.send("Montant invalide.")
+        try:
+            withdraw_amount = int(amount)
+            if withdraw_amount <= 0:
+                return await ctx.send("❌ Le montant doit être positif.")
+        except ValueError:
+            return await ctx.send("❌ Montant invalide. Utilise un nombre ou `all`.")
 
-    # Update
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"coins": withdraw}}
-    )
+    if withdraw_amount > team_balance:
+        return await ctx.send("❌ Le coffre de ta team n'a pas assez de coins.")
+
+    # Mise à jour du coffre de la team
     collection17.update_one(
-        {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$inc": {"coffre": -withdraw}}
+        {"_id": team_id},
+        {"$inc": {"coins": -withdraw_amount}}
     )
 
-    await ctx.send(f"Tu as retiré **{withdraw}** 🪙 du coffre de la team.")
+    # Mise à jour du solde du joueur
+    collection10.update_one(
+        {"guild_id": ctx.guild.id, "user_id": ctx.author.id},
+        {"$inc": {"coins": withdraw_amount}},
+        upsert=True
+    )
+
+    await ctx.send(f"💸 Tu as retiré **{withdraw_amount} coins** du coffre de ta team.")
+
 
 @bot.command()
 async def ttop(ctx):
