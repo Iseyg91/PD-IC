@@ -68,7 +68,10 @@ log_channels = {
 }
 
 def get_log_channel(guild, key):
-    return guild.get_channel(log_channels[key])
+    log_channel_id = log_channels.get(key)
+    if log_channel_id:
+        return guild.get_channel(log_channel_id)
+    return None
 
 # Fonction pour créer des embeds formatés
 def create_embed(title, description, color=discord.Color.blue(), footer_text=""):
