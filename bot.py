@@ -882,18 +882,47 @@ async def team_command(ctx):
 
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team:
-        await ctx.send("Tu n'es dans aucune team.")
-        return
+        return await ctx.send("❌ Tu n'es dans aucune team.")
 
-    embed = discord.Embed(title=f"Team: {team['team_id']}", description=team['description'], color=0x00ff00)
-    embed.add_field(name="Coffre-Fort", value=f"{team['vault']} coins", inline=False)
+    name = team.get("name", "Sans nom")
+    team_id = team.get("team_id")
+    coffre = team.get("coffre", 0)
+    description = team.get("description", "*Aucune description.*")
+    members = team.get("members", {})
+    owner_id = team.get("owner_id")
 
-    members_str = ""
-    for member_id, role in team['members'].items():
-        member = ctx.guild.get_member(int(member_id))
-        members_str += f"{member.mention if member else member_id} - {role}\n"
+    embed = discord.Embed(
+        title=f"🏰 Team : {name}",
+        description=f"📜 **Description :** {description}",
+        color=discord.Color.gold()
+    )
+    embed.set_footer(text=f"ID de la team : {team_id}")
 
-    embed.add_field(name="Membres", value=members_str or "Aucun membre", inline=False)
+    embed.add_field(name="👑 Propriétaire", value=f"<@{owner_id}>", inline=True)
+    embed.add_field(name="💰 Coins", value=f"`{coffre}`", inline=True)
+    embed.add_field(name="👥 Membres", value=f"`{len(members)}`", inline=True)
+
+    roles_order = ["Owner", "Second", "Bras-Droit", "Officier", "Membre"]
+    role_emojis = {
+        "Owner": "👑",
+        "Second": "⚔️",
+        "Bras-Droit": "🛡️",
+        "Officier": "🎖️",
+        "Membre": "👤"
+    }
+
+    for role in roles_order:
+        listed = [
+            f"{role_emojis[role]} <@{uid}>"
+            for uid, r in members.items() if r == role
+        ]
+        if listed:
+            embed.add_field(
+                name=f"**{role}s**",
+                value="\n".join(listed),
+                inline=False
+            )
+
     await ctx.send(embed=embed)
 
 @bot.command()
