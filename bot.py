@@ -1011,36 +1011,36 @@ async def on_member_update(before, after):
             add_coins(after.guild.id, str(after.id), coins_to_add)
             await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
 
-# --- Nickname logs ---
-if before.nick != after.nick:
-    channel = get_log_channel(before.guild, "nicknames")
-    if channel:
-        embed = discord.Embed(
-            title="📝 Changement de Surnom",
-            description=f"{before.mention} a modifié son surnom sur le serveur.",
-            color=discord.Color.blue()
-        )
-        embed.add_field(name="Avant", value=f"`{before.nick}`" if before.nick else "*Aucun*", inline=True)
-        embed.add_field(name="Après", value=f"`{after.nick}`" if after.nick else "*Aucun*", inline=True)
-        embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
-        embed.timestamp = discord.utils.utcnow()
+    # --- Nickname logs ---
+    if before.nick != after.nick:
+        channel = get_log_channel(before.guild, "nicknames")
+        if channel:
+            embed = discord.Embed(
+                title="📝 Changement de Surnom",
+                description=f"{before.mention} a modifié son surnom sur le serveur.",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="Avant", value=f"`{before.nick}`" if before.nick else "*Aucun*", inline=True)
+            embed.add_field(name="Après", value=f"`{after.nick}`" if after.nick else "*Aucun*", inline=True)
+            embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
-# --- Boost du serveur ---
-if before.premium_since is None and after.premium_since is not None:
-    channel = get_log_channel(before.guild, "boosts")
-    if channel:
-        embed = discord.Embed(
-            title="💎 Nouveau Boost",
-            description=f"{after.mention} a boosté le serveur !",
-            color=discord.Color.green()
-        )
-        embed.set_thumbnail(url=after.display_avatar.url)
-        embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
-        embed.timestamp = discord.utils.utcnow()
+    # --- Boost du serveur ---
+    if before.premium_since is None and after.premium_since is not None:
+        channel = get_log_channel(before.guild, "boosts")
+        if channel:
+            embed = discord.Embed(
+                title="💎 Nouveau Boost",
+                description=f"{after.mention} a boosté le serveur !",
+                color=discord.Color.green()
+            )
+            embed.set_thumbnail(url=after.display_avatar.url)
+            embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
 # Protection anti-création de rôle et logs
 @bot.event
@@ -1056,20 +1056,20 @@ async def on_guild_role_create(role):
         except Exception as e:
             print(f"Erreur lors de la suppression du rôle : {e}")
 
-# Logs pour le serveur PROJECT_DELTA
-if role.guild.id == PROJECT_DELTA:
-    channel = get_log_channel(role.guild, "roles")
-    if channel:
-        embed = discord.Embed(
-            title="🎭 Nouveau Rôle Créé",
-            description=f"Un nouveau rôle a été créé : **{role.name}**",
-            color=discord.Color.purple()
-        )
-        embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
-        embed.set_footer(text=f"ID du créateur : {role.managed}")
-        embed.timestamp = discord.utils.utcnow()
+    # Logs pour le serveur PROJECT_DELTA
+    if role.guild.id == PROJECT_DELTA:
+        channel = get_log_channel(role.guild, "roles")
+        if channel:
+            embed = discord.Embed(
+                title="🎭 Nouveau Rôle Créé",
+                description=f"Un nouveau rôle a été créé : **{role.name}**",
+                color=discord.Color.purple()
+            )
+            embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
+            embed.set_footer(text=f"ID du créateur : {role.managed}")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
 # Protection anti-suppression de rôle et logs
 @bot.event
@@ -1085,20 +1085,20 @@ async def on_guild_role_delete(role):
         except Exception as e:
             print(f"Erreur lors de la recréation du rôle : {e}")
 
-# Logs pour le serveur PROJECT_DELTA
-if role.guild.id == PROJECT_DELTA:
-    channel = get_log_channel(role.guild, "roles")
-    if channel:
-        embed = discord.Embed(
-            title="🎭 Rôle Supprimé",
-            description=f"Le rôle **{role.name}** a été supprimé.",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
-        embed.set_footer(text="Rôle supprimé")
-        embed.timestamp = discord.utils.utcnow()
+    # Logs pour le serveur PROJECT_DELTA
+    if role.guild.id == PROJECT_DELTA:
+        channel = get_log_channel(role.guild, "roles")
+        if channel:
+            embed = discord.Embed(
+                title="🎭 Rôle Supprimé",
+                description=f"Le rôle **{role.name}** a été supprimé.",
+                color=discord.Color.red()
+            )
+            embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
+            embed.set_footer(text="Rôle supprimé")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
 # Logs pour les mises à jour de rôle
 @bot.event
@@ -1139,20 +1139,20 @@ async def on_guild_channel_create(channel):
             print("Le bot n'a pas la permission de gérer les salons.")
         return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été supprimé
 
-# Log de la création de salon dans le serveur PROJECT_DELTA
-if channel.guild.id == PROJECT_DELTA:
-    channel_log = get_log_channel(channel.guild, "channels")
-    if channel_log:
-        embed = discord.Embed(
-            title="🗂️ Nouveau Salon Créé",
-            description=f"Le salon **{channel.name}** a été créé.",
-            color=discord.Color.blue()
-        )
-        embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
-        embed.set_footer(text="Salon créé sur le serveur PROJECT_DELTA")
-        embed.timestamp = discord.utils.utcnow()
+    # Log de la création de salon dans le serveur PROJECT_DELTA
+    if channel.guild.id == PROJECT_DELTA:
+        channel_log = get_log_channel(channel.guild, "channels")
+        if channel_log:
+            embed = discord.Embed(
+                title="🗂️ Nouveau Salon Créé",
+                description=f"Le salon **{channel.name}** a été créé.",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
+            embed.set_footer(text="Salon créé sur le serveur PROJECT_DELTA")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel_log.send(embed=embed)
+            await channel_log.send(embed=embed)
 
 @bot.event
 async def on_guild_channel_delete(channel):
@@ -1168,20 +1168,20 @@ async def on_guild_channel_delete(channel):
             print(f"Erreur lors de la recréation du salon : {e}")
         return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été recréé
 
-# Log de la suppression de salon dans le serveur PROJECT_DELTA
-if channel.guild.id == PROJECT_DELTA:
-    channel_log = get_log_channel(channel.guild, "channels")
-    if channel_log:
-        embed = discord.Embed(
-            title="🗂️ Salon Supprimé",
-            description=f"Le salon **{channel.name}** a été supprimé.",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
-        embed.set_footer(text="Salon supprimé sur le serveur PROJECT_DELTA")
-        embed.timestamp = discord.utils.utcnow()
+    # Log de la suppression de salon dans le serveur PROJECT_DELTA
+    if channel.guild.id == PROJECT_DELTA:
+        channel_log = get_log_channel(channel.guild, "channels")
+        if channel_log:
+            embed = discord.Embed(
+                title="🗂️ Salon Supprimé",
+                description=f"Le salon **{channel.name}** a été supprimé.",
+                color=discord.Color.red()
+            )
+            embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
+            embed.set_footer(text="Salon supprimé sur le serveur PROJECT_DELTA")
+            embed.timestamp = discord.utils.utcnow()
 
-        await channel_log.send(embed=embed)
+            await channel_log.send(embed=embed)
 
 # Log de la mise à jour de salon dans le serveur PROJECT_DELTA
 @bot.event
@@ -1233,7 +1233,7 @@ async def on_voice_state_update(member, before, after):
 @bot.event
 async def on_guild_update(before, after):
     if before.id == PROJECT_DELTA:
-        channel = get_log_channel(after, "serveur")
+        channel = get_log_channel(after, "serveur")  # Assurez-vous que 'after' est le bon paramètre pour obtenir le canal
         if channel:
             embed = discord.Embed(
                 title="⚙️ Mise à Jour du Serveur",
@@ -1272,20 +1272,22 @@ async def on_webhooks_update(guild, channel):
 
             await webhook_channel.send(embed=embed)
 
-# Détection d'un massban (2 bans en moins de 10 secondes)
+# --- Détection du Massban et logs ---
 @bot.event
 async def on_member_ban(guild, user):
     guild_id = str(guild.id)
     data = await get_protection_data(guild_id)
 
+    # Vérifier si la protection anti-massban est activée
     if data.get("anti_massban") == "activer":
-        # Vérifier s'il y a déjà eu un ban récent
         if guild.id not in ban_times:
             ban_times[guild.id] = []
+        
+        # Ajouter l'heure du ban actuel
         current_time = time.time()
         ban_times[guild.id].append(current_time)
         
-        # Nettoyer les anciens bans
+        # Nettoyer les anciens bans (moins de 10 secondes)
         ban_times[guild.id] = [t for t in ban_times[guild.id] if current_time - t < 10]
 
         # Si 2 bans ont été effectués en moins de 10 secondes
@@ -1294,11 +1296,9 @@ async def on_member_ban(guild, user):
             await guild.unban(user)  # Débannir la personne
             await guild.text_channels[0].send(f"Le massban a été détecté ! Le ban de {user.name} a été annulé.")
             print(f"Massban détecté pour {user.name}, ban annulé.")
-            return
+            return  # Arrêter l'exécution du code suivant si un massban est détecté
 
-# --- Logs de ban ---
-@bot.event
-async def on_member_ban(guild, user):
+    # --- Logs de ban ---
     if guild.id == PROJECT_DELTA:
         channel = get_log_channel(guild, "sanctions")
         if channel:
@@ -1343,12 +1343,9 @@ async def on_guild_update(before, after):
             )
             embed.add_field(name="Nom du Serveur", value=f"{before.name} → {after.name}", inline=False)
 
-            # Ajouter d'autres informations si nécessaire (comme la mise à jour de l'icône, de la région, etc.)
+            # Ajouter d'autres informations si nécessaire
             if before.icon != after.icon:
                 embed.add_field(name="Icône du Serveur", value="L'icône a été changée.", inline=False)
-
-            if before.region != after.region:
-                embed.add_field(name="Région du Serveur", value=f"Avant : {before.region}\nAprès : {after.region}", inline=False)
 
             embed.set_footer(text="Mise à jour du serveur sur PROJECT_DELTA")
             embed.timestamp = discord.utils.utcnow()
