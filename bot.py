@@ -600,7 +600,7 @@ async def on_message_delete(message):
     bot.loop.create_task(cleanup())
 
     # Log du message supprimé (si sur le serveur PROJECT_DELTA)
-    if message.guild and message.guild.id == PROJECT_DELTA_ID:
+    if message.guild and message.guild.id == PROJECT_DELTA:
         log_channel = get_log_channel(message.guild, "messages")
         if log_channel:
             await log_channel.send(
@@ -609,7 +609,7 @@ async def on_message_delete(message):
 
 @bot.event
 async def on_message_edit(before, after):
-    if before.guild and before.guild.id == PROJECT_DELTA_ID and before.content != after.content:
+    if before.guild and before.guild.id == PROJECT_DELTA and before.content != after.content:
         channel = get_log_channel(before.guild, "messages")
         await channel.send(
             f"✏️ **Message édité** par {before.author.mention} dans {before.channel.mention}:\n"
@@ -823,7 +823,7 @@ async def on_member_join(member):
         await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
 
     # Envoi d'une notification de log dans le salon spécifique du serveur
-    if member.guild.id == PROJECT_DELTA_ID:
+    if member.guild.id == PROJECT_DELTA:
         channel = get_log_channel(member.guild, "utilisateurs")
         if channel:
             await channel.send(f"✅ {member.mention} a rejoint le serveur.")
@@ -922,7 +922,7 @@ async def on_member_remove(member: discord.Member):
                     print(f"[Erreur Masskick] : {e}")
 
     # Envoi du message lorsque le membre quitte le serveur sur PROJECT_DELTA
-    if member.guild.id == PROJECT_DELTA_ID:
+    if member.guild.id == PROJECT_DELTA:
         channel = get_log_channel(member.guild, "utilisateurs")
         await channel.send(f"❌ {member.mention} a quitté le serveur.")
 
@@ -931,14 +931,14 @@ async def on_member_remove(member: discord.Member):
 async def on_user_update(before, after):
     # Check for username changes (this affects all mutual servers)
     for guild in bot.guilds:
-        if guild.id == PROJECT_DELTA_ID:
+        if guild.id == PROJECT_DELTA:
             if before.name != after.name:
                 channel = get_log_channel(guild, "nicknames")
                 await channel.send(f"📝 **Changement de pseudo global**: `{before.name}` → `{after.name}`")
 
 @bot.event
 async def on_member_update(before, after):
-    if before.guild.id != PROJECT_DELTA_ID:  # Vérifier si c'est le bon serveur
+    if before.guild.id != PROJECT_DELTA:  # Vérifier si c'est le bon serveur
         return
 
     # --- Stream logs ---
@@ -973,7 +973,7 @@ async def on_guild_role_create(role):
             print(f"Erreur lors de la suppression du rôle : {e}")
 
     # Logs pour le serveur PROJECT_DELTA
-    if role.guild.id == PROJECT_DELTA_ID:
+    if role.guild.id == PROJECT_DELTA:
         channel = get_log_channel(role.guild, "roles")
         await channel.send(f"🎭 **Rôle créé** : {role.name} ({role.id})")
 
@@ -992,16 +992,17 @@ async def on_guild_role_delete(role):
             print(f"Erreur lors de la recréation du rôle : {e}")
 
     # Logs pour le serveur PROJECT_DELTA
-    if role.guild.id == PROJECT_DELTA_ID:
+    if role.guild.id == PROJECT_DELTA:
         channel = get_log_channel(role.guild, "roles")
         await channel.send(f"🎭 **Rôle supprimé** : {role.name} ({role.id})")
 
 # Logs pour les mises à jour de rôle
 @bot.event
 async def on_guild_role_update(before, after):
-    if before.guild.id == PROJECT_DELTA_ID:
+    if before.guild.id == PROJECT_DELTA:
         channel = get_log_channel(before.guild, "roles")
         await channel.send(f"🎭 **Rôle mis à jour** : {before.name} → {after.name}")
+
 # --- Protection et Logs des salons ---
 @bot.event
 async def on_guild_channel_create(channel):
@@ -1018,7 +1019,7 @@ async def on_guild_channel_create(channel):
         return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été supprimé
 
     # Log de la création de salon dans le serveur PROJECT_DELTA
-    if channel.guild.id == PROJECT_DELTA_ID:
+    if channel.guild.id == PROJECT_DELTA:
         channel_log = get_log_channel(channel.guild, "channels")
         await channel_log.send(f"🗂️ **Salon créé** : {channel.name} ({channel.id})")
 
@@ -1037,20 +1038,20 @@ async def on_guild_channel_delete(channel):
         return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été recréé
 
     # Log de la suppression de salon dans le serveur PROJECT_DELTA
-    if channel.guild.id == PROJECT_DELTA_ID:
+    if channel.guild.id == PROJECT_DELTA:
         channel_log = get_log_channel(channel.guild, "channels")
         await channel_log.send(f"🗂️ **Salon supprimé** : {channel.name} ({channel.id})")
 
 @bot.event
 async def on_guild_channel_update(before, after):
-    if before.guild.id == PROJECT_DELTA_ID:
+    if before.guild.id == PROJECT_DELTA:
         channel_log = get_log_channel(before.guild, "channels")
         await channel_log.send(f"🗂️ **Salon mis à jour** : {before.name} → {after.name}")
 
 # --- Voice state update ---
 @bot.event
 async def on_voice_state_update(member, before, after):
-    if member.guild.id == PROJECT_DELTA_ID:
+    if member.guild.id == PROJECT_DELTA:
         channel = get_log_channel(member.guild, "vocal")
         if before.channel != after.channel:
             if after.channel:
@@ -1061,14 +1062,14 @@ async def on_voice_state_update(member, before, after):
 # --- Guild update ---
 @bot.event
 async def on_guild_update(before, after):
-    if before.id == PROJECT_DELTA_ID:
+    if before.id == PROJECT_DELTA:
         channel = get_log_channel(after, "serveur")
         await channel.send(f"⚙️ **Le serveur a été mis à jour** :\nNom : {before.name} → {after.name}")
 
 # --- Webhooks update ---
 @bot.event
 async def on_webhooks_update(guild, channel):
-    if guild.id == PROJECT_DELTA_ID:
+    if guild.id == PROJECT_DELTA:
         webhook_channel = get_log_channel(guild, "webhooks")
         await webhook_channel.send(f"🛰️ **Webhooks mis à jour** dans {channel.name} ({channel.id})")
 
@@ -1097,20 +1098,20 @@ async def on_member_ban(guild, user):
             return
 
     # --- Logs de ban ---
-    if guild.id == PROJECT_DELTA_ID:
+    if guild.id == PROJECT_DELTA:
         channel = get_log_channel(guild, "sanctions")
         await channel.send(f"🔨 **Membre banni** : {user.mention}")
 
 @bot.event
 async def on_member_unban(guild, user):
-    if guild.id == PROJECT_DELTA_ID:
+    if guild.id == PROJECT_DELTA:
         channel = get_log_channel(guild, "sanctions")
         await channel.send(f"🔓 **Membre débanni** : {user.mention}")
 
 # --- Bot logs ---
 @bot.event
 async def on_guild_update(before, after):
-    if before.id == PROJECT_DELTA_ID:
+    if before.id == PROJECT_DELTA:
         bot_channel = get_log_channel(after, "bots")
         await bot_channel.send(f"🤖 **Le bot a été mis à jour** :\nNom du serveur : {before.name} → {after.name}")
 
