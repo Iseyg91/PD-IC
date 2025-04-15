@@ -372,13 +372,26 @@ async def on_error(event, *args, **kwargs):
         color=discord.Color.red()
     )
     
-    # Vérifie si args[0] est une Interaction ou Message
+    # Vérifie si args[0] est une Interaction
     if isinstance(args[0], discord.Interaction):
         await args[0].response.send_message(embed=embed)
     elif isinstance(args[0], discord.Message):
+        # Si c'est un message, envoie l'embed dans le canal du message
         await args[0].channel.send(embed=embed)
+    elif isinstance(args[0], discord.abc.GuildChannel):
+        # Si c'est un canal de type GuildChannel, assure-toi que c'est un canal textuel
+        if isinstance(args[0], discord.TextChannel):
+            await args[0].send(embed=embed)
+        else:
+            # Si c'est un autre type de canal (comme un canal vocal), essaye de rediriger le message vers un canal textuel spécifique
+            text_channel = discord.utils.get(args[0].guild.text_channels, name='ton-salon-textuel')
+            if text_channel:
+                await text_channel.send(embed=embed)
+            else:
+                print("Erreur : Aucun salon textuel trouvé pour envoyer l'embed.")
     else:
         print("Erreur : Le type de l'objet n'est pas pris en charge pour l'envoi du message.")
+
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
 # Liste des mots sensibles
