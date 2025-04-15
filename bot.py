@@ -686,7 +686,6 @@ async def setup_logs(interaction: discord.Interaction):
 async def on_error(self, event_name, *args, **kwargs):
     if args:
         await args[0].response.send_message("Une erreur est survenue.")
-
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
