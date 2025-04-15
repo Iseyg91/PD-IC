@@ -692,15 +692,16 @@ class ClaimCloseView(ui.View):
         if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
             return await interaction.response.send_message("❌ Tu n'as pas la permission de claim.", ephemeral=True)
 
-    button.disabled = True
-    await interaction.message.edit(view=self)
+        # Désactive le bouton
+        button.disabled = True
+        await interaction.message.edit(view=self)
 
-    # Ajoute une note dans le footer de l'embed
-    embed = interaction.message.embeds[0]
-    embed.set_footer(text=f"Claimé par {interaction.user.mention}")
-    await interaction.message.edit(embed=embed)
+        # Ajoute une note dans le footer de l'embed
+        embed = interaction.message.embeds[0]
+        embed.set_footer(text=f"Claimé par {interaction.user.mention}")
+        await interaction.message.edit(embed=embed)
 
-    await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.")
+        await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.")
 
     @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
