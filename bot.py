@@ -1318,6 +1318,17 @@ async def tleave(ctx):
         )
         return await ctx.send("✅ Tu as quitté la team avec succès.")
 
+@bot.tree.command(name="reset_teams", description="⚠️ Supprime toutes les teams (réservé à l'admin).")
+async def reset_teams(interaction: discord.Interaction):
+    if interaction.user.id != 792755123587645461:
+        return await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser cette commande.", ephemeral=True)
+
+    result = collection17.delete_many({})
+    await interaction.response.send_message(
+        f"🧹 Toutes les teams ont été supprimées ({result.deleted_count} documents supprimés).",
+        ephemeral=True
+    )
+
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
     async def predicate(ctx):
