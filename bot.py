@@ -922,8 +922,6 @@ async def guide_command(interaction: discord.Interaction):
     # IMPORTANT : Permet au bot de continuer à traiter les commandes
     await bot.process_commands(message)
 
-kick_times = defaultdict(list)  # {guild_id: [timestamp1, timestamp2, ...]}
-
 @bot.event
 async def on_member_remove(member: discord.Member):
     guild_id = str(member.guild.id)
@@ -955,30 +953,30 @@ async def on_member_remove(member: discord.Member):
                 except Exception as e:
                     print(f"[Erreur Masskick] : {e}")
 
-# Envoi du message lorsque le membre quitte le serveur sur PROJECT_DELTA
-if member.guild.id == PROJECT_DELTA:
-    channel = get_log_channel(member.guild, "utilisateurs")
-    if channel:
-        embed = discord.Embed(
-            title="❌ Départ d'un Membre",
-            description=f"{member.mention} a quitté le serveur.",
-            color=discord.Color.red()
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
-        embed.timestamp = discord.utils.utcnow()
+    # Envoi du message lorsque le membre quitte le serveur sur PROJECT_DELTA
+    if member.guild.id == PROJECT_DELTA:
+        channel = get_log_channel(member.guild, "utilisateurs")
+        if channel:
+            embed = discord.Embed(
+                title="❌ Départ d'un Membre",
+                description=f"{member.mention} a quitté le serveur.",
+                color=discord.Color.red()
+            )
+            embed.set_thumbnail(url=member.display_avatar.url)
+            embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
+            embed.timestamp = discord.utils.utcnow()
 
-        # Ajout de la durée de présence si disponible
-        if member.joined_at:
-            duration = discord.utils.utcnow() - member.joined_at
-            days = duration.days
-            hours = duration.seconds // 3600
-            minutes = (duration.seconds % 3600) // 60
+            # Ajout de la durée de présence si disponible
+            if member.joined_at:
+                duration = discord.utils.utcnow() - member.joined_at
+                days = duration.days
+                hours = duration.seconds // 3600
+                minutes = (duration.seconds % 3600) // 60
 
-            formatted_duration = f"{days}j {hours}h {minutes}min"
-            embed.add_field(name="Durée sur le serveur", value=formatted_duration, inline=False)
+                formatted_duration = f"{days}j {hours}h {minutes}min"
+                embed.add_field(name="Durée sur le serveur", value=formatted_duration, inline=False)
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
 # --- Nickname update ---
 @bot.event
