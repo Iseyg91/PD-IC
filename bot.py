@@ -1303,11 +1303,14 @@ async def tleave(ctx):
     if not team:
         return await ctx.send("❌ Tu n'es dans aucune team.")
 
-    is_owner = team["owner_id"] == user_id
+    owner_id = team.get("owner_id")
 
-    if is_owner:
+    if owner_id is None:
+        return await ctx.send("⚠️ Cette team n'a pas de propriétaire défini. Veuillez contacter un admin.")
+
+    if owner_id == user_id:
         collection17.delete_one({"_id": team["_id"]})
-        return await ctx.send("👋 Tu étais le propriétaire. La team a été supprimée.")
+        return await ctx.send("👑 Tu étais le propriétaire. La team a été supprimée.")
     else:
         collection17.update_one(
             {"_id": team["_id"]},
