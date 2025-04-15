@@ -22,6 +22,7 @@ from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 import psutil
 import platform
+from discord.ui import Select, View
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
@@ -1006,6 +1007,8 @@ async def tinvite(ctx, member: discord.Member):
 
 @bot.command()
 async def tpromote(ctx, member: discord.Member):
+    """Commande pour promouvoir un membre de sa team."""
+    
     if not check_project_delta(ctx):
         return
 
@@ -1013,40 +1016,73 @@ async def tpromote(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
+    # Récupère la team de l'auteur
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team or target_id not in team.get("members", {}):
-        await ctx.send("Cette personne n'est pas dans ta team.")
+        await ctx.send(embed=discord.Embed(
+            description="❌ Cette personne ne fait pas partie de ta team.",
+            color=0xE74C3C
+        ))
         return
 
     role_order = ["Membre", "Officier", "Bras-Droit", "Second"]
     roles = team["members"]
-    
+
     author_role = roles.get(user_id)
     target_role = roles.get(target_id)
 
+    # Vérifie les permissions
     if author_role not in ["Owner", "Second"]:
-        await ctx.send("Tu n'as pas la permission de promouvoir.")
+        await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas la permission de promouvoir des membres.",
+            color=0xE67E22
+        ))
         return
 
+    # Vérifie si la personne est déjà au rang maximal
     if target_role == "Second":
-        await ctx.send("Cette personne est déjà au grade le plus élevé.")
+        await ctx.send(embed=discord.Embed(
+            description="⚠️ Cette personne est déjà au grade le plus élevé.",
+            color=0xF1C40F
+        ))
         return
 
     next_index = role_order.index(target_role) + 1
-    if role_order[next_index] == "Second":
+    new_rank = role_order[next_index]
+
+    # Un seul "Second" autorisé
+    if new_rank == "Second":
         for member_id, r in roles.items():
             if r == "Second":
-                await ctx.send("Il y a déjà un Second dans la team.")
+                await ctx.send(embed=discord.Embed(
+                    description="🚫 Il y a déjà un **Second** dans la team. Un seul est autorisé.",
+                    color=0x9B59B6
+                ))
                 return
 
+    # Mise à jour du grade dans la base de données
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$set": {f"members.{target_id}": role_order[next_index]}}
+        {"$set": {f"members.{target_id}": new_rank}}
     )
-    await ctx.send(f"{member.mention} a été promu au rang **{role_order[next_index]}**.")
+
+    # Confirmation dans un embed
+    embed = discord.Embed(
+        title="📈 Promotion",
+        description=(
+            f"{member.mention} a été promu au rang **{new_rank}** dans la team **{team['team_id']}** ! 🎉"
+        ),
+        color=0x2ECC71
+    )
+    embed.set_footer(text=f"Promu par {ctx.author.display_name}")
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def tdemote(ctx, member: discord.Member):
+    """Commande pour rétrograder un membre de sa team."""
+    
     if not check_project_delta(ctx):
         return
 
@@ -1054,9 +1090,13 @@ async def tdemote(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
+    # Récupération des données de la team
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team or target_id not in team.get("members", {}):
-        await ctx.send("Cette personne n'est pas dans ta team.")
+        await ctx.send(embed=discord.Embed(
+            description="❌ Cette personne ne fait pas partie de ta team.",
+            color=0xE74C3C
+        ))
         return
 
     role_order = ["Membre", "Officier", "Bras-Droit", "Second"]
@@ -1065,23 +1105,49 @@ async def tdemote(ctx, member: discord.Member):
     author_role = roles.get(user_id)
     target_role = roles.get(target_id)
 
+    # Vérifie si l'utilisateur a les droits
     if author_role not in ["Owner", "Second"]:
-        await ctx.send("Tu n'as pas la permission de rétrograder.")
+        await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas la permission de rétrograder des membres.",
+            color=0xE67E22
+        ))
         return
 
+    # Vérifie si le membre est déjà au plus bas rang
     if target_role == "Membre":
-        await ctx.send("Cette personne est déjà au rang le plus bas.")
+        await ctx.send(embed=discord.Embed(
+            description="⚠️ Cette personne est déjà au rang le plus bas.",
+            color=0xF1C40F
+        ))
         return
 
+    # Rétrogradation
     new_index = role_order.index(target_role) - 1
+    new_rank = role_order[new_index]
+
+    # Mise à jour du rôle dans la base de données
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$set": {f"members.{target_id}": role_order[new_index]}}
+        {"$set": {f"members.{target_id}": new_rank}}
     )
-    await ctx.send(f"{member.mention} a été rétrogradé au rang **{role_order[new_index]}**.")
+
+    # Confirmation en embed
+    embed = discord.Embed(
+        title="📉 Rétrogradation",
+        description=(
+            f"{member.mention} a été rétrogradé au rang **{new_rank}** dans la team **{team['team_id']}**."
+        ),
+        color=0xE67E22
+    )
+    embed.set_footer(text=f"Rétrogradé par {ctx.author.display_name}")
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def towner(ctx, member: discord.Member):
+    """Transfert de propriété de la team à un autre membre."""
+
     if not check_project_delta(ctx):
         return
 
@@ -1089,11 +1155,16 @@ async def towner(ctx, member: discord.Member):
     new_owner_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
+    # Récupère la team où l'utilisateur est propriétaire
     team = collection17.find_one({"guild_id": guild_id, "owner": user_id})
-    if not team or new_owner_id not in team["members"]:
-        await ctx.send("Cette personne n'est pas dans ta team.")
+    if not team or new_owner_id not in team.get("members", {}):
+        await ctx.send(embed=discord.Embed(
+            description="❌ Cette personne ne fait pas partie de ta team.",
+            color=0xE74C3C
+        ))
         return
 
+    # Mise à jour du propriétaire et des rôles
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
         {
@@ -1104,78 +1175,163 @@ async def towner(ctx, member: discord.Member):
             }
         }
     )
-    await ctx.send(f"{member.mention} est maintenant le nouveau propriétaire de la team.")
-from discord.ui import Select, View
+
+    # Confirmation en embed
+    embed = discord.Embed(
+        title="👑 Transfert de Propriété",
+        description=(
+            f"{member.mention} est désormais le **nouveau propriétaire** de la team "
+            f"**{team['team_id']}** !\n\n"
+            f"👏 Merci à {ctx.author.mention} pour son service en tant qu'ancien Owner."
+        ),
+        color=0x3498db
+    )
+    embed.set_footer(text="Changement de direction de l'équipe")
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def tedit(ctx):
+    """Permet au propriétaire de modifier le nom ou la description de sa team."""
+    
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
-    team = collection17.find_one({"guild_id": guild_id, "owner": user_id})
 
+    # Vérifie que l'utilisateur est bien owner d'une team
+    team = collection17.find_one({"guild_id": guild_id, "owner": user_id})
     if not team:
-        await ctx.send("Tu n'es pas propriétaire d'une team.")
+        await ctx.send(embed=discord.Embed(
+            description="❌ Tu n'es pas propriétaire d'une team.",
+            color=0xE74C3C
+        ))
         return
 
-    class TeamEditSelect(Select):
+    class TeamEditSelect(discord.ui.Select):
         def __init__(self):
             options = [
-                discord.SelectOption(label="Changer la description", value="desc"),
-                discord.SelectOption(label="Changer le nom", value="name", description="⚠️ Cela ne change pas l'ID.")
+                discord.SelectOption(
+                    label="Changer la description",
+                    value="desc",
+                    description="Modifier la description publique de la team"
+                ),
+                discord.SelectOption(
+                    label="Changer le nom d'affichage",
+                    value="name",
+                    description="⚠️ Cela ne change pas l'identifiant unique (ID)"
+                )
             ]
-            super().__init__(placeholder="Que veux-tu modifier ?", min_values=1, max_values=1, options=options)
+            super().__init__(
+                placeholder="📌 Que souhaites-tu modifier ?",
+                min_values=1,
+                max_values=1,
+                options=options
+            )
 
         async def callback(self, interaction: discord.Interaction):
-            if self.values[0] == "desc":
-                await interaction.response.send_message("Envoie la nouvelle description :", ephemeral=True)
-                msg = await bot.wait_for('message', check=lambda m: m.author.id == interaction.user.id and m.channel == ctx.channel)
+            if interaction.user.id != ctx.author.id:
+                await interaction.response.send_message("⛔ Tu ne peux pas interagir avec cette sélection.", ephemeral=True)
+                return
+
+            selected = self.values[0]
+            prompt = "✏️ Envoie la **nouvelle description** :" if selected == "desc" else "📝 Envoie le **nouveau nom** de la team :"
+
+            await interaction.response.send_message(prompt, ephemeral=True)
+
+            try:
+                msg = await bot.wait_for(
+                    "message",
+                    timeout=60.0,
+                    check=lambda m: m.author.id == ctx.author.id and m.channel == ctx.channel
+                )
+            except asyncio.TimeoutError:
+                await interaction.followup.send("⏰ Temps écoulé. Action annulée.", ephemeral=True)
+                return
+
+            if selected == "desc":
                 collection17.update_one(
                     {"guild_id": guild_id, "team_id": team["team_id"]},
                     {"$set": {"description": msg.content}}
                 )
-                await interaction.followup.send("Description mise à jour.")
-            elif self.values[0] == "name":
-                await interaction.response.send_message("Envoie le nouveau nom :", ephemeral=True)
-                msg = await bot.wait_for('message', check=lambda m: m.author.id == interaction.user.id and m.channel == ctx.channel)
+                result_msg = "📝 La description de la team a été mise à jour avec succès."
+            else:
                 collection17.update_one(
                     {"guild_id": guild_id, "team_id": team["team_id"]},
-                    {"$set": {"name": msg.content}}  # Nom d’affichage uniquement
+                    {"$set": {"name": msg.content}}
                 )
-                await interaction.followup.send("Nom de la team mis à jour (l'ID reste inchangé).")
+                result_msg = "✅ Le **nom d'affichage** de la team a été mis à jour.\n*(L'identifiant reste inchangé)*"
 
-    view = View()
-    view.add_item(TeamEditSelect())
-    await ctx.send("🔧 Choisis une option pour modifier ta team :", view=view)
+            await interaction.followup.send(embed=discord.Embed(
+                description=result_msg,
+                color=0x2ECC71
+            ))
+
+    class TeamEditView(discord.ui.View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.add_item(TeamEditSelect())
+
+    embed = discord.Embed(
+        title="🛠️ Modification de Team",
+        description="Choisis ce que tu veux modifier dans ta team :",
+        color=0x3498DB
+    )
+    embed.set_footer(text="Commande réservée aux propriétaires de team.")
+
+    await ctx.send(embed=embed, view=TeamEditView())
 
 @bot.command()
 async def tdep(ctx, amount: str):
+    """Dépose des coins dans le coffre de la team."""
+    
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
+
     eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
-    
+
+    # Vérifications d'appartenance à une team et de solde
     if not team:
-        return await ctx.send("Tu n'es pas dans une team.")
-    if not eco or eco["coins"] <= 0:
-        return await ctx.send("Tu n'as pas assez de coins.")
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu ne fais partie d'aucune team.",
+            color=0xE74C3C
+        ))
+    if not eco or eco.get("coins", 0) <= 0:
+        return await ctx.send(embed=discord.Embed(
+            description="💸 Tu n'as pas assez de coins pour effectuer un dépôt.",
+            color=0xF39C12
+        ))
 
     user_balance = eco["coins"]
-    if amount == "all":
+
+    # Gestion du montant à déposer
+    if amount.lower() == "all":
         deposit = user_balance
     elif amount.isdigit():
         deposit = int(amount)
+        if deposit <= 0:
+            return await ctx.send(embed=discord.Embed(
+                description="🚫 Le montant doit être supérieur à 0.",
+                color=0xE67E22
+            ))
         if deposit > user_balance:
-            return await ctx.send("Tu n'as pas assez de coins.")
+            return await ctx.send(embed=discord.Embed(
+                description="❗ Tu n'as pas assez de coins pour ce dépôt.",
+                color=0xE74C3C
+            ))
     else:
-        return await ctx.send("Montant invalide.")
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Montant invalide. Utilise un nombre ou `all`.",
+            color=0xE74C3C
+        ))
 
-    # Mise à jour
+    # Mise à jour des bases de données
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"coins": -deposit}}
@@ -1185,36 +1341,73 @@ async def tdep(ctx, amount: str):
         {"$inc": {"coffre": deposit}}
     )
 
-    await ctx.send(f"Tu as déposé **{deposit}** 🪙 dans le coffre de ta team.")
+    # Confirmation en embed
+    embed = discord.Embed(
+        title="💰 Dépôt effectué",
+        description=f"Tu as déposé **{deposit}** 🪙 dans le coffre de la team **{team['team_id']}**.",
+        color=0x2ECC71
+    )
+    embed.set_footer(text="Merci pour ta contribution à l'équipe !")
+    embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def twith(ctx, amount: str):
+    """Permet de retirer des coins du coffre de la team (autorisé uniquement à certains grades)."""
+    
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
+
     eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
-    
-    if not team:
-        return await ctx.send("Tu n'es pas dans une team.")
 
-    role = team["members"][user_id]
+    if not team:
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu ne fais partie d'aucune team.",
+            color=0xE74C3C
+        ))
+
+    # Rôle du membre dans la team
+    role = team["members"].get(user_id)
     if role not in ["Officier", "Bras-Droit", "Second", "Owner"]:
-        return await ctx.send("Tu n'as pas le rang requis pour faire ça.")
+        return await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas le grade requis pour faire un retrait.\n(Il faut être au moins **Officier**)",
+            color=0xF39C12
+        ))
 
     coffre = team.get("coffre", 0)
-    if amount == "all":
+
+    # Détermination du montant à retirer
+    if amount.lower() == "all":
+        if coffre <= 0:
+            return await ctx.send(embed=discord.Embed(
+                description="💸 Le coffre est vide.",
+                color=0xE74C3C
+            ))
         withdraw = coffre
     elif amount.isdigit():
         withdraw = int(amount)
+        if withdraw <= 0:
+            return await ctx.send(embed=discord.Embed(
+                description="🚫 Le montant doit être supérieur à 0.",
+                color=0xE67E22
+            ))
         if withdraw > coffre:
-            return await ctx.send("Il n'y a pas assez dans le coffre.")
+            return await ctx.send(embed=discord.Embed(
+                description="❗ Le coffre ne contient pas assez de coins.",
+                color=0xE74C3C
+            ))
     else:
-        return await ctx.send("Montant invalide.")
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Montant invalide. Utilise un nombre ou `all`.",
+            color=0xE74C3C
+        ))
 
-    # Update
+    # Mise à jour des bases de données
     collection10.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"coins": withdraw}}
@@ -1224,30 +1417,60 @@ async def twith(ctx, amount: str):
         {"$inc": {"coffre": -withdraw}}
     )
 
-    await ctx.send(f"Tu as retiré **{withdraw}** 🪙 du coffre de la team.")
+    # Embed de confirmation
+    embed = discord.Embed(
+        title="🏦 Retrait effectué",
+        description=f"Tu as retiré **{withdraw}** 🪙 du coffre de la team **{team['team_id']}**.",
+        color=0x2ECC71
+    )
+    embed.set_footer(text=f"Effectué par {ctx.author.display_name}")
+    embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def ttop(ctx):
+    """Affiche le classement des teams selon leur coffre."""
+
     if not check_project_delta(ctx):
         return
 
     guild_id = str(ctx.guild.id)
-    teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(10)
-    
+    teams = list(collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(10))
+
+    if not teams:
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Aucune team trouvée dans ce serveur.",
+            color=0xE74C3C
+        ))
+
     embed = discord.Embed(
-        title="🏆 Classement des Teams",
+        title="🏆 Top 10 des Teams par Coffre",
+        description="Voici les teams les plus riches de ce serveur !",
         color=discord.Color.gold()
     )
 
     for i, team in enumerate(teams, start=1):
-        name = team.get("name", "Sans nom")
+        name = team.get("name") or team.get("team_id", "Sans nom")
         coffre = team.get("coffre", 0)
-        embed.add_field(name=f"{i}. {name}", value=f"💰 Coffre : **{coffre}** 🪙", inline=False)
+        owner_id = team.get("owner")
+        owner_mention = f"<@{owner_id}>" if owner_id else "Inconnu"
+
+        embed.add_field(
+            name=f"**#{i}** - {name}",
+            value=f"💰 **{coffre}** 🪙\n👑 Propriétaire : {owner_mention}",
+            inline=False
+        )
+
+    embed.set_footer(text="Basé sur le contenu du coffre de chaque team.")
+    embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
 
     await ctx.send(embed=embed)
 
 @bot.command()
 async def tkick(ctx, member: discord.Member):
+    """Permet de retirer un membre de sa team (si autorisé)."""
+
     if not check_project_delta(ctx):
         return
 
@@ -1255,22 +1478,65 @@ async def tkick(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
-    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
-    if not team or target_id not in team["members"]:
-        return await ctx.send("Cette personne n'est pas dans ta team.")
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
 
-    role = team["members"][user_id]
+    if not team:
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu ne fais partie d'aucune team.",
+            color=0xE74C3C
+        ))
+
+    if target_id not in team.get("members", {}):
+        return await ctx.send(embed=discord.Embed(
+            description="🚫 Ce membre ne fait pas partie de ta team.",
+            color=0xE67E22
+        ))
+
+    if target_id == user_id:
+        return await ctx.send(embed=discord.Embed(
+            description="🤨 Tu ne peux pas te kick toi-même.",
+            color=0xF1C40F
+        ))
+
+    role = team["members"].get(user_id)
+    target_role = team["members"].get(target_id)
+
     if role not in ["Second", "Owner"]:
-        return await ctx.send("Tu n'as pas la permission.")
+        return await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas la permission d'exclure un membre (il faut être **Second** ou **Owner**).",
+            color=0xE74C3C
+        ))
 
+    # Empêcher qu’un Second kick un Owner ou un autre Second
+    role_hierarchy = {"Membre": 1, "Officier": 2, "Bras-Droit": 3, "Second": 4, "Owner": 5}
+    if role_hierarchy.get(role, 0) <= role_hierarchy.get(target_role, 0):
+        return await ctx.send(embed=discord.Embed(
+            description="⚠️ Tu ne peux pas exclure un membre ayant un rôle égal ou supérieur au tien.",
+            color=0xE67E22
+        ))
+
+    # Suppression du membre
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
         {"$unset": {f"members.{target_id}": ""}}
     )
-    await ctx.send(f"{member.mention} a été retiré de la team.")
+
+    # Embed de confirmation
+    embed = discord.Embed(
+        title="👢 Membre exclu",
+        description=f"{member.mention} a été retiré de la team **{team.get('name', team['team_id'])}**.",
+        color=0xE74C3C
+    )
+    embed.set_footer(text=f"Exclu par {ctx.author.display_name}")
+    embed.set_thumbnail(url=ctx.author.avatar.url if ctx.author.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
+
 
 @bot.command()
 async def tban(ctx, member: discord.Member):
+    """Permet de bannir un membre de la team si autorisé."""
+
     if not check_project_delta(ctx):
         return
 
@@ -1278,14 +1544,36 @@ async def tban(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
-    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
-    if not team or target_id not in team["members"]:
-        return await ctx.send("Cette personne n'est pas dans ta team.")
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
 
-    role = team["members"][user_id]
+    if not team:
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu ne fais partie d'aucune team.",
+            color=0xE74C3C
+        ))
+
+    if target_id not in team.get("members", {}):
+        return await ctx.send(embed=discord.Embed(
+            description="🚫 Ce membre ne fait pas partie de ta team.",
+            color=0xE67E22
+        ))
+
+    if target_id == user_id:
+        return await ctx.send(embed=discord.Embed(
+            description="🤨 Tu ne peux pas bannir toi-même.",
+            color=0xF1C40F
+        ))
+
+    role = team["members"].get(user_id)
+    target_role = team["members"].get(target_id)
+
     if role not in ["Second", "Owner"]:
-        return await ctx.send("Tu n'as pas la permission.")
+        return await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas la permission de bannir un membre. (Il faut être **Second** ou **Owner**)",
+            color=0xE74C3C
+        ))
 
+    # Bannissement du membre
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
         {
@@ -1293,10 +1581,22 @@ async def tban(ctx, member: discord.Member):
             "$addToSet": {"bans": target_id}
         }
     )
-    await ctx.send(f"{member.mention} a été **banni** de la team.")
+
+    # Embed de confirmation
+    embed = discord.Embed(
+        title="🚫 Membre Banni",
+        description=f"{member.mention} a été **banni** de la team **{team.get('name', team['team_id'])}**.",
+        color=0xE74C3C
+    )
+    embed.set_footer(text=f"Banni par {ctx.author.display_name}")
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def tunban(ctx, member: discord.Member):
+    """Permet de débannir un membre de la team si autorisé."""
+
     if not check_project_delta(ctx):
         return
 
@@ -1304,78 +1604,156 @@ async def tunban(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
-    team = collection17.find_one({"guild_id": guild_id, "members."+user_id: {"$exists": True}})
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+
     if not team:
-        return await ctx.send("Tu n'es pas dans une team.")
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu ne fais pas partie d'aucune team.",
+            color=0xE74C3C
+        ))
 
-    role = team["members"][user_id]
+    if target_id not in team.get("bans", []):
+        return await ctx.send(embed=discord.Embed(
+            description="🚫 Ce membre n'est pas banni de ta team.",
+            color=0xE67E22
+        ))
+
+    role = team["members"].get(user_id)
+
     if role not in ["Second", "Owner"]:
-        return await ctx.send("Tu n'as pas la permission.")
+        return await ctx.send(embed=discord.Embed(
+            description="⛔ Tu n'as pas la permission de débannir un membre. (Il faut être **Second** ou **Owner**)",
+            color=0xE74C3C
+        ))
 
+    # Débannissement du membre
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
         {"$pull": {"bans": target_id}}
     )
-    await ctx.send(f"{member.mention} a été débanni de la team.")
+
+    # Embed de confirmation
+    embed = discord.Embed(
+        title="✅ Membre Débanni",
+        description=f"{member.mention} a été **débanni** de la team **{team.get('name', team['team_id'])}**.",
+        color=0x2ECC71
+    )
+    embed.set_footer(text=f"Débanni par {ctx.author.display_name}")
+    embed.set_thumbnail(url=member.avatar.url if member.avatar else discord.Embed.Empty)
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def tleave(ctx):
+    """Permet à un membre de quitter sa team."""
+
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
+    # Recherche de l'équipe à partir de l'ID du membre
     team = collection17.find_one({f"members.{user_id}": {"$exists": True}, "guild_id": guild_id})
+
     if not team:
-        return await ctx.send("❌ Tu n'es dans aucune team.")
+        return await ctx.send(embed=discord.Embed(
+            description="❌ Tu n'es dans aucune team.",
+            color=0xE74C3C
+        ))
 
-    owner_id = team.get("owner_id")
+    owner_id = team.get("owner")
 
-    # Si le membre est le propriétaire (ou le champ owner_id n'existe pas mais correspond à l'utilisateur)
+    # Si le membre est le propriétaire de la team
     if owner_id == user_id:
         collection17.delete_one({"_id": team["_id"]})
-        return await ctx.send("👑 Tu étais le propriétaire. La team a été supprimée.")
+        embed = discord.Embed(
+            title="🏆 Team Supprimée",
+            description="👑 Tu étais le propriétaire de la team. En conséquence, la team a été supprimée.",
+            color=0xE74C3C
+        )
+        embed.set_footer(text=f"Action réalisée par {ctx.author.display_name}")
+        return await ctx.send(embed=embed)
 
-    # Si l'owner_id est absent (et que le membre n'est pas owner), permettre de quitter quand même
+    # Si le membre n'est pas le propriétaire, on le retire de la team
     collection17.update_one(
         {"_id": team["_id"]},
         {"$unset": {f"members.{user_id}": ""}}
     )
-    return await ctx.send("✅ Tu as quitté la team avec succès.")
+
+    embed = discord.Embed(
+        title="✅ Quitter la Team",
+        description=f"{ctx.author.mention} a quitté la team **{team['team_id']}** avec succès.",
+        color=0x2ECC71
+    )
+    embed.set_footer(text=f"Action réalisée par {ctx.author.display_name}")
+    await ctx.send(embed=embed)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def clean_teams(ctx):
-    # Vérification que la commande est exécutée dans le bon serveur
+    """Supprime les teams sans propriétaire."""
+    
     if not check_project_delta(ctx):
         return
 
-    # Recherche des teams sans propriétaire défini
+    # Recherche des teams sans propriétaire
     teams_without_owner = collection17.find({"owner_id": {"$exists": False}})
     deleted_teams_count = 0
 
+    # Traitement des teams sans propriétaire
     for team in teams_without_owner:
-        # Suppression des teams sans propriétaire
         collection17.delete_one({"_id": team["_id"]})
         deleted_teams_count += 1
 
+    # Retour visuel selon le résultat
     if deleted_teams_count > 0:
-        await ctx.send(f"✅ {deleted_teams_count} teams sans propriétaire ont été supprimées.")
+        embed = discord.Embed(
+            title="✅ Suppression des Teams",
+            description=f"{deleted_teams_count} team(s) sans propriétaire ont été supprimées avec succès.",
+            color=0x2ECC71
+        )
+        embed.set_footer(text=f"Action réalisée par {ctx.author.display_name}")
+        await ctx.send(embed=embed)
     else:
-        await ctx.send("❌ Aucune team sans propriétaire n'a été trouvée.")
-
+        embed = discord.Embed(
+            title="❌ Aucune Team à Supprimer",
+            description="Aucune team sans propriétaire n'a été trouvée dans ce serveur.",
+            color=0xE74C3C
+        )
+        embed.set_footer(text=f"Action réalisée par {ctx.author.display_name}")
+        await ctx.send(embed=embed)
 
 @bot.tree.command(name="reset_teams", description="⚠️ Supprime toutes les teams (réservé à l'admin).")
 async def reset_teams(interaction: discord.Interaction):
+    # Vérification que l'utilisateur est bien l'admin autorisé
     if interaction.user.id != 792755123587645461:
-        return await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser cette commande.", ephemeral=True)
+        return await interaction.response.send_message(
+            "❌ Tu n'es pas autorisé à utiliser cette commande.", ephemeral=True
+        )
 
-    result = collection17.delete_many({})
-    await interaction.response.send_message(
-        f"🧹 Toutes les teams ont été supprimées ({result.deleted_count} documents supprimés).",
-        ephemeral=True
-    )
+    try:
+        # Suppression de toutes les teams dans la collection
+        result = collection17.delete_many({})
+        
+        # Réponse de succès avec nombre de documents supprimés
+        if result.deleted_count > 0:
+            await interaction.response.send_message(
+                f"🧹 Toutes les teams ont été supprimées avec succès ! ({result.deleted_count} documents supprimés).",
+                ephemeral=True
+            )
+        else:
+            # Si aucune team n'a été supprimée (cas où il n'y avait pas de teams)
+            await interaction.response.send_message(
+                "❗ Aucune team n'a été trouvée à supprimer.", ephemeral=True
+            )
+
+    except Exception as e:
+        # Gestion d'erreur en cas de problème avec la suppression
+        await interaction.response.send_message(
+            f"⚠️ Une erreur est survenue lors de la suppression des teams. Détails : {str(e)}", ephemeral=True
+        )
+
 
 #--------------------------------------------------------------------------- Eco:
 def has_eco_vip_role():
