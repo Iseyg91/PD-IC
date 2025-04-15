@@ -75,7 +75,7 @@ collection14 = db['eco_slut'] #Stock le temps de Slut
 collection15 = db['eco_crime'] #Stock le temps de Crime
 collection16 = db['ticket'] #Stock les Tickets
 collection17 = db['team'] #Stock les Teams
-collection19 = db ['logs'] #Stock les Salons Logs
+collection18 = db ['logs'] #Stock les Salons Logs
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -637,7 +637,6 @@ async def on_guild_remove(guild):
 
     await channel.send(embed=embed)
 #---------------------------------------------------------------------------- Logs:
-
 # Fonction pour vérifier si l'utilisateur est administrateur
 async def is_admin(interaction: discord.Interaction):
     # Utilisation de interaction.user pour accéder aux permissions
@@ -682,6 +681,11 @@ async def setup_logs(interaction: discord.Interaction):
         embed.add_field(name=name, value=f"Salon créé : {channel.mention}", inline=False)
 
     await interaction.response.send_message(embed=embed)
+
+# Gestion des erreurs
+async def on_error(self, event_name, *args, **kwargs):
+    if args:
+        await args[0].response.send_message("Une erreur est survenue.")
 
 #---------------------------------------------------------------------------- Ticket:
 
