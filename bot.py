@@ -793,15 +793,15 @@ async def on_member_join(member):
 
         # Création de l'embed pour Project : Delta
         embed = discord.Embed(
-            title=":fete: **Bienvenue sur Project : Delta !** :fete:",
+            title="<a:fete:1172810362261880873> **Bienvenue sur Project : Delta !** <a:fete:1172810362261880873>",
             description=(
-                ":pin: Ce serveur est dédié au **support du bot Project : Delta** ainsi qu’à tout ce qui touche à la **création de bots Discord**, **serveurs sur-mesure**, **sites web**, et **services de graphisme**. **Tout est là pour t’accompagner dans tes projets !**\n\n"
-                ":Anouncements_Animated: **Avant de démarrer, voici quelques infos essentielles :**\n\n"
-                ":fleche2: ⁠︱** <#1359963854892957892> ** pour éviter les mauvaises surprises.\n"
-                ":fleche2: ⁠︱** <#1360365346275459274> ** pour bien comprendre comment utiliser le bot Project : Delta.\n"
-                ":fleche2: ⁠︱** <#1361710727986937877> ** pour découvrir nos services et produits.\n\n"
-                ":emojigg_1: **Tu rencontres un problème ou tu as une question ?** Ouvre un ticket, notre équipe de support est là pour t’aider !\n\n"
-                "Prêt à faire évoluer tes projets avec **Project : Delta** ? :fete:"
+                "<a:pin:1172810912386777119> Ce serveur est dédié au **support du bot Project : Delta** ainsi qu’à tout ce qui touche à la **création de bots Discord**, **serveurs sur-mesure**, **sites web**, et **services de graphisme**. **Tout est là pour t’accompagner dans tes projets !**\n\n"
+                "<a:Anouncements_Animated:1355647614133207330> **Avant de démarrer, voici quelques infos essentielles :**\n\n"
+                "<a:fleche2:1290296814397816927> ⁠︱** <#1359963854892957892> ** pour éviter les mauvaises surprises.\n"
+                "<a:fleche2:1290296814397816927> ⁠︱** <#1360365346275459274> ** pour bien comprendre comment utiliser le bot Project : Delta.\n"
+                "<a:fleche2:1290296814397816927> ⁠︱** <#1361710727986937877> ** pour découvrir nos services et produits.\n\n"
+                "<a:emojigg_1:1355608239835844850> **Tu rencontres un problème ou tu as une question ?** Ouvre un ticket, notre équipe de support est là pour t’aider !\n\n"
+                "Prêt à faire évoluer tes projets avec **Project : Delta** ? <a:fete:1172810362261880873>"
             ),
             color=discord.Color.blue()
         )
