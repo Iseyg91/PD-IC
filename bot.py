@@ -781,13 +781,20 @@ async def send_economy_info(user: discord.Member):
 
 @bot.event
 async def on_member_join(member):
-    # Vérifie si le membre a rejoint le bon serveur
-    if member.guild.id == 1359963854200639498:  # Project : Delta
+    # Vérifie si le membre a rejoint le serveur Project : Delta
+    PROJECT_DELTA = 1359963854200639498
+    if member.guild.id == PROJECT_DELTA:
         # Salon de bienvenue
-        channel = bot.get_channel(1359963854892957893)
+        welcome_channel_id = 1360904472456593489  # Salon spécifique de bienvenue
+        welcome_channel = bot.get_channel(welcome_channel_id)
 
         # Premier message de bienvenue (mention de la personne qui a rejoint)
-        await channel.send(f"Bienvenue {member.mention} ! 🎉")
+        await welcome_channel.send(f"Bienvenue {member.mention} ! 🎉")
+
+        # Créer le message de bienvenue avec un comptage des membres
+        member_count = len(member.guild.members)
+        welcome_message = f"Nous sommes maintenant {member_count} membres ! <a:WelcomePengu:1361709263839428608>"
+        await welcome_channel.send(welcome_message)
 
         # Création de l'embed pour Project : Delta
         embed = discord.Embed(
@@ -806,7 +813,7 @@ async def on_member_join(member):
         embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/3702f708294b49536cb70ffdcfc711c101eb0598/IMAGES%20Delta/uri_ifs___M_ff5898f7-21fa-42c9-ad22-6ea18af53e80.jpg?raw=true")
 
         # Envoi de l'embed pour Project : Delta
-        await channel.send(embed=embed)
+        await welcome_channel.send(embed=embed)
 
     # Vérifie si c'est le serveur Etherya
     if member.guild.id == ETHERYA_SERVER_ID:
