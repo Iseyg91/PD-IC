@@ -914,7 +914,9 @@ async def team_command(ctx):
         description=team['description'],
         color=0x1E7F1E  # Un vert plus doux pour une bonne lisibilité
     )
-    embed.add_field(name="💰 Coffre-Fort", value=f"{team['vault']} coins", inline=False)
+    
+    # Affiche les coins du coffre (avec valeur par défaut de 0 si 'coffre' n'existe pas)
+    embed.add_field(name="💰 Coffre-Fort", value=f"{team.get('coffre', 0)} coins", inline=False)
 
     # Création de la liste des membres avec leurs rôles
     members_str = ""
@@ -1338,7 +1340,7 @@ async def tdep(ctx, amount: str):
     )
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$inc": {"coffre": deposit}}
+        {"$inc": {"coffre": deposit}}  # Assure-toi que le champ 'coffre' est bien mis à jour
     )
 
     # Confirmation en embed
@@ -1379,7 +1381,7 @@ async def twith(ctx, amount: str):
             color=0xF39C12
         ))
 
-    coffre = team.get("coffre", 0)
+    coffre = team.get("coffre", 0)  # Valeur par défaut 0 si 'coffre' n'existe pas
 
     # Détermination du montant à retirer
     if amount.lower() == "all":
@@ -1414,7 +1416,7 @@ async def twith(ctx, amount: str):
     )
     collection17.update_one(
         {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$inc": {"coffre": -withdraw}}
+        {"$inc": {"coffre": -withdraw}}  # Assure-toi que le champ 'coffre' est bien mis à jour
     )
 
     # Embed de confirmation
