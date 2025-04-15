@@ -847,20 +847,20 @@ async def on_member_join(member):
         guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
         await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
 
-# Envoi d'une notification de log dans le salon spécifique du serveur
-if member.guild.id == PROJECT_DELTA:
-    channel = get_log_channel(member.guild, "utilisateurs")
-    if channel:
-        embed = discord.Embed(
-            title="✅ Nouveau Membre",
-            description=f"{member.mention} a rejoint le serveur.",
-            color=discord.Color.green()
-        )
-        embed.set_thumbnail(url=member.display_avatar.url)
-        embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
-        embed.timestamp = member.joined_at or discord.utils.utcnow()
+    # Envoi d'une notification de log dans le salon spécifique du serveur
+    if member.guild.id == PROJECT_DELTA:
+        channel = get_log_channel(member.guild, "utilisateurs")
+        if channel:
+            embed = discord.Embed(
+                title="✅ Nouveau Membre",
+                description=f"{member.mention} a rejoint le serveur.",
+                color=discord.Color.green()
+            )
+            embed.set_thumbnail(url=member.display_avatar.url)
+            embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
+            embed.timestamp = member.joined_at or discord.utils.utcnow()
 
-        await channel.send(embed=embed)
+            await channel.send(embed=embed)
 
 @bot.tree.command(name="guide", description="Ouvre un guide personnalisé pour comprendre l'économie du serveur.")
 async def guide_command(interaction: discord.Interaction):
