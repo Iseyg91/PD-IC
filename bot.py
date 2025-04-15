@@ -779,107 +779,150 @@ async def send_economy_info(user: discord.Member):
     except discord.Forbidden:
         print(f"Impossible d'envoyer un MP à {user.name} ({user.id})")
 
-# Protection anti-bot (empêche l'ajout de bots)
-# Événement lorsqu'un membre rejoint le serveur
 @bot.event
 async def on_member_join(member):
-    guild_id = str(member.guild.id)
-    protection_data = protection_settings.get(guild_id, {"whitelist": [], "anti_bot": "Non configuré"})
-    whitelist = protection_data.get("whitelist", [])
+    # Vérifie si le membre a rejoint le bon serveur
+    if member.guild.id == 1359963854200639498:  # Project : Delta
+        # Salon de bienvenue
+        channel = bot.get_channel(1359963854892957893)
 
-    # Vérifier si l'utilisateur est dans la whitelist
-    if member.id in whitelist:
-        return  # L'utilisateur est exempté de la protection
+        # Premier message de bienvenue (mention de la personne qui a rejoint)
+        await channel.send(f"Bienvenue {member.mention} ! 🎉")
 
-    # Vérifier si la protection anti-bot est activée pour ce serveur
-    if protection_data.get("anti_bot") == "activer":
-        if member.bot:
-            await member.kick(reason="Protection anti-bot activée.")
-            print(f"Un bot ({member.name}) a été expulsé pour cause de protection anti-bot.")
-        return
-
-    # Le reste du code pour l'ajout d'un membre sur le serveur Etherya
-    if member.guild.id != ETHERYA_SERVER_ID:
-        return  # Stoppe l'exécution si ce n'est pas Etherya
-    
-    # Envoi du message de bienvenue
-    channel = bot.get_channel(WELCOME_CHANNEL_ID)
-    if channel:
+        # Création de l'embed pour Project : Delta
         embed = discord.Embed(
-            title="<a:fete:1172810362261880873> Bienvenue sur le serveur ! <a:fete:1172810362261880873>",
+            title=":fete: **Bienvenue sur Project : Delta !** :fete:",
             description=(
-                "*<a:fire:1343873843730579478> Ici, l’économie règne en maître, les alliances se forment, les trahisons éclatent... et ta richesse ne tient qu’à un fil ! <a:fire:1343873843730579478>*\n\n"
-                "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
-                "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
-                "- <a:fleche3:1290077283100397672> **<#1355158018517500086>** pour comprendre les bases de l’économie.\n"
-                "- <a:fleche3:1290077283100397672> **<#1359949279808061591>** pour savoir ce que tu peux obtenir.\n\n"
-                "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
-                "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
-            ),
-            color=discord.Color.gold()
-        )
-        embed.set_image(url="https://raw.githubusercontent.com/Cass64/EtheryaBot/main/images_etherya/etheryaBot_banniere.png")
-        await channel.send(f"{member.mention}", embed=embed)
-
-    # Envoi du ghost ping une seule fois par salon
-    for salon_id in salon_ids:
-        salon = bot.get_channel(salon_id)
-        if salon:
-            try:
-                message = await salon.send(f"{member.mention}")
-                await message.delete()
-            except discord.Forbidden:
-                print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
-            except discord.HTTPException:
-                print("Une erreur est survenue lors de l'envoi du message.")
-    
-    # Création d'un fil privé pour le membre
-    channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
-    channel = bot.get_channel(channel_id)
-
-    if channel and isinstance(channel, discord.TextChannel):
-        thread = await channel.create_thread(name=f"🎉 Bienvenue {member.name} !", type=discord.ChannelType.private_thread)
-        await thread.add_user(member)
-        private_threads[member.id] = thread
-
-        # Embed de bienvenue
-        welcome_embed = discord.Embed(
-            title="🌌 Bienvenue à Etherya !",
-            description=( 
-                "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
-                "Prêt à découvrir tout ce que le serveur a à offrir ?"
+                ":pin: Ce serveur est dédié au **support du bot Project : Delta** ainsi qu’à tout ce qui touche à la **création de bots Discord**, **serveurs sur-mesure**, **sites web**, et **services de graphisme**. **Tout est là pour t’accompagner dans tes projets !**\n\n"
+                ":Anouncements_Animated: **Avant de démarrer, voici quelques infos essentielles :**\n\n"
+                ":fleche2: ⁠︱** <#1359963854892957892> ** pour éviter les mauvaises surprises.\n"
+                ":fleche2: ⁠︱** <#1360365346275459274> ** pour bien comprendre comment utiliser le bot Project : Delta.\n"
+                ":fleche2: ⁠︱** <#1361710727986937877> ** pour découvrir nos services et produits.\n\n"
+                ":emojigg_1: **Tu rencontres un problème ou tu as une question ?** Ouvre un ticket, notre équipe de support est là pour t’aider !\n\n"
+                "Prêt à faire évoluer tes projets avec **Project : Delta** ? :fete:"
             ),
             color=discord.Color.blue()
         )
-        welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else bot.user.avatar.url)
-        await thread.send(embed=welcome_embed)
+        embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/3702f708294b49536cb70ffdcfc711c101eb0598/IMAGES%20Delta/uri_ifs___M_ff5898f7-21fa-42c9-ad22-6ea18af53e80.jpg?raw=true")
 
-        # Embed du guide
-        guide_embed = discord.Embed(
-            title="📖 Besoin d'un Guide ?",
-            description=( 
-                "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
-                "les différentes façons d'évoluer. Veux-tu le suivre ?"
-            ),
-            color=discord.Color.gold()
-        )
-        guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
-        await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
+        # Envoi de l'embed pour Project : Delta
+        await channel.send(embed=embed)
 
-    # Envoi d'une notification de log dans le salon spécifique du serveur
-    if member.guild.id == PROJECT_DELTA:
-        channel = get_log_channel(member.guild, "utilisateurs")
+    # Vérifie si c'est le serveur Etherya
+    if member.guild.id == ETHERYA_SERVER_ID:
+        # Envoi du message de bienvenue dans le salon de bienvenue
+        channel = bot.get_channel(WELCOME_CHANNEL_ID)
         if channel:
             embed = discord.Embed(
-                title="✅ Nouveau Membre",
-                description=f"{member.mention} a rejoint le serveur.",
-                color=discord.Color.green()
+                title="<a:fete:1172810362261880873> Bienvenue sur le serveur ! <a:fete:1172810362261880873>",
+                description=(
+                    "*<a:fire:1343873843730579478> Ici, l’économie règne en maître, les alliances se forment, les trahisons éclatent... et ta richesse ne tient qu’à un fil ! <a:fire:1343873843730579478>*\n\n"
+                    "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
+                    "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
+                    "- <a:fleche3:1290077283100397672> **<#1355158018517500086>** pour comprendre les bases de l’économie.\n"
+                    "- <a:fleche3:1290077283100397672> **<#1359949279808061591>** pour savoir ce que tu peux obtenir.\n\n"
+                    "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
+                    "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
+                ),
+                color=discord.Color.gold()
             )
-            embed.set_thumbnail(url=member.display_avatar.url)
-            embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
-            embed.timestamp = member.joined_at or discord.utils.utcnow()
+            embed.set_image(url="https://raw.githubusercontent.com/Cass64/EtheryaBot/main/images_etherya/etheryaBot_banniere.png")
+            await channel.send(f"{member.mention}", embed=embed)
 
-            await channel.send(embed=embed)
+        # Envoi du ghost ping une seule fois par salon
+        for salon_id in salon_ids:
+            salon = bot.get_channel(salon_id)
+            if salon:
+                try:
+                    message = await salon.send(f"{member.mention}")
+                    await message.delete()
+                except discord.Forbidden:
+                    print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
+                except discord.HTTPException:
+                    print("Une erreur est survenue lors de l'envoi du message.")
+
+        # Création d'un fil privé pour le membre
+        channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
+        channel = bot.get_channel(channel_id)
+
+        if channel and isinstance(channel, discord.TextChannel):
+            thread = await channel.create_thread(name=f"🎉 Bienvenue {member.name} !", type=discord.ChannelType.private_thread)
+            await thread.add_user(member)
+            private_threads[member.id] = thread
+
+            # Embed de bienvenue
+            welcome_embed = discord.Embed(
+                title="🌌 Bienvenue à Etherya !",
+                description=(
+                    "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
+                    "Prêt à découvrir tout ce que le serveur a à offrir ?"
+                ),
+                color=discord.Color.blue()
+            )
+            welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else bot.user.avatar.url)
+            await thread.send(embed=welcome_embed)
+
+            # Embed du guide
+            guide_embed = discord.Embed(
+                title="📖 Besoin d'un Guide ?",
+                description=(
+                    "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
+                    "les différentes façons d'évoluer. Veux-tu le suivre ?"
+                ),
+                color=discord.Color.gold()
+            )
+            guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
+            await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
+
+        # Envoi d'une notification de log dans le salon spécifique du serveur
+        if member.guild.id == PROJECT_DELTA:
+            channel = get_log_channel(member.guild, "utilisateurs")
+            if channel:
+                embed = discord.Embed(
+                    title="✅ Nouveau Membre",
+                    description=f"{member.mention} a rejoint le serveur.",
+                    color=discord.Color.green()
+                )
+                embed.set_thumbnail(url=member.display_avatar.url)
+                embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
+                embed.timestamp = member.joined_at or discord.utils.utcnow()
+
+                await channel.send(embed=embed)
+
+    # Gestion des threads privés
+    if member.guild.id == ETHERYA_SERVER_ID:
+        # Création du fil privé et envoi du guide
+        channel_id = 1355158120095027220
+        channel = bot.get_channel(channel_id)
+
+        if channel and isinstance(channel, discord.TextChannel):
+            thread = await channel.create_thread(name=f"🎉 Bienvenue {member.name} !", type=discord.ChannelType.private_thread)
+            await thread.add_user(member)
+            private_threads[member.id] = thread
+
+            # Embed de bienvenue
+            welcome_embed = discord.Embed(
+                title="🌌 Bienvenue à Etherya !",
+                description=(
+                    "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
+                    "Prêt à découvrir tout ce que le serveur a à offrir ?"
+                ),
+                color=discord.Color.blue()
+            )
+            welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else bot.user.avatar.url)
+            await thread.send(embed=welcome_embed)
+
+            # Embed du guide
+            guide_embed = discord.Embed(
+                title="📖 Besoin d'un Guide ?",
+                description=(
+                    "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
+                    "les différentes façons d'évoluer. Veux-tu le suivre ?"
+                ),
+                color=discord.Color.gold()
+            )
+            guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
+            await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
 
 @bot.tree.command(name="guide", description="Ouvre un guide personnalisé pour comprendre l'économie du serveur.")
 async def guide_command(interaction: discord.Interaction):
