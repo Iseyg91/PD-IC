@@ -892,27 +892,41 @@ async def tcreate(ctx):
 
 @bot.command(name="team", aliases=["t"])
 async def team_command(ctx):
+    """Commande pour afficher les informations de la team d'un utilisateur."""
+    
+    # Vérifie si l'utilisateur a un projet delta actif
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
 
+    # Récupère les informations de la team de l'utilisateur
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team:
-        await ctx.send("Tu n'es dans aucune team.")
+        await ctx.send("Tu n'es dans aucune équipe. 😔")
         return
 
-    embed = discord.Embed(title=f"Team: {team['team_id']}", description=team['description'], color=0x00ff00)
-    embed.add_field(name="Coffre-Fort", value=f"{team['vault']} coins", inline=False)
+    # Création de l'embed pour afficher les informations de la team
+    embed = discord.Embed(
+        title=f"🏆 Team : {team['team_id']}",
+        description=team['description'],
+        color=0x1E7F1E  # Un vert plus doux pour une bonne lisibilité
+    )
+    embed.add_field(name="💰 Coffre-Fort", value=f"{team['vault']} coins", inline=False)
 
+    # Création de la liste des membres avec leurs rôles
     members_str = ""
     for member_id, role in team['members'].items():
         member = ctx.guild.get_member(int(member_id))
-        members_str += f"{member.mention if member else member_id} - {role}\n"
+        members_str += f"{member.mention if member else f'Utilisateur {member_id}'} - **{role}**\n"
 
-    embed.add_field(name="Membres", value=members_str or "Aucun membre", inline=False)
+    # Ajout des membres à l'embed
+    embed.add_field(name="👥 Membres", value=members_str or "Aucun membre pour le moment", inline=False)
+
+    # Envoie l'embed avec les informations de la team
     await ctx.send(embed=embed)
+
 
 @bot.command()
 async def tinvite(ctx, member: discord.Member):
