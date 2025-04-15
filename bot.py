@@ -605,24 +605,24 @@ async def on_message_delete(message):
 
     bot.loop.create_task(cleanup())
 
-# Log du message supprimé (si sur le serveur PROJECT_DELTA)
-if message.guild and message.guild.id == PROJECT_DELTA:
-    log_channel = get_log_channel(message.guild, "messages")
-    if log_channel:
-        embed = discord.Embed(
-            title="🗑️ Message Supprimé",
-            description=f"**Auteur :** {message.author.mention}\n**Salon :** {message.channel.mention}",
-            color=discord.Color.red()
-        )
-        if message.content:
-            embed.add_field(name="Contenu", value=message.content, inline=False)
-        else:
-            embed.add_field(name="Contenu", value="*Aucun texte (peut-être un embed ou une pièce jointe)*", inline=False)
+    # Log du message supprimé (si sur le serveur PROJECT_DELTA)
+    if message.guild and message.guild.id == PROJECT_DELTA:
+        log_channel = get_log_channel(message.guild, "messages")
+        if log_channel:
+            embed = discord.Embed(
+                title="🗑️ Message Supprimé",
+                description=f"**Auteur :** {message.author.mention}\n**Salon :** {message.channel.mention}",
+                color=discord.Color.red()
+            )
+            if message.content:
+                embed.add_field(name="Contenu", value=message.content, inline=False)
+            else:
+                embed.add_field(name="Contenu", value="*Aucun texte (peut-être un embed ou une pièce jointe)*", inline=False)
 
-        embed.set_footer(text=f"ID de l'utilisateur : {message.author.id}")
-        embed.timestamp = message.created_at
+            embed.set_footer(text=f"ID de l'utilisateur : {message.author.id}")
+            embed.timestamp = message.created_at
 
-        await log_channel.send(embed=embed)
+            await log_channel.send(embed=embed)
 
 @bot.event
 async def on_message_edit(before, after):
