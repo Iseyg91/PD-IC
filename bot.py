@@ -835,42 +835,51 @@ async def tcreate(ctx):
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
-    user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+
+    # Récupérer les coins de l'utilisateur
+    user_eco = get_user_eco(guild_id, user_id)
+    coins = user_eco["coins"]
+
+    if coins < 1500:
+        return await ctx.send("❌ Tu n'as pas assez de coins pour créer une team. Il te faut 1500 Coins.")
+
+    # Demander le nom de la team
+    await ctx.send("📝 Quel est le nom de la team ?")
+    def check(msg):
+        return msg.author == ctx.author and isinstance(msg.channel, discord.TextChannel)
+
+    name_msg = await bot.wait_for("message", check=check)
+    team_name = name_msg.content
+
+    # Demander la description de la team
+    await ctx.send("📜 Quelle est la description de la team ?")
+    description_msg = await bot.wait_for("message", check=check)
+    team_description = description_msg.content
+
+    # Créer la team dans la collection
+    team_id = str(len(collection17.find({})))  # Crée un ID basé sur le nombre de teams actuelles (peut être personnalisé)
     
-    if not user_eco or user_eco.get("coins", 0) < 1500:
-        await ctx.send("Tu n'as pas assez de coins pour créer une team. Il faut 1500 coins.")
-        return
-    
-    def check_msg(m):
-        return m.author == ctx.author and m.channel == ctx.channel
-
-    await ctx.send("Quel est le nom de ta team ?")
-    team_name_msg = await bot.wait_for('message', check=check_msg)
-    team_name = team_name_msg.content
-
-    existing = collection17.find_one({"guild_id": guild_id, "team_id": team_name})
-    if existing:
-        await ctx.send("Ce nom de team existe déjà. Choisis-en un autre.")
-        return
-
-    await ctx.send("Décris ta team :")
-    description_msg = await bot.wait_for('message', check=check_msg)
-    description = description_msg.content
-
-    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"coins": -1500}})
-    collection17.insert_one({
+    team_data = {
         "guild_id": guild_id,
-        "team_id": team_name,
-        "owner": user_id,
-        "description": description,
-        "members": {
-            user_id: "Owner"
-        },
-        "vault": 0,
-        "banned": []
-    })
+        "name": team_name,
+        "description": team_description,
+        "owner_id": user_id,  # Assigner le propriétaire
+        "coffre": 0,  # Initialiser le coffre
+        "members": {user_id: "Membre"},  # L'utilisateur est le premier membre
+        "team_id": team_id  # ID unique de la team
+    }
 
-    await ctx.send(f"La team **{team_name}** a été créée avec succès !")
+    # Insérer la team dans la base de données
+    collection17.insert_one(team_data)
+
+    # Déduire les coins de l'utilisateur
+    collection10.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": -1500}}  # Déduire 1500 coins
+    )
+
+    # Confirmation de la création
+    await ctx.send(f"🎉 Team `{team_name}` créée avec succès ! Tu es désormais le propriétaire.")
 
 @bot.command(name="team", aliases=["t"])
 async def team_command(ctx):
