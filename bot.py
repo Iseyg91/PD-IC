@@ -857,7 +857,7 @@ async def tcreate(ctx):
     team_description = description_msg.content
 
     # Créer la team dans la collection
-    team_id = str(len(collection17.find({})))  # Crée un ID basé sur le nombre de teams actuelles (peut être personnalisé)
+    team_id = str(collection17.count_documents({}))  # Crée un ID basé sur le nombre de teams actuelles (peut être personnalisé)
     
     team_data = {
         "guild_id": guild_id,
