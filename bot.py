@@ -1166,9 +1166,8 @@ async def twith(ctx, amount: str):
         return await ctx.send("❌ Tu n'es dans aucune team.")
 
     team_id = team["_id"]
-    team_balance = team.get("coins", 0)
+    team_balance = int(team.get("coins", 0))  # 💡 Force conversion en entier
 
-    # Conversion du montant
     if amount.lower() == "all":
         withdraw_amount = team_balance
     else:
@@ -1182,13 +1181,11 @@ async def twith(ctx, amount: str):
     if withdraw_amount > team_balance:
         return await ctx.send("❌ Le coffre de ta team n'a pas assez de coins.")
 
-    # Mise à jour du coffre de la team
     collection17.update_one(
         {"_id": team_id},
         {"$inc": {"coins": -withdraw_amount}}
     )
 
-    # Mise à jour du solde du joueur
     collection10.update_one(
         {"guild_id": ctx.guild.id, "user_id": ctx.author.id},
         {"$inc": {"coins": withdraw_amount}},
