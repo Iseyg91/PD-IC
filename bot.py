@@ -825,6 +825,8 @@ async def panel4(ctx):
 
 #--------------------------------------------------------------------------- Team
 
+#--------------------------------------------------------------------------- Team
+
 def check_project_delta(ctx):
     return ctx.guild and ctx.guild.id == PROJECT_DELTA
 
@@ -835,51 +837,42 @@ async def tcreate(ctx):
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
-
-    # Récupérer les coins de l'utilisateur
-    user_eco = get_user_eco(guild_id, user_id)
-    coins = user_eco["coins"]
-
-    if coins < 1500:
-        return await ctx.send("❌ Tu n'as pas assez de coins pour créer une team. Il te faut 1500 Coins.")
-
-    # Demander le nom de la team
-    await ctx.send("📝 Quel est le nom de la team ?")
-    def check(msg):
-        return msg.author == ctx.author and isinstance(msg.channel, discord.TextChannel)
-
-    name_msg = await bot.wait_for("message", check=check)
-    team_name = name_msg.content
-
-    # Demander la description de la team
-    await ctx.send("📜 Quelle est la description de la team ?")
-    description_msg = await bot.wait_for("message", check=check)
-    team_description = description_msg.content
-
-    # Créer la team dans la collection
-    team_id = str(collection17.count_documents({}))  # Crée un ID basé sur le nombre de teams actuelles (peut être personnalisé)
+    user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     
-    team_data = {
+    if not user_eco or user_eco.get("coins", 0) < 1500:
+        await ctx.send("Tu n'as pas assez de coins pour créer une team. Il faut 1500 coins.")
+        return
+    
+    def check_msg(m):
+        return m.author == ctx.author and m.channel == ctx.channel
+
+    await ctx.send("Quel est le nom de ta team ?")
+    team_name_msg = await bot.wait_for('message', check=check_msg)
+    team_name = team_name_msg.content
+
+    existing = collection17.find_one({"guild_id": guild_id, "team_id": team_name})
+    if existing:
+        await ctx.send("Ce nom de team existe déjà. Choisis-en un autre.")
+        return
+
+    await ctx.send("Décris ta team :")
+    description_msg = await bot.wait_for('message', check=check_msg)
+    description = description_msg.content
+
+    collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"coins": -1500}})
+    collection17.insert_one({
         "guild_id": guild_id,
-        "name": team_name,
-        "description": team_description,
-        "owner_id": user_id,  # Assigner le propriétaire
-        "coffre": 0,  # Initialiser le coffre
-        "members": {user_id: "Membre"},  # L'utilisateur est le premier membre
-        "team_id": team_id  # ID unique de la team
-    }
+        "team_id": team_name,
+        "owner": user_id,
+        "description": description,
+        "members": {
+            user_id: "Owner"
+        },
+        "vault": 0,
+        "banned": []
+    })
 
-    # Insérer la team dans la base de données
-    collection17.insert_one(team_data)
-
-    # Déduire les coins de l'utilisateur
-    collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"coins": -1500}}  # Déduire 1500 coins
-    )
-
-    # Confirmation de la création
-    await ctx.send(f"🎉 Team `{team_name}` créée avec succès ! Tu es désormais le propriétaire.")
+    await ctx.send(f"La team **{team_name}** a été créée avec succès !")
 
 @bot.command(name="team", aliases=["t"])
 async def team_command(ctx):
@@ -891,41 +884,19 @@ async def team_command(ctx):
 
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team:
-        return await ctx.send("❌ Tu n'es dans aucune team.")
+        await ctx.send("Tu n'es dans aucune team.")
+        return
 
-    name = team.get("name", "Sans nom")
-    team_id = team.get("team_id")
-    coffre = team.get("coffre", 0)
-    description = team.get("description", "*Aucune description.*")
-    members = team.get("members", {})
-    owner_id = team.get("owner_id")
+    embed = discord.Embed(title=f"Team: {team['team_id']}", description=team['description'], color=0x00ff00)
+    embed.add_field(name="Coffre-Fort", value=f"{team['vault']} coins", inline=False)
 
-    embed = discord.Embed(
-        title=f"🏰 Team : {team_id}",
-        description=description,
-        color=discord.Color.blue()
-    )
-    embed.add_field(name="👑 Propriétaire", value=f"<@{owner_id}>", inline=False)
-    embed.add_field(name="💰 Coins", value=str(coffre), inline=False)
+    members_str = ""
+    for member_id, role in team['members'].items():
+        member = ctx.guild.get_member(int(member_id))
+        members_str += f"{member.mention if member else member_id} - {role}\n"
 
-    owners = []
-    others = []
-    for member_id, rank in members.items():
-        mention = f"<@{member_id}>"
-        if rank.lower() == "owner":
-            owners.append(f"👑 {mention}")
-        else:
-            others.append(f"👤 {mention}")
-
-    if owners:
-        embed.add_field(name="Owners", value="\n".join(owners), inline=False)
-    if others:
-        embed.add_field(name="Membres", value="\n".join(others), inline=False)
-
-    embed.add_field(name="ID de la team", value=team_id, inline=False)
-
+    embed.add_field(name="Membres", value=members_str or "Aucun membre", inline=False)
     await ctx.send(embed=embed)
-
 
 @bot.command()
 async def tinvite(ctx, member: discord.Member):
@@ -1120,81 +1091,79 @@ async def tedit(ctx):
 
 @bot.command()
 async def tdep(ctx, amount: str):
-    if ctx.guild.id != 1359963854200639498:
+    if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
-    team = collection17.find_one({f"members.{user_id}": {"$exists": True}})
+    guild_id = str(ctx.guild.id)
+    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    
     if not team:
-        return await ctx.send("❌ Tu n'es dans aucune team.")
+        return await ctx.send("Tu n'es pas dans une team.")
+    if not eco or eco["coins"] <= 0:
+        return await ctx.send("Tu n'as pas assez de coins.")
 
-    user_data = collection10.find_one({"guild_id": ctx.guild.id, "user_id": ctx.author.id})
-    user_coins = int(user_data.get("coins", 0))
-
-    if amount.lower() == "all":
-        deposit_amount = user_coins
+    user_balance = eco["coins"]
+    if amount == "all":
+        deposit = user_balance
+    elif amount.isdigit():
+        deposit = int(amount)
+        if deposit > user_balance:
+            return await ctx.send("Tu n'as pas assez de coins.")
     else:
-        try:
-            deposit_amount = int(amount)
-            if deposit_amount <= 0:
-                return await ctx.send("❌ Le montant doit être positif.")
-        except ValueError:
-            return await ctx.send("❌ Montant invalide. Utilise un nombre ou `all`.")
+        return await ctx.send("Montant invalide.")
 
-    if deposit_amount > user_coins:
-        return await ctx.send("❌ Tu n'as pas assez de coins.")
-
+    # Mise à jour
     collection10.update_one(
-        {"guild_id": ctx.guild.id, "user_id": ctx.author.id},
-        {"$inc": {"coins": -deposit_amount}}
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": -deposit}}
     )
-
     collection17.update_one(
-        {"_id": team["_id"]},
-        {"$inc": {"coins": deposit_amount}}  # Assure-toi que cette valeur est bien toujours un `int`
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$inc": {"coffre": deposit}}
     )
 
-    await ctx.send(f"💰 Tu as déposé **{deposit_amount} 🪙** dans le coffre de ta team.")
+    await ctx.send(f"Tu as déposé **{deposit}** 🪙 dans le coffre de ta team.")
 
 @bot.command()
 async def twith(ctx, amount: str):
-    if ctx.guild.id != 1359963854200639498:
+    if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
-    team = collection17.find_one({f"members.{user_id}": {"$exists": True}})
+    guild_id = str(ctx.guild.id)
+    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
+    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
+    
     if not team:
-        return await ctx.send("❌ Tu n'es dans aucune team.")
+        return await ctx.send("Tu n'es pas dans une team.")
 
-    team_id = team["_id"]
-    team_balance = int(team.get("coins", 0))  # 💡 Force conversion en entier
+    role = team["members"][user_id]
+    if role not in ["Officier", "Bras-Droit", "Second", "Owner"]:
+        return await ctx.send("Tu n'as pas le rang requis pour faire ça.")
 
-    if amount.lower() == "all":
-        withdraw_amount = team_balance
+    coffre = team.get("coffre", 0)
+    if amount == "all":
+        withdraw = coffre
+    elif amount.isdigit():
+        withdraw = int(amount)
+        if withdraw > coffre:
+            return await ctx.send("Il n'y a pas assez dans le coffre.")
     else:
-        try:
-            withdraw_amount = int(amount)
-            if withdraw_amount <= 0:
-                return await ctx.send("❌ Le montant doit être positif.")
-        except ValueError:
-            return await ctx.send("❌ Montant invalide. Utilise un nombre ou `all`.")
+        return await ctx.send("Montant invalide.")
 
-    if withdraw_amount > team_balance:
-        return await ctx.send("❌ Le coffre de ta team n'a pas assez de coins.")
-
-    collection17.update_one(
-        {"_id": team_id},
-        {"$inc": {"coins": -withdraw_amount}}
-    )
-
+    # Update
     collection10.update_one(
-        {"guild_id": ctx.guild.id, "user_id": ctx.author.id},
-        {"$inc": {"coins": withdraw_amount}},
-        upsert=True
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$inc": {"coins": withdraw}}
+    )
+    collection17.update_one(
+        {"guild_id": guild_id, "team_id": team["team_id"]},
+        {"$inc": {"coffre": -withdraw}}
     )
 
-    await ctx.send(f"💸 Tu as retiré **{withdraw_amount} coins** du coffre de ta team.")
-
+    await ctx.send(f"Tu as retiré **{withdraw}** 🪙 du coffre de la team.")
 
 @bot.command()
 async def ttop(ctx):
@@ -1202,24 +1171,17 @@ async def ttop(ctx):
         return
 
     guild_id = str(ctx.guild.id)
-
-    top_teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(5)
-
+    teams = collection17.find({"guild_id": guild_id}).sort("coffre", -1).limit(10)
+    
     embed = discord.Embed(
-        title="🏆 Classement des Teams les plus riches",
-        description="Voici les teams avec le plus de 💰 coins dans leur coffre.",
-        color=discord.Color.green()
+        title="🏆 Classement des Teams",
+        color=discord.Color.gold()
     )
 
-    for i, team in enumerate(top_teams, start=1):
-        name = team.get("name", "Inconnue")
+    for i, team in enumerate(teams, start=1):
+        name = team.get("name", "Sans nom")
         coffre = team.get("coffre", 0)
-        owner = f"<@{team.get('owner_id')}>" if team.get("owner_id") else "Inconnu"
-        embed.add_field(
-            name=f"#{i} ┇ {name}",
-            value=f"👑 Propriétaire : {owner}\n💰 Coins : `{coffre}`",
-            inline=False
-        )
+        embed.add_field(name=f"{i}. {name}", value=f"💰 Coffre : **{coffre}** 🪙", inline=False)
 
     await ctx.send(embed=embed)
 
