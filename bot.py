@@ -825,54 +825,70 @@ async def panel4(ctx):
 
 #--------------------------------------------------------------------------- Team
 
-#--------------------------------------------------------------------------- Team
-
 def check_project_delta(ctx):
     return ctx.guild and ctx.guild.id == PROJECT_DELTA
 
 @bot.command()
 async def tcreate(ctx):
+    """Commande pour créer une nouvelle équipe (team)."""
+    
+    # Vérifie si l'utilisateur peut créer une team (par exemple, s'il a un projet delta actif)
     if not check_project_delta(ctx):
         return
 
     user_id = str(ctx.author.id)
     guild_id = str(ctx.guild.id)
+
+    # Récupère les informations économiques de l'utilisateur
     user_eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     
+    # Vérifie si l'utilisateur a suffisamment de coins pour créer une team
     if not user_eco or user_eco.get("coins", 0) < 1500:
-        await ctx.send("Tu n'as pas assez de coins pour créer une team. Il faut 1500 coins.")
+        await ctx.send("Désolé, tu n'as pas assez de coins pour créer une équipe. "
+                       "Il te faut 1500 coins pour cela. 💰")
         return
     
     def check_msg(m):
+        """Vérifie si le message provient de l'utilisateur et du bon canal."""
         return m.author == ctx.author and m.channel == ctx.channel
 
-    await ctx.send("Quel est le nom de ta team ?")
+    # Demande le nom de la team
+    await ctx.send("Quel sera le **nom** de ta team ? 🚀")
     team_name_msg = await bot.wait_for('message', check=check_msg)
-    team_name = team_name_msg.content
+    team_name = team_name_msg.content.strip()
 
+    # Vérifie si une équipe avec ce nom existe déjà
     existing = collection17.find_one({"guild_id": guild_id, "team_id": team_name})
     if existing:
-        await ctx.send("Ce nom de team existe déjà. Choisis-en un autre.")
+        await ctx.send("Ce nom de team existe déjà. 😕 Choisis-en un autre.")
         return
 
-    await ctx.send("Décris ta team :")
+    # Demande la description de la team
+    await ctx.send("Décris ta team en quelques mots. ✨")
     description_msg = await bot.wait_for('message', check=check_msg)
-    description = description_msg.content
+    description = description_msg.content.strip()
 
+    # Déduction des coins pour la création de la team
     collection10.update_one({"guild_id": guild_id, "user_id": user_id}, {"$inc": {"coins": -1500}})
+    
+    # Insertion des données de la nouvelle équipe dans la base de données
     collection17.insert_one({
         "guild_id": guild_id,
         "team_id": team_name,
         "owner": user_id,
         "description": description,
-        "members": {
-            user_id: "Owner"
-        },
-        "vault": 0,
-        "banned": []
+        "members": {user_id: "Owner"},
+        "vault": 0,  # Le coffre de la team est vide au départ
+        "banned": []  # Aucun membre banni au départ
     })
 
-    await ctx.send(f"La team **{team_name}** a été créée avec succès !")
+    # Confirme la création de la team
+    await ctx.send(f"🎉 Félicitations ! La team **{team_name}** a été créée avec succès ! 🚀")
+    await ctx.send(f"Voici un résumé de ta team :\n"
+                   f"**Nom** : {team_name}\n"
+                   f"**Propriétaire** : <@{user_id}>\n"
+                   f"**Description** : {description}\n"
+                   f"Bonne chance dans cette aventure ! 🎮")
 
 @bot.command(name="team", aliases=["t"])
 async def team_command(ctx):
