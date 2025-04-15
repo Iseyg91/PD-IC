@@ -220,6 +220,10 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 
 # Dictionnaire pour stocker les paramètres de chaque serveur
 GUILD_SETTINGS = {}
+#------------------------------------------------------------------------- Code Protection:
+# Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
+protection_settings = {}
+ban_times = {}  # Dictionnaire pour stocker les temps de bans
 
 # Tâche de fond pour mettre à jour les stats toutes les 5 secondes
 @tasks.loop(seconds=5)
@@ -550,6 +554,547 @@ async def send_alert_to_admin(message, detected_word):
             print("⚠️ Le salon spécifié n'a pas pu être trouvé dans le serveur.")
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+#-------------------------------------------------------------------------- Bot Event:
+
+@bot.event
+async def on_message_delete(message):
+    if message.author.bot:
+        return  # Ignore les messages de bots
+
+    # Fonctionnalité de snipe
+    channel_id = message.channel.id
+    timestamp = time.time()
+
+    if channel_id not in sniped_messages:
+        sniped_messages[channel_id] = deque(maxlen=10)  # Jusqu'à 10 messages par salon
+
+    sniped_messages[channel_id].append((timestamp, message.author, message.content))
+
+    # Nettoyage après 5 minutes
+    async def cleanup():
+        await asyncio.sleep(300)
+        now = time.time()
+        sniped_messages[channel_id] = deque([
+            (t, a, c) for t, a, c in sniped_messages[channel_id] if now - t < 300
+        ])
+
+    bot.loop.create_task(cleanup())
+
+    # Log du message supprimé (si sur le serveur PROJECT_DELTA)
+    if message.guild and message.guild.id == PROJECT_DELTA_ID:
+        log_channel = get_log_channel(message.guild, "messages")
+        if log_channel:
+            await log_channel.send(
+                f"🗑️ **Message supprimé** de {message.author.mention} dans {message.channel.mention}:\n{message.content}"
+            )
+
+@bot.event
+async def on_message_edit(before, after):
+    if before.guild and before.guild.id == PROJECT_DELTA_ID and before.content != after.content:
+        channel = get_log_channel(before.guild, "messages")
+        await channel.send(
+            f"✏️ **Message édité** par {before.author.mention} dans {before.channel.mention}:\n"
+            f"Avant: {before.content}\nAprès: {after.content}"
+        )
+
+#Bienvenue : Message de Bienvenue + Ghost Ping Join
+private_threads = {}  # Stocke les fils privés des nouveaux membres
+
+# Liste des salons à pinguer
+salon_ids = [
+    1355158116903419997
+]
+
+class GuideView(View):
+    def __init__(self, thread):
+        super().__init__()
+        self.thread = thread
+        self.message_sent = False  # Variable pour contrôler l'envoi du message
+
+    @discord.ui.button(label="📘 Guide", style=discord.ButtonStyle.success, custom_id="guide_button_unique")
+    async def guide(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.message_sent:  # Empêche l'envoi du message en doublon
+            await interaction.response.defer()
+            await start_tutorial(self.thread, interaction.user)
+            self.message_sent = True
+
+    @discord.ui.button(label="❌ Non merci", style=discord.ButtonStyle.danger, custom_id="no_guide_button_unique")
+    async def no_guide(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("🔒 Fermeture du fil...", ephemeral=True)
+        await asyncio.sleep(2)
+        await self.thread.delete()
+
+class NextStepView(View):
+    def __init__(self, thread):
+        super().__init__()
+        self.thread = thread
+
+    @discord.ui.button(label="➡️ Passer à la suite", style=discord.ButtonStyle.primary, custom_id="next_button")
+    async def next_step(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.defer()
+        user = interaction.user
+
+        # Envoi du message privé
+        await send_economy_info(user)
+
+        # Envoi du message de confirmation dans le fil privé
+        await self.thread.send("📩 Les détails de cette étape ont été envoyés en message privé.")
+
+        # Attente de 2 secondes
+        await asyncio.sleep(2)
+
+        # Message d'avertissement avant suppression
+        await self.thread.send("🗑️ Ce fil sera supprimé dans quelques instants.")
+
+        # Suppression du fil privé
+        await asyncio.sleep(3)
+        await self.thread.delete()
+
+async def wait_for_command(thread, user, command):
+    def check(msg):
+        return msg.channel == thread and msg.author == user and msg.content.startswith(command)
+
+    await thread.send(f"🕒 En attente de `{command}`...")  # Envoi du message d'attente
+    await bot.wait_for("message", check=check)  # Attente du message de la commande
+    await thread.send("✅ Commande exécutée ! Passons à la suite. 🚀")  # Confirmation après la commande
+    await asyncio.sleep(2)  # Pause avant de passer à l'étape suivante
+
+async def start_tutorial(thread, user):
+    tutorial_steps = [
+        ("💼 **Commande Travail**", "Utilise `!!work` pour gagner un salaire régulièrement !", "!!work"),
+        ("💃 **Commande Slut**", "Avec `!!slut`, tente de gagner de l'argent... Mais attention aux risques !", "!!slut"),
+        ("🔫 **Commande Crime**", "Besoin de plus de frissons ? `!!crime` te plonge dans des activités illégales !", "!!crime"),
+        ("🌿 **Commande Collecte**", "Avec `!!collect`, tu peux ramasser des ressources utiles !", "!!collect"),
+        ("📊 **Classement**", "Découvre qui a le plus d'argent en cash avec `!!lb -cash` !", "!!lb -cash"),
+        ("🕵️ **Voler un joueur**", "Tente de dérober l'argent d'un autre avec `!!rob @user` !", "!!rob"),
+        ("🏦 **Dépôt Bancaire**", "Pense à sécuriser ton argent avec `!!dep all` !", "!!dep all"),
+        ("💰 **Solde Bancaire**", "Vérifie ton argent avec `!!bal` !", "!!bal"),
+    ]
+
+    for title, desc, cmd in tutorial_steps:
+        embed = discord.Embed(title=title, description=desc, color=discord.Color.blue())
+        await thread.send(embed=embed)
+        await wait_for_command(thread, user, cmd)  # Attente de la commande de l'utilisateur
+
+    # Embed final des jeux
+    games_embed = discord.Embed(
+        title="🎲 **Autres Commandes de Jeux**",
+        description="Découvre encore plus de moyens de t'amuser et gagner des Ezryn Coins !",
+        color=discord.Color.gold()
+    )
+    games_embed.add_field(name="🐔 Cock-Fight", value="`!!cf` - Combat de Poulet !", inline=False)
+    games_embed.add_field(name="🃏 Blackjack", value="`!!bj` - Jeux de Carte !", inline=False)
+    games_embed.add_field(name="🎰 Slot Machine", value="`!!sm` - Tente un jeu risqué !", inline=False)
+    games_embed.add_field(name="🔫 Roulette Russe", value="`!!rr` - Joue avec le destin !", inline=False)
+    games_embed.add_field(name="🎡 Roulette", value="`!!roulette` - Fais tourner la roue de la fortune !", inline=False)
+    games_embed.set_footer(text="Amuse-toi bien sur Etherya ! 🚀")
+
+    await thread.send(embed=games_embed)
+    await thread.send("Clique sur **Passer à la suite** pour découvrir les systèmes impressionnants de notre Economie !", view=NextStepView(thread))
+
+async def send_economy_info(user: discord.Member):
+    try:
+        economy_embed = discord.Embed(
+            title="📌 **Lis ces salons pour optimiser tes gains !**",
+            description=(
+                "Bienvenue dans l'économie du serveur ! Pour en tirer le meilleur profit, assure-toi de lire ces salons :\n\n"
+                "💰 **Comment accéder à l'economie ?**\n➜ <#1355190022047011117>\n\n"
+                "📖 **Informations générales**\n➜ <#1355158018517500086>\n\n"
+                "💰 **Comment gagner des Coins ?**\n➜ <#1355157853299675247>\n\n"
+                "🏦 **Banque de l'Éco 1**\n➜ <#1355158001606066267>\n\n"
+                "🏦 **Banque de l'Éco 2**\n➜ <#1355191522252951573>\n\n"
+                "🎟️ **Ticket Finances** *(Pose tes questions ici !)*\n➜ <#1355157942005006558>\n\n"
+                "📈 **Astuce :** Plus tu en sais, plus tu gagnes ! Alors prends quelques minutes pour lire ces infos. 🚀"
+            ),
+            color=discord.Color.gold()
+        )
+        economy_embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1168755764760559637.webp?size=96&quality=lossless")
+        economy_embed.set_footer(text="Bon jeu et bons profits ! 💰")
+
+        dm_channel = await user.create_dm()
+        await dm_channel.send(embed=economy_embed)
+    except discord.Forbidden:
+        print(f"Impossible d'envoyer un MP à {user.name} ({user.id})")
+
+# Protection anti-bot (empêche l'ajout de bots)
+# Événement lorsqu'un membre rejoint le serveur
+@bot.event
+async def on_member_join(member):
+    guild_id = str(member.guild.id)
+    protection_data = protection_settings.get(guild_id, {"whitelist": [], "anti_bot": "Non configuré"})
+    whitelist = protection_data.get("whitelist", [])
+
+    # Vérifier si l'utilisateur est dans la whitelist
+    if member.id in whitelist:
+        return  # L'utilisateur est exempté de la protection
+
+    # Vérifier si la protection anti-bot est activée pour ce serveur
+    if protection_data.get("anti_bot") == "activer":
+        if member.bot:
+            await member.kick(reason="Protection anti-bot activée.")
+            print(f"Un bot ({member.name}) a été expulsé pour cause de protection anti-bot.")
+        return
+
+    # Le reste du code pour l'ajout d'un membre sur le serveur Etherya
+    if member.guild.id != ETHERYA_SERVER_ID:
+        return  # Stoppe l'exécution si ce n'est pas Etherya
+    
+    # Envoi du message de bienvenue
+    channel = bot.get_channel(WELCOME_CHANNEL_ID)
+    if channel:
+        embed = discord.Embed(
+            title="<a:fete:1172810362261880873> Bienvenue sur le serveur ! <a:fete:1172810362261880873>",
+            description=(
+                "*<a:fire:1343873843730579478> Ici, l’économie règne en maître, les alliances se forment, les trahisons éclatent... et ta richesse ne tient qu’à un fil ! <a:fire:1343873843730579478>*\n\n"
+                "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
+                "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
+                "- <a:fleche3:1290077283100397672> **<#1355158018517500086>** pour comprendre les bases de l’économie.\n"
+                "- <a:fleche3:1290077283100397672> **<#1359949279808061591>** pour savoir ce que tu peux obtenir.\n\n"
+                "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
+                "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
+            ),
+            color=discord.Color.gold()
+        )
+        embed.set_image(url="https://raw.githubusercontent.com/Cass64/EtheryaBot/main/images_etherya/etheryaBot_banniere.png")
+        await channel.send(f"{member.mention}", embed=embed)
+
+    # Envoi du ghost ping une seule fois par salon
+    for salon_id in salon_ids:
+        salon = bot.get_channel(salon_id)
+        if salon:
+            try:
+                message = await salon.send(f"{member.mention}")
+                await message.delete()
+            except discord.Forbidden:
+                print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
+            except discord.HTTPException:
+                print("Une erreur est survenue lors de l'envoi du message.")
+    
+    # Création d'un fil privé pour le membre
+    channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
+    channel = bot.get_channel(channel_id)
+
+    if channel and isinstance(channel, discord.TextChannel):
+        thread = await channel.create_thread(name=f"🎉 Bienvenue {member.name} !", type=discord.ChannelType.private_thread)
+        await thread.add_user(member)
+        private_threads[member.id] = thread
+
+        # Embed de bienvenue
+        welcome_embed = discord.Embed(
+            title="🌌 Bienvenue à Etherya !",
+            description=( 
+                "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
+                "Prêt à découvrir tout ce que le serveur a à offrir ?"
+            ),
+            color=discord.Color.blue()
+        )
+        welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else bot.user.avatar.url)
+        await thread.send(embed=welcome_embed)
+
+        # Embed du guide
+        guide_embed = discord.Embed(
+            title="📖 Besoin d'un Guide ?",
+            description=( 
+                "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
+                "les différentes façons d'évoluer. Veux-tu le suivre ?"
+            ),
+            color=discord.Color.gold()
+        )
+        guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
+        await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
+
+    # Envoi d'une notification de log dans le salon spécifique du serveur
+    if member.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(member.guild, "utilisateurs")
+        if channel:
+            await channel.send(f"✅ {member.mention} a rejoint le serveur.")
+
+@bot.tree.command(name="guide", description="Ouvre un guide personnalisé pour comprendre l'économie du serveur.")
+async def guide_command(interaction: discord.Interaction):
+    user = interaction.user
+
+    # Vérifie si le serveur est Etherya avant d'exécuter le reste du code
+    if interaction.guild.id != ETHERYA_SERVER_ID:
+        await interaction.response.send_message("❌ Cette commande est uniquement disponible sur le serveur Etherya.", ephemeral=True)
+        return
+
+    # Crée un nouveau thread privé à chaque commande
+    channel_id = 1355158120095027220
+    channel = bot.get_channel(channel_id)
+
+    if not channel:
+        await interaction.response.send_message("❌ Le canal est introuvable ou le bot n'a pas accès à ce salon.", ephemeral=True)
+        return
+
+    # Vérifie si le bot peut créer des threads dans ce canal
+    if not channel.permissions_for(channel.guild.me).send_messages or not channel.permissions_for(channel.guild.me).manage_threads:
+        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer des threads dans ce canal.", ephemeral=True)
+        return
+
+    try:
+        # Crée un nouveau thread à chaque fois que la commande est exécutée
+        thread = await channel.create_thread(
+            name=f"🎉 Bienvenue {user.name} !", 
+            type=discord.ChannelType.private_thread,
+            invitable=True
+        )
+        await thread.add_user(user)  # Ajoute l'utilisateur au thread
+
+        # Embed de bienvenue et guide pour un nouveau thread
+        welcome_embed = discord.Embed(
+            title="🌌 Bienvenue à Etherya !",
+            description="Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
+                        "Prêt à découvrir tout ce que le serveur a à offrir ?",
+            color=discord.Color.blue()
+        )
+        welcome_embed.set_thumbnail(url=user.avatar.url if user.avatar else bot.user.avatar.url)
+        await thread.send(embed=welcome_embed)
+
+    except discord.errors.Forbidden:
+        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer un thread privé dans ce canal.", ephemeral=True)
+        return
+
+    # Embed du guide
+    guide_embed = discord.Embed(
+        title="📖 Besoin d'un Guide ?",
+        description="Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
+                    "les différentes façons d'évoluer. Veux-tu le suivre ?",
+        color=discord.Color.gold()
+    )
+    guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via cette commande ! 🚀")
+    await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide avec les boutons
+
+    await interaction.response.send_message("📩 Ton guide personnalisé a été ouvert.", ephemeral=True)
+
+    # IMPORTANT : Permet au bot de continuer à traiter les commandes
+    await bot.process_commands(message)
+
+kick_times = defaultdict(list)  # {guild_id: [timestamp1, timestamp2, ...]}
+
+@bot.event
+async def on_member_remove(member: discord.Member):
+    guild_id = str(member.guild.id)
+
+    # Vérification si c'est un "kick" et gestion de la protection contre les masskicks
+    if not member.guild.me.guild_permissions.view_audit_log:
+        return
+
+    # Vérifier si l'événement est un kick
+    async for entry in member.guild.audit_logs(limit=1, action=discord.AuditLogAction.kick):
+        if entry.target.id == member.id and (discord.utils.utcnow() - entry.created_at).total_seconds() < 5:
+            # Récupère les données de protection
+            protection_data = await get_protection_data(guild_id)
+            if protection_data.get("anti_masskick") != "activer":
+                return
+
+            author_id = entry.user.id
+            current_time = time.time()
+            kick_times[author_id].append(current_time)
+
+            # Ne garder que les kicks récents (moins de 10 secondes)
+            kick_times[author_id] = [t for t in kick_times[author_id] if current_time - t < 10]
+
+            if len(kick_times[author_id]) >= 2:
+                try:
+                    # Sanction de l'auteur du masskick (ex: ban)
+                    await member.guild.ban(entry.user, reason="Masskick détecté (2 kicks en moins de 10s)")
+                    await member.guild.system_channel.send(f"⚠️ **Masskick détecté !** {entry.user.mention} a été banni pour avoir expulsé plusieurs membres en peu de temps.")
+                except Exception as e:
+                    print(f"[Erreur Masskick] : {e}")
+
+    # Envoi du message lorsque le membre quitte le serveur sur PROJECT_DELTA
+    if member.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(member.guild, "utilisateurs")
+        await channel.send(f"❌ {member.mention} a quitté le serveur.")
+
+# --- Nickname update ---
+@bot.event
+async def on_user_update(before, after):
+    # Check for username changes (this affects all mutual servers)
+    for guild in bot.guilds:
+        if guild.id == PROJECT_DELTA_ID:
+            if before.name != after.name:
+                channel = get_log_channel(guild, "nicknames")
+                await channel.send(f"📝 **Changement de pseudo global**: `{before.name}` → `{after.name}`")
+
+@bot.event
+async def on_member_update(before, after):
+    if before.guild.id != PROJECT_DELTA_ID:  # Vérifier si c'est le bon serveur
+        return
+
+    # --- Stream logs ---
+    if before.activity != after.activity:
+        if after.activity and isinstance(after.activity, discord.Streaming):
+            coins_to_add = random.randint(50, 75)
+            add_coins(after.guild.id, str(after.id), coins_to_add)
+            await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
+
+    # --- Nickname logs ---
+    if before.nick != after.nick:
+        channel = get_log_channel(before.guild, "nicknames")
+        await channel.send(f"📝 **Changement de surnom** pour {before.mention}: `{before.nick}` → `{after.nick}`")
+
+    # --- Boost logs ---
+    if before.premium_since is None and after.premium_since is not None:
+        channel = get_log_channel(before.guild, "boosts")
+        await channel.send(f"💎 {after.mention} a boosté le serveur !")
+
+# Protection anti-création de rôle et logs
+@bot.event
+async def on_guild_role_create(role):
+    guild_id = str(role.guild.id)
+    protection_data = await get_protection_data(guild_id)
+
+    # Protection anti-création de rôle
+    if protection_data.get("anti_createrole") == "activer":
+        try:
+            await role.delete(reason="Protection anti-création de rôle activée.")
+            print(f"Le rôle {role.name} a été supprimé à cause de la protection.")
+        except Exception as e:
+            print(f"Erreur lors de la suppression du rôle : {e}")
+
+    # Logs pour le serveur PROJECT_DELTA
+    if role.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(role.guild, "roles")
+        await channel.send(f"🎭 **Rôle créé** : {role.name} ({role.id})")
+
+# Protection anti-suppression de rôle et logs
+@bot.event
+async def on_guild_role_delete(role):
+    guild_id = str(role.guild.id)
+    protection_data = await get_protection_data(guild_id)
+
+    # Protection anti-suppression de rôle
+    if protection_data.get("anti_deleterole") == "activer":
+        try:
+            await role.guild.create_role(name=role.name, permissions=role.permissions, color=role.color)
+            print(f"Le rôle {role.name} a été recréé suite à la suppression (protection activée).")
+        except Exception as e:
+            print(f"Erreur lors de la recréation du rôle : {e}")
+
+    # Logs pour le serveur PROJECT_DELTA
+    if role.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(role.guild, "roles")
+        await channel.send(f"🎭 **Rôle supprimé** : {role.name} ({role.id})")
+
+# Logs pour les mises à jour de rôle
+@bot.event
+async def on_guild_role_update(before, after):
+    if before.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(before.guild, "roles")
+        await channel.send(f"🎭 **Rôle mis à jour** : {before.name} → {after.name}")
+# --- Protection et Logs des salons ---
+@bot.event
+async def on_guild_channel_create(channel):
+    guild_id = str(channel.guild.id)
+
+    # Protection anti-création de salon
+    protection_data = await get_protection_data(guild_id)
+    if protection_data.get("anti_createchannel") == "activer":
+        if channel.guild.me.guild_permissions.manage_channels:
+            await channel.delete(reason="Protection anti-création de salon activée.")
+            print(f"Le salon {channel.name} a été supprimé à cause de la protection.")
+        else:
+            print("Le bot n'a pas la permission de gérer les salons.")
+        return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été supprimé
+
+    # Log de la création de salon dans le serveur PROJECT_DELTA
+    if channel.guild.id == PROJECT_DELTA_ID:
+        channel_log = get_log_channel(channel.guild, "channels")
+        await channel_log.send(f"🗂️ **Salon créé** : {channel.name} ({channel.id})")
+
+@bot.event
+async def on_guild_channel_delete(channel):
+    guild_id = str(channel.guild.id)
+
+    # Protection anti-suppression de salon
+    protection_data = await get_protection_data(guild_id)
+    if protection_data.get("anti_deletechannel") == "activer":
+        try:
+            await channel.guild.create_text_channel(channel.name, category=channel.category)
+            print(f"Le salon {channel.name} a été recréé suite à la suppression (protection activée).")
+        except Exception as e:
+            print(f"Erreur lors de la recréation du salon : {e}")
+        return  # On arrête l'exécution ici pour ne pas envoyer de log si le salon a été recréé
+
+    # Log de la suppression de salon dans le serveur PROJECT_DELTA
+    if channel.guild.id == PROJECT_DELTA_ID:
+        channel_log = get_log_channel(channel.guild, "channels")
+        await channel_log.send(f"🗂️ **Salon supprimé** : {channel.name} ({channel.id})")
+
+@bot.event
+async def on_guild_channel_update(before, after):
+    if before.guild.id == PROJECT_DELTA_ID:
+        channel_log = get_log_channel(before.guild, "channels")
+        await channel_log.send(f"🗂️ **Salon mis à jour** : {before.name} → {after.name}")
+
+# --- Voice state update ---
+@bot.event
+async def on_voice_state_update(member, before, after):
+    if member.guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(member.guild, "vocal")
+        if before.channel != after.channel:
+            if after.channel:
+                await channel.send(f"🎙️ **{member.mention} a rejoint le salon vocal** : {after.channel.name}")
+            if before.channel:
+                await channel.send(f"🎙️ **{member.mention} a quitté le salon vocal** : {before.channel.name}")
+
+# --- Guild update ---
+@bot.event
+async def on_guild_update(before, after):
+    if before.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(after, "serveur")
+        await channel.send(f"⚙️ **Le serveur a été mis à jour** :\nNom : {before.name} → {after.name}")
+
+# --- Webhooks update ---
+@bot.event
+async def on_webhooks_update(guild, channel):
+    if guild.id == PROJECT_DELTA_ID:
+        webhook_channel = get_log_channel(guild, "webhooks")
+        await webhook_channel.send(f"🛰️ **Webhooks mis à jour** dans {channel.name} ({channel.id})")
+
+# Détection d'un massban (2 bans en moins de 10 secondes)
+@bot.event
+async def on_member_ban(guild, user):
+    guild_id = str(guild.id)
+    data = await get_protection_data(guild_id)
+
+    if data.get("anti_massban") == "activer":
+        # Vérifier s'il y a déjà eu un ban récent
+        if guild.id not in ban_times:
+            ban_times[guild.id] = []
+        current_time = time.time()
+        ban_times[guild.id].append(current_time)
+        
+        # Nettoyer les anciens bans
+        ban_times[guild.id] = [t for t in ban_times[guild.id] if current_time - t < 10]
+
+        # Si 2 bans ont été effectués en moins de 10 secondes
+        if len(ban_times[guild.id]) > 2:
+            await guild.fetch_ban(user)  # Annuler le ban
+            await guild.unban(user)  # Débannir la personne
+            await guild.text_channels[0].send(f"Le massban a été détecté ! Le ban de {user.name} a été annulé.")
+            print(f"Massban détecté pour {user.name}, ban annulé.")
+            return
+
+    # --- Logs de ban ---
+    if guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(guild, "sanctions")
+        await channel.send(f"🔨 **Membre banni** : {user.mention}")
+
+@bot.event
+async def on_member_unban(guild, user):
+    if guild.id == PROJECT_DELTA_ID:
+        channel = get_log_channel(guild, "sanctions")
+        await channel.send(f"🔓 **Membre débanni** : {user.mention}")
+
+# --- Bot logs ---
+@bot.event
+async def on_guild_update(before, after):
+    if before.id == PROJECT_DELTA_ID:
+        bot_channel = get_log_channel(after, "bots")
+        await bot_channel.send(f"🤖 **Le bot a été mis à jour** :\nNom du serveur : {before.name} → {after.name}")
+
 #-------------------------------------------------------------------------- Bot Join:
 @bot.event
 async def on_guild_join(guild):
@@ -636,11 +1181,33 @@ async def on_guild_remove(guild):
     embed.set_footer(text="Retiré le")
 
     await channel.send(embed=embed)
-#---------------------------------------------------------------------------- Logs:
+
 # Fonction pour vérifier si l'utilisateur est administrateur
 async def is_admin(interaction: discord.Interaction):
     # Utilisation de interaction.user pour accéder aux permissions
     return interaction.user.guild_permissions.administrator
+
+#---------------------------------------------------------------------------- Logs:
+
+log_channels = {
+    "sanctions": 1361669286833426473,
+    "messages": 1361669323139322066,
+    "utilisateurs": 1361669350054039683,
+    "nicknames": 1361669502839816372,
+    "roles": 1361669524071383071,
+    "vocal": 1361669536197251217,
+    "serveur": 1361669784814485534,
+    "permissions": 1361669810496209083,
+    "channels": 1361669826011201598,
+    "webhooks": 1361669963835773126,
+    "bots": 1361669985705132172,
+    "tickets": 1361669998665535499,
+    "boosts": 1361670102818230324
+}
+
+def get_log_channel(guild, key):
+    return guild.get_channel(log_channels[key])
+
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
@@ -2250,16 +2817,6 @@ async def remove_money(interaction: discord.Interaction, user: discord.Member, a
     embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.display_avatar.url)
     embed.set_footer(text="Transaction réussie.")
     await interaction.response.send_message(embed=embed)
-
-@bot.event
-async def on_member_update(before, after):
-    if before.activity != after.activity:
-        if after.activity and isinstance(after.activity, discord.Streaming):
-            if after.guild.id != 1359963854200639498:
-                return  # 🔒 Arrêter ici si ce n'est pas le bon serveur
-            coins_to_add = random.randint(50, 75)
-            add_coins(after.guild.id, str(after.id), coins_to_add)
-            await after.send(f"Tu as reçu **{coins_to_add} Coins** pour ton stream !")
 
 #-------------------------------------------------------------------------------- Niveau:
 
@@ -3909,119 +4466,6 @@ def get_protection_options():
         "Whitelist 🔑": "whitelist"
     }
 
-#------------------------------------------------------------------------- Code Protection:
-# Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
-protection_settings = {}
-ban_times = {}  # Dictionnaire pour stocker les temps de bans
-
-# Détection d'un massban (2 bans en moins de 10 secondes)
-@bot.event
-async def on_member_ban(guild, user):
-    guild_id = str(guild.id)
-    data = await get_protection_data(guild_id)
-
-    if data.get("anti_massban") == "activer":
-        # Vérifier s'il y a déjà eu un ban récent
-        if guild.id not in ban_times:
-            ban_times[guild.id] = []
-        current_time = time.time()
-        ban_times[guild.id].append(current_time)
-        
-        # Nettoyer les anciens bans
-        ban_times[guild.id] = [t for t in ban_times[guild.id] if current_time - t < 10]
-
-        # Si 2 bans ont été effectués en moins de 10 secondes
-        if len(ban_times[guild.id]) > 2:
-            await guild.fetch_ban(user)  # Annuler le ban
-            await guild.unban(user)  # Débannir la personne
-            await guild.text_channels[0].send(f"Le massban a été détecté ! Le ban de {user.name} a été annulé.")
-            print(f"Massban détecté pour {user.name}, ban annulé.")
-            return
-
-kick_times = defaultdict(list)  # {guild_id: [timestamp1, timestamp2, ...]}
-
-@bot.event
-async def on_member_remove(member: discord.Member):
-    guild_id = str(member.guild.id)
-
-    # Récupération des logs d'audit pour vérifier si c'était un kick
-    if not member.guild.me.guild_permissions.view_audit_log:
-        return
-
-    async for entry in member.guild.audit_logs(limit=1, action=discord.AuditLogAction.kick):
-        if entry.target.id == member.id and (discord.utils.utcnow() - entry.created_at).total_seconds() < 5:
-            # Récupère les données de protection
-            protection_data = await get_protection_data(guild_id)
-            if protection_data.get("anti_masskick") != "activer":
-                return
-
-            author_id = entry.user.id
-            current_time = time.time()
-            kick_times[author_id].append(current_time)
-
-            # Ne garder que les kicks récents (moins de 10 secondes)
-            kick_times[author_id] = [t for t in kick_times[author_id] if current_time - t < 10]
-
-            if len(kick_times[author_id]) >= 2:
-                try:
-                    # Sanction de l'auteur du masskick (ex: ban)
-                    await member.guild.ban(entry.user, reason="Masskick détecté (2 kicks en moins de 10s)")
-                    await member.guild.system_channel.send(f"⚠️ **Masskick détecté !** {entry.user.mention} a été banni pour avoir expulsé plusieurs membres en peu de temps.")
-                except Exception as e:
-                    print(f"[Erreur Masskick] : {e}")
-
-# Protection anti-création de salon
-@bot.event
-async def on_guild_channel_create(channel):
-    guild_id = str(channel.guild.id)
-    protection_data = await get_protection_data(guild_id)
-
-    if protection_data.get("anti_createchannel") == "activer":
-        # S’assurer que le bot a bien les permissions de gérer les salons
-        if channel.guild.me.guild_permissions.manage_channels:
-            await channel.delete(reason="Protection anti-création de salon activée.")
-            print(f"Le salon {channel.name} a été supprimé à cause de la protection.")
-        else:
-            print("Le bot n'a pas la permission de gérer les salons.")
-
-# Protection anti-suppression de salon
-@bot.event
-async def on_guild_channel_delete(channel):
-    guild_id = str(channel.guild.id)
-    protection_data = await get_protection_data(guild_id)
-
-    if protection_data.get("anti_deletechannel") == "activer":
-        try:
-            await channel.guild.create_text_channel(channel.name, category=channel.category)
-            print(f"Le salon {channel.name} a été recréé suite à la suppression (protection activée).")
-        except Exception as e:
-            print(f"Erreur lors de la recréation du salon : {e}")
-
-# Protection anti-création de rôle
-@bot.event
-async def on_guild_role_create(role):
-    guild_id = str(role.guild.id)
-    protection_data = await get_protection_data(guild_id)
-
-    if protection_data.get("anti_createrole") == "activer":
-        try:
-            await role.delete(reason="Protection anti-création de rôle activée.")
-            print(f"Le rôle {role.name} a été supprimé à cause de la protection.")
-        except Exception as e:
-            print(f"Erreur lors de la suppression du rôle : {e}")
-
-# Protection anti-suppression de rôle
-@bot.event
-async def on_guild_role_delete(role):
-    guild_id = str(role.guild.id)
-    protection_data = await get_protection_data(guild_id)
-
-    if protection_data.get("anti_deleterole") == "activer":
-        try:
-            await role.guild.create_role(name=role.name, permissions=role.permissions, color=role.color)
-            print(f"Le rôle {role.name} a été recréé suite à la suppression (protection activée).")
-        except Exception as e:
-            print(f"Erreur lors de la recréation du rôle : {e}")
 #------------------------------------------------------------------------- wl:
 
 @bot.command()
@@ -4080,271 +4524,6 @@ async def listwl(ctx):
     else:
         await ctx.send("La whitelist est vide.")
 
-#------------------------------------------------------------------------- Commandes de Bienvenue : Message de Bienvenue + Ghost Ping Join
-private_threads = {}  # Stocke les fils privés des nouveaux membres
-
-# Liste des salons à pinguer
-salon_ids = [
-    1355158116903419997
-]
-
-class GuideView(View):
-    def __init__(self, thread):
-        super().__init__()
-        self.thread = thread
-        self.message_sent = False  # Variable pour contrôler l'envoi du message
-
-    @discord.ui.button(label="📘 Guide", style=discord.ButtonStyle.success, custom_id="guide_button_unique")
-    async def guide(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not self.message_sent:  # Empêche l'envoi du message en doublon
-            await interaction.response.defer()
-            await start_tutorial(self.thread, interaction.user)
-            self.message_sent = True
-
-    @discord.ui.button(label="❌ Non merci", style=discord.ButtonStyle.danger, custom_id="no_guide_button_unique")
-    async def no_guide(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🔒 Fermeture du fil...", ephemeral=True)
-        await asyncio.sleep(2)
-        await self.thread.delete()
-
-class NextStepView(View):
-    def __init__(self, thread):
-        super().__init__()
-        self.thread = thread
-
-    @discord.ui.button(label="➡️ Passer à la suite", style=discord.ButtonStyle.primary, custom_id="next_button")
-    async def next_step(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
-        user = interaction.user
-
-        # Envoi du message privé
-        await send_economy_info(user)
-
-        # Envoi du message de confirmation dans le fil privé
-        await self.thread.send("📩 Les détails de cette étape ont été envoyés en message privé.")
-
-        # Attente de 2 secondes
-        await asyncio.sleep(2)
-
-        # Message d'avertissement avant suppression
-        await self.thread.send("🗑️ Ce fil sera supprimé dans quelques instants.")
-
-        # Suppression du fil privé
-        await asyncio.sleep(3)
-        await self.thread.delete()
-
-async def wait_for_command(thread, user, command):
-    def check(msg):
-        return msg.channel == thread and msg.author == user and msg.content.startswith(command)
-
-    await thread.send(f"🕒 En attente de `{command}`...")  # Envoi du message d'attente
-    await bot.wait_for("message", check=check)  # Attente du message de la commande
-    await thread.send("✅ Commande exécutée ! Passons à la suite. 🚀")  # Confirmation après la commande
-    await asyncio.sleep(2)  # Pause avant de passer à l'étape suivante
-
-async def start_tutorial(thread, user):
-    tutorial_steps = [
-        ("💼 **Commande Travail**", "Utilise `!!work` pour gagner un salaire régulièrement !", "!!work"),
-        ("💃 **Commande Slut**", "Avec `!!slut`, tente de gagner de l'argent... Mais attention aux risques !", "!!slut"),
-        ("🔫 **Commande Crime**", "Besoin de plus de frissons ? `!!crime` te plonge dans des activités illégales !", "!!crime"),
-        ("🌿 **Commande Collecte**", "Avec `!!collect`, tu peux ramasser des ressources utiles !", "!!collect"),
-        ("📊 **Classement**", "Découvre qui a le plus d'argent en cash avec `!!lb -cash` !", "!!lb -cash"),
-        ("🕵️ **Voler un joueur**", "Tente de dérober l'argent d'un autre avec `!!rob @user` !", "!!rob"),
-        ("🏦 **Dépôt Bancaire**", "Pense à sécuriser ton argent avec `!!dep all` !", "!!dep all"),
-        ("💰 **Solde Bancaire**", "Vérifie ton argent avec `!!bal` !", "!!bal"),
-    ]
-
-    for title, desc, cmd in tutorial_steps:
-        embed = discord.Embed(title=title, description=desc, color=discord.Color.blue())
-        await thread.send(embed=embed)
-        await wait_for_command(thread, user, cmd)  # Attente de la commande de l'utilisateur
-
-    # Embed final des jeux
-    games_embed = discord.Embed(
-        title="🎲 **Autres Commandes de Jeux**",
-        description="Découvre encore plus de moyens de t'amuser et gagner des Ezryn Coins !",
-        color=discord.Color.gold()
-    )
-    games_embed.add_field(name="🐔 Cock-Fight", value="`!!cf` - Combat de Poulet !", inline=False)
-    games_embed.add_field(name="🃏 Blackjack", value="`!!bj` - Jeux de Carte !", inline=False)
-    games_embed.add_field(name="🎰 Slot Machine", value="`!!sm` - Tente un jeu risqué !", inline=False)
-    games_embed.add_field(name="🔫 Roulette Russe", value="`!!rr` - Joue avec le destin !", inline=False)
-    games_embed.add_field(name="🎡 Roulette", value="`!!roulette` - Fais tourner la roue de la fortune !", inline=False)
-    games_embed.set_footer(text="Amuse-toi bien sur Etherya ! 🚀")
-
-    await thread.send(embed=games_embed)
-    await thread.send("Clique sur **Passer à la suite** pour découvrir les systèmes impressionnants de notre Economie !", view=NextStepView(thread))
-
-async def send_economy_info(user: discord.Member):
-    try:
-        economy_embed = discord.Embed(
-            title="📌 **Lis ces salons pour optimiser tes gains !**",
-            description=(
-                "Bienvenue dans l'économie du serveur ! Pour en tirer le meilleur profit, assure-toi de lire ces salons :\n\n"
-                "💰 **Comment accéder à l'economie ?**\n➜ <#1355190022047011117>\n\n"
-                "📖 **Informations générales**\n➜ <#1355158018517500086>\n\n"
-                "💰 **Comment gagner des Coins ?**\n➜ <#1355157853299675247>\n\n"
-                "🏦 **Banque de l'Éco 1**\n➜ <#1355158001606066267>\n\n"
-                "🏦 **Banque de l'Éco 2**\n➜ <#1355191522252951573>\n\n"
-                "🎟️ **Ticket Finances** *(Pose tes questions ici !)*\n➜ <#1355157942005006558>\n\n"
-                "📈 **Astuce :** Plus tu en sais, plus tu gagnes ! Alors prends quelques minutes pour lire ces infos. 🚀"
-            ),
-            color=discord.Color.gold()
-        )
-        economy_embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1168755764760559637.webp?size=96&quality=lossless")
-        economy_embed.set_footer(text="Bon jeu et bons profits ! 💰")
-
-        dm_channel = await user.create_dm()
-        await dm_channel.send(embed=economy_embed)
-    except discord.Forbidden:
-        print(f"Impossible d'envoyer un MP à {user.name} ({user.id})")
-
-# Protection anti-bot (empêche l'ajout de bots)
-# Événement lorsqu'un membre rejoint le serveur
-@bot.event
-async def on_member_join(member):
-    guild_id = str(member.guild.id)
-    protection_data = protection_settings.get(guild_id, {"whitelist": [], "anti_bot": "Non configuré"})
-    whitelist = protection_data.get("whitelist", [])
-
-    # Vérifier si l'utilisateur est dans la whitelist
-    if member.id in whitelist:
-        return  # L'utilisateur est exempté de la protection
-
-    # Vérifier si la protection anti-bot est activée pour ce serveur
-    if protection_data.get("anti_bot") == "activer":
-        if member.bot:
-            await member.kick(reason="Protection anti-bot activée.")
-            print(f"Un bot ({member.name}) a été expulsé pour cause de protection anti-bot.")
-        return
-
-    # Le reste du code pour l'ajout d'un membre sur le serveur Etherya
-    if member.guild.id != ETHERYA_SERVER_ID:
-        return  # Stoppe l'exécution si ce n'est pas Etherya
-    
-    # Envoi du message de bienvenue
-    channel = bot.get_channel(WELCOME_CHANNEL_ID)
-    if channel:
-        embed = discord.Embed(
-            title="<a:fete:1172810362261880873> Bienvenue sur le serveur ! <a:fete:1172810362261880873>",
-            description=(
-                "*<a:fire:1343873843730579478> Ici, l’économie règne en maître, les alliances se forment, les trahisons éclatent... et ta richesse ne tient qu’à un fil ! <a:fire:1343873843730579478>*\n\n"
-                "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
-                "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
-                "- <a:fleche3:1290077283100397672> **<#1355158018517500086>** pour comprendre les bases de l’économie.\n"
-                "- <a:fleche3:1290077283100397672> **<#1359949279808061591>** pour savoir ce que tu peux obtenir.\n\n"
-                "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
-                "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
-            ),
-            color=discord.Color.gold()
-        )
-        embed.set_image(url="https://raw.githubusercontent.com/Cass64/EtheryaBot/main/images_etherya/etheryaBot_banniere.png")
-        await channel.send(f"{member.mention}", embed=embed)
-
-    # Envoi du ghost ping une seule fois par salon
-    for salon_id in salon_ids:
-        salon = bot.get_channel(salon_id)
-        if salon:
-            try:
-                message = await salon.send(f"{member.mention}")
-                await message.delete()
-            except discord.Forbidden:
-                print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
-            except discord.HTTPException:
-                print("Une erreur est survenue lors de l'envoi du message.")
-    
-    # Création d'un fil privé pour le membre
-    channel_id = 1355158120095027220  # Remplace par l'ID du salon souhaité
-    channel = bot.get_channel(channel_id)
-
-    if channel and isinstance(channel, discord.TextChannel):
-        thread = await channel.create_thread(name=f"🎉 Bienvenue {member.name} !", type=discord.ChannelType.private_thread)
-        await thread.add_user(member)
-        private_threads[member.id] = thread
-
-        # Embed de bienvenue
-        welcome_embed = discord.Embed(
-            title="🌌 Bienvenue à Etherya !",
-            description=( 
-                "Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
-                "Prêt à découvrir tout ce que le serveur a à offrir ?"
-            ),
-            color=discord.Color.blue()
-        )
-        welcome_embed.set_thumbnail(url=member.avatar.url if member.avatar else bot.user.avatar.url)
-        await thread.send(embed=welcome_embed)
-
-        # Embed du guide
-        guide_embed = discord.Embed(
-            title="📖 Besoin d'un Guide ?",
-            description=( 
-                "Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
-                "les différentes façons d'évoluer. Veux-tu le suivre ?"
-            ),
-            color=discord.Color.gold()
-        )
-        guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via la commande /guide ! 🚀")
-        await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide immédiatement
-
-@bot.tree.command(name="guide", description="Ouvre un guide personnalisé pour comprendre l'économie du serveur.")
-async def guide_command(interaction: discord.Interaction):
-    user = interaction.user
-
-    # Vérifie si le serveur est Etherya avant d'exécuter le reste du code
-    if interaction.guild.id != ETHERYA_SERVER_ID:
-        await interaction.response.send_message("❌ Cette commande est uniquement disponible sur le serveur Etherya.", ephemeral=True)
-        return
-
-    # Crée un nouveau thread privé à chaque commande
-    channel_id = 1355158120095027220
-    channel = bot.get_channel(channel_id)
-
-    if not channel:
-        await interaction.response.send_message("❌ Le canal est introuvable ou le bot n'a pas accès à ce salon.", ephemeral=True)
-        return
-
-    # Vérifie si le bot peut créer des threads dans ce canal
-    if not channel.permissions_for(channel.guild.me).send_messages or not channel.permissions_for(channel.guild.me).manage_threads:
-        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer des threads dans ce canal.", ephemeral=True)
-        return
-
-    try:
-        # Crée un nouveau thread à chaque fois que la commande est exécutée
-        thread = await channel.create_thread(
-            name=f"🎉 Bienvenue {user.name} !", 
-            type=discord.ChannelType.private_thread,
-            invitable=True
-        )
-        await thread.add_user(user)  # Ajoute l'utilisateur au thread
-
-        # Embed de bienvenue et guide pour un nouveau thread
-        welcome_embed = discord.Embed(
-            title="🌌 Bienvenue à Etherya !",
-            description="Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
-                        "Prêt à découvrir tout ce que le serveur a à offrir ?",
-            color=discord.Color.blue()
-        )
-        welcome_embed.set_thumbnail(url=user.avatar.url if user.avatar else bot.user.avatar.url)
-        await thread.send(embed=welcome_embed)
-
-    except discord.errors.Forbidden:
-        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer un thread privé dans ce canal.", ephemeral=True)
-        return
-
-    # Embed du guide
-    guide_embed = discord.Embed(
-        title="📖 Besoin d'un Guide ?",
-        description="Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
-                    "les différentes façons d'évoluer. Veux-tu le suivre ?",
-        color=discord.Color.gold()
-    )
-    guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via cette commande ! 🚀")
-    await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide avec les boutons
-
-    await interaction.response.send_message("📩 Ton guide personnalisé a été ouvert.", ephemeral=True)
-
-    # IMPORTANT : Permet au bot de continuer à traiter les commandes
-    await bot.process_commands(message)
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
@@ -7336,24 +7515,6 @@ async def alladmin(ctx):
 
 # Dictionnaire pour stocker les messages supprimés {channel_id: deque[(timestamp, auteur, contenu)]}
 sniped_messages = {}
-
-@bot.event
-async def on_message_delete(message):
-    if message.author.bot:
-        return  # Ignore les bots
-
-    channel_id = message.channel.id
-    timestamp = time.time()
-    
-    if channel_id not in sniped_messages:
-        sniped_messages[channel_id] = deque(maxlen=10)  # Stocker jusqu'à 10 messages par salon
-    
-    sniped_messages[channel_id].append((timestamp, message.author, message.content))
-    
-    # Nettoyage des vieux messages après 5 minutes
-    await asyncio.sleep(300)
-    now = time.time()
-    sniped_messages[channel_id] = deque([(t, a, c) for t, a, c in sniped_messages[channel_id] if now - t < 300])
 
 @bot.command()
 async def snipe(ctx, index: int = 1):
