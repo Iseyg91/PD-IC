@@ -900,34 +900,32 @@ async def team_command(ctx):
     members = team.get("members", {})
     owner_id = team.get("owner_id")
 
-embed = discord.Embed(
-    title=f"🏰 Team : {team['team_id']}",
-    description=team.get("description", "Aucune description"),
-    color=discord.Color.blue()
-)
-embed.add_field(name="👑 Propriétaire", value=f"<@{team.get('owner_id', 'Non défini')}>", inline=False)
-embed.add_field(name="💰 Coins", value=str(team.get("coffre", 0)), inline=False)
+    embed = discord.Embed(
+        title=f"🏰 Team : {team_id}",
+        description=description,
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="👑 Propriétaire", value=f"<@{owner_id}>", inline=False)
+    embed.add_field(name="💰 Coins", value=str(coffre), inline=False)
 
-membres = team.get("members", {})
-embed.add_field(name=f"👥 Membres ({len(membres)})", value="\u200b", inline=False)
+    owners = []
+    others = []
+    for member_id, rank in members.items():
+        mention = f"<@{member_id}>"
+        if rank.lower() == "owner":
+            owners.append(f"👑 {mention}")
+        else:
+            others.append(f"👤 {mention}")
 
-owners = []
-others = []
-for member_id, rank in membres.items():
-    mention = f"<@{member_id}>"
-    if rank.lower() == "owner":
-        owners.append(f"👑 {mention}")
-    else:
-        others.append(f"👤 {mention}")
+    if owners:
+        embed.add_field(name="Owners", value="\n".join(owners), inline=False)
+    if others:
+        embed.add_field(name="Membres", value="\n".join(others), inline=False)
 
-if owners:
-    embed.add_field(name="Owners", value="\n".join(owners), inline=False)
-if others:
-    embed.add_field(name="Membres", value="\n".join(others), inline=False)
+    embed.add_field(name="ID de la team", value=team_id, inline=False)
 
-embed.add_field(name="ID de la team", value=team["team_id"], inline=False)
+    await ctx.send(embed=embed)
 
-await ctx.send(embed=embed)
 
 @bot.command()
 async def tinvite(ctx, member: discord.Member):
