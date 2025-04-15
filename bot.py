@@ -1120,40 +1120,41 @@ async def tedit(ctx):
 
 @bot.command()
 async def tdep(ctx, amount: str):
-    if not check_project_delta(ctx):
+    if ctx.guild.id != 1359963854200639498:
         return
 
     user_id = str(ctx.author.id)
-    guild_id = str(ctx.guild.id)
-    eco = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
-    team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
-    
+    team = collection17.find_one({f"members.{user_id}": {"$exists": True}})
     if not team:
-        return await ctx.send("Tu n'es pas dans une team.")
-    if not eco or eco["coins"] <= 0:
-        return await ctx.send("Tu n'as pas assez de coins.")
+        return await ctx.send("❌ Tu n'es dans aucune team.")
 
-    user_balance = eco["coins"]
-    if amount == "all":
-        deposit = user_balance
-    elif amount.isdigit():
-        deposit = int(amount)
-        if deposit > user_balance:
-            return await ctx.send("Tu n'as pas assez de coins.")
+    user_data = collection10.find_one({"guild_id": ctx.guild.id, "user_id": ctx.author.id})
+    user_coins = int(user_data.get("coins", 0))
+
+    if amount.lower() == "all":
+        deposit_amount = user_coins
     else:
-        return await ctx.send("Montant invalide.")
+        try:
+            deposit_amount = int(amount)
+            if deposit_amount <= 0:
+                return await ctx.send("❌ Le montant doit être positif.")
+        except ValueError:
+            return await ctx.send("❌ Montant invalide. Utilise un nombre ou `all`.")
 
-    # Mise à jour
+    if deposit_amount > user_coins:
+        return await ctx.send("❌ Tu n'as pas assez de coins.")
+
     collection10.update_one(
-        {"guild_id": guild_id, "user_id": user_id},
-        {"$inc": {"coins": -deposit}}
-    )
-    collection17.update_one(
-        {"guild_id": guild_id, "team_id": team["team_id"]},
-        {"$inc": {"coffre": deposit}}
+        {"guild_id": ctx.guild.id, "user_id": ctx.author.id},
+        {"$inc": {"coins": -deposit_amount}}
     )
 
-    await ctx.send(f"Tu as déposé **{deposit}** 🪙 dans le coffre de ta team.")
+    collection17.update_one(
+        {"_id": team["_id"]},
+        {"$inc": {"coins": deposit_amount}}  # Assure-toi que cette valeur est bien toujours un `int`
+    )
+
+    await ctx.send(f"💰 Tu as déposé **{deposit_amount} 🪙** dans le coffre de ta team.")
 
 @bot.command()
 async def twith(ctx, amount: str):
