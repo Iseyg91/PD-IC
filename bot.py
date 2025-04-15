@@ -641,24 +641,6 @@ async def on_guild_remove(guild):
 async def is_admin(interaction: discord.Interaction):
     # Utilisation de interaction.user pour accéder aux permissions
     return interaction.user.guild_permissions.administrator
-
-# Commande pour nettoyer les données de logs de la collection18
-@bot.tree.command(name="clear_logs_data", description="Supprime les données de configuration des logs pour ce serveur")
-async def clear_logs_data(interaction: discord.Interaction):
-    # Vérifie si l'utilisateur est administrateur
-    if not await is_admin(interaction):
-        await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-        return
-
-    guild_id = str(interaction.guild.id)
-
-    # Supprimer les données de la collection MongoDB pour ce serveur
-    result = collection18.delete_one({"guild_id": guild_id})
-
-    if result.deleted_count > 0:
-        await interaction.response.send_message("Les données de configuration des logs ont été supprimées avec succès.", ephemeral=True)
-    else:
-        await interaction.response.send_message("Aucune configuration de logs trouvée pour ce serveur.", ephemeral=True)
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
