@@ -363,7 +363,6 @@ async def on_ready():
         for guild in bot.guilds:
             GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
-# Gestion des erreurs globales pour toutes les commandes
 @bot.event
 async def on_error(event, *args, **kwargs):
     print(f"Une erreur s'est produite : {event}")
@@ -372,7 +371,14 @@ async def on_error(event, *args, **kwargs):
         description="Une erreur s'est produite lors de l'exécution de la commande. Veuillez réessayer plus tard.",
         color=discord.Color.red()
     )
-    await args[0].response.send_message(embed=embed)
+    
+    # Vérifie si args[0] est une Interaction ou Message
+    if isinstance(args[0], discord.Interaction):
+        await args[0].response.send_message(embed=embed)
+    elif isinstance(args[0], discord.Message):
+        await args[0].channel.send(embed=embed)
+    else:
+        print("Erreur : Le type de l'objet n'est pas pris en charge pour l'envoi du message.")
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
 # Liste des mots sensibles
