@@ -642,51 +642,23 @@ async def is_admin(interaction: discord.Interaction):
     # Utilisation de interaction.user pour accéder aux permissions
     return interaction.user.guild_permissions.administrator
 
-# Fonction pour configurer les salons de logs
-@bot.tree.command(name="setup_logs", description="Configurer les salons de logs pour ce serveur")
-async def setup_logs(interaction: discord.Interaction):
-    # Vérifier si l'utilisateur est administrateur
+# Commande pour nettoyer les données de logs de la collection18
+@bot.tree.command(name="clear_logs_data", description="Supprime les données de configuration des logs pour ce serveur")
+async def clear_logs_data(interaction: discord.Interaction):
+    # Vérifie si l'utilisateur est administrateur
     if not await is_admin(interaction):
         await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
         return
 
-    guild = interaction.guild
-    # Création de la catégorie "Project : Delta LOGS"
-    category = await guild.create_category("Project : Delta LOGS")
+    guild_id = str(interaction.guild.id)
 
-    # Création des salons de logs sous la catégorie
-    logs_channels = {}
-    log_names = ["logs_membres", "logs_messages", "logs_modération", "logs_actions"]
-    
-    for name in log_names:
-        # Création du salon et l'ajout à la catégorie
-        channel = await guild.create_text_channel(name, category=category)
-        logs_channels[name] = channel.id
+    # Supprimer les données de la collection MongoDB pour ce serveur
+    result = collection18.delete_one({"guild_id": guild_id})
 
-    # Sauvegarder les ID des salons dans MongoDB
-    collection18.update_one(
-        {"guild_id": str(guild.id)},
-        {"$set": {"logs_channels": logs_channels}},
-        upsert=True
-    )
-
-    # Embeds pour la confirmation
-    embed = discord.Embed(
-        title="Configuration des salons de logs",
-        description="Les salons suivants ont été créés pour les logs.",
-        color=discord.Color.green()
-    )
-    for name, channel_id in logs_channels.items():
-        channel = guild.get_channel(channel_id)
-        embed.add_field(name=name, value=f"Salon créé : {channel.mention}", inline=False)
-
-    await interaction.response.send_message(embed=embed)
-
-# Gestion des erreurs
-async def on_error(self, event_name, *args, **kwargs):
-    if args:
-        await args[0].response.send_message("Une erreur est survenue.")
-
+    if result.deleted_count > 0:
+        await interaction.response.send_message("Les données de configuration des logs ont été supprimées avec succès.", ephemeral=True)
+    else:
+        await interaction.response.send_message("Aucune configuration de logs trouvée pour ce serveur.", ephemeral=True)
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
