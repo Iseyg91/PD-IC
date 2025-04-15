@@ -630,6 +630,7 @@ async def on_guild_remove(guild):
 
     await channel.send(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
+
 # --- MODAL POUR FERMETURE ---
 class TicketModal(ui.Modal, title="Fermer le ticket"):
     reason = ui.TextInput(label="Raison de fermeture", style=discord.TextStyle.paragraph)
@@ -640,6 +641,8 @@ class TicketModal(ui.Modal, title="Fermer le ticket"):
         reason = self.reason.value
 
         transcript_channel = guild.get_channel(TRANSCRIPT_CHANNEL_ID)
+
+        # Génération du transcript
         messages = [msg async for msg in channel.history(limit=None)]
         transcript_text = "\n".join([
             f"{msg.created_at.strftime('%Y-%m-%d %H:%M')} - {msg.author}: {msg.content}"
@@ -647,10 +650,35 @@ class TicketModal(ui.Modal, title="Fermer le ticket"):
         ])
         file = discord.File(fp=io.StringIO(transcript_text), filename="transcript.txt")
 
-        await transcript_channel.send(
-            f"📄 Ticket fermé par {interaction.user.mention}\n**Raison :** {reason}",
-            file=file
+        # Récupération de qui a ouvert et claim
+        ticket_data = collection16.find_one({"channel_id": str(channel.id)})
+
+        opened_by = guild.get_member(int(ticket_data["user_id"])) if ticket_data else None
+        claimed_by = None
+        # Recherche dans le dernier message envoyé contenant l'embed de création
+        async for msg in channel.history(limit=50):
+            if msg.embeds:
+                embed = msg.embeds[0]
+                if embed.footer and "Claimé par" in embed.footer.text:
+                    user_id = int(embed.footer.text.split("Claimé par ")[-1].replace(">", "").replace("<@", ""))
+                    claimed_by = guild.get_member(user_id)
+                    break
+
+        # Log dans le canal transcript
+        embed_log = discord.Embed(
+            title="📁 Ticket Fermé",
+            color=discord.Color.red()
         )
+        embed_log.add_field(name="Ouvert par", value=opened_by.mention if opened_by else "Inconnu", inline=True)
+        embed_log.add_field(name="Claimé par", value=claimed_by.mention if claimed_by else "Non claim", inline=True)
+        embed_log.add_field(name="Fermé par", value=interaction.user.mention, inline=True)
+        embed_log.add_field(name="Raison", value=reason, inline=False)
+        embed_log.set_footer(text=f"Ticket: {channel.name} | ID: {channel.id}")
+        embed_log.timestamp = discord.utils.utcnow()
+
+        await transcript_channel.send(embed=embed_log, file=file)
+
+        # Suppression du channel
         await interaction.response.send_message("✅ Ticket fermé.", ephemeral=True)
         await channel.delete()
 
@@ -659,14 +687,20 @@ class ClaimCloseView(ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
-    async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
-            return await interaction.response.send_message("❌ Tu n'as pas la permission de claim.", ephemeral=True)
+@ui.button(label="Claim", style=ButtonStyle.blurple, custom_id="claim")
+async def claim_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    if SUPPORT_ROLE_ID not in [role.id for role in interaction.user.roles]:
+        return await interaction.response.send_message("❌ Tu n'as pas la permission de claim.", ephemeral=True)
 
-        button.disabled = True
-        await interaction.message.edit(view=self)
-        await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.")
+    button.disabled = True
+    await interaction.message.edit(view=self)
+
+    # Ajoute une note dans le footer de l'embed
+    embed = interaction.message.embeds[0]
+    embed.set_footer(text=f"Claimé par {interaction.user.mention}")
+    await interaction.message.edit(embed=embed)
+
+    await interaction.response.send_message(f"📌 Ticket claim par {interaction.user.mention}.")
 
     @ui.button(label="Fermer", style=ButtonStyle.red, custom_id="close")
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
