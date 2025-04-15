@@ -930,6 +930,8 @@ async def team_command(ctx):
 
 @bot.command()
 async def tinvite(ctx, member: discord.Member):
+    """Invite un membre à rejoindre ta team."""
+    
     if not check_project_delta(ctx):
         return
 
@@ -937,41 +939,70 @@ async def tinvite(ctx, member: discord.Member):
     target_id = str(member.id)
     guild_id = str(ctx.guild.id)
 
+    # Recherche de la team du joueur
     team = collection17.find_one({"guild_id": guild_id, f"members.{user_id}": {"$exists": True}})
     if not team:
-        await ctx.send("Tu n'es dans aucune team.")
+        await ctx.send("❌ Tu n'es dans aucune équipe.")
         return
 
+    # Vérifie si le membre est banni
     if target_id in team['banned']:
-        await ctx.send("Cette personne est bannie de la team.")
+        await ctx.send("🚫 Cette personne est bannie de la team.")
         return
 
-    view = discord.ui.View()
+    # Création de l'embed de l'invitation
+    embed = discord.Embed(
+        title="📩 Invitation à rejoindre une team",
+        description=(
+            f"{member.mention}, tu as été invité par **{ctx.author.display_name}** "
+            f"à rejoindre la team **{team['team_id']}** ! 🎮\n\n"
+            "Tu peux accepter ou refuser l'invitation en cliquant sur les boutons ci-dessous."
+        ),
+        color=0x3498db
+    )
+    embed.set_footer(text="Invitation envoyée par le système d'équipes")
+    embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
+
+    # Création de la view avec boutons
+    view = discord.ui.View(timeout=60)
 
     async def accept_callback(interaction: discord.Interaction):
         if interaction.user.id != member.id:
-            await interaction.response.send_message("Ce bouton ne t’est pas destiné.", ephemeral=True)
+            await interaction.response.send_message("⛔ Ce bouton ne t’est pas destiné.", ephemeral=True)
             return
+
         collection17.update_one(
             {"guild_id": guild_id, "team_id": team['team_id']},
             {"$set": {f"members.{target_id}": "Membre"}}
         )
-        await interaction.response.edit_message(content=f"{member.mention} a rejoint la team **{team['team_id']}**.", view=None)
+
+        await interaction.response.edit_message(
+            content=f"✅ {member.mention} a rejoint la team **{team['team_id']}** !",
+            embed=None, view=None
+        )
 
     async def refuse_callback(interaction: discord.Interaction):
         if interaction.user.id != member.id:
-            await interaction.response.send_message("Ce bouton ne t’est pas destiné.", ephemeral=True)
+            await interaction.response.send_message("⛔ Ce bouton ne t’est pas destiné.", ephemeral=True)
             return
-        await interaction.response.edit_message(content=f"{member.mention} a refusé l'invitation à la team.", view=None)
 
-    accept_button = discord.ui.Button(label="Accepter", style=discord.ButtonStyle.success)
-    refuse_button = discord.ui.Button(label="Refuser", style=discord.ButtonStyle.danger)
+        await interaction.response.edit_message(
+            content=f"❌ {member.mention} a refusé l'invitation à rejoindre la team **{team['team_id']}**.",
+            embed=None, view=None
+        )
+
+    # Boutons
+    accept_button = discord.ui.Button(label="Accepter ✅", style=discord.ButtonStyle.success)
+    refuse_button = discord.ui.Button(label="Refuser ❌", style=discord.ButtonStyle.danger)
     accept_button.callback = accept_callback
     refuse_button.callback = refuse_callback
+
+    # Ajout des boutons à la view
     view.add_item(accept_button)
     view.add_item(refuse_button)
 
-    await ctx.send(f"{member.mention}, tu as été invité à rejoindre la team **{team['team_id']}** !", view=view)
+    # Envoi de l'invitation
+    await ctx.send(embed=embed, view=view)
 
 @bot.command()
 async def tpromote(ctx, member: discord.Member):
