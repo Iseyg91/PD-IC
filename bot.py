@@ -245,7 +245,7 @@ protection_settings = {}
 ban_times = {}  # Dictionnaire pour stocker les temps de bans
 
 # Tâche de fond pour mettre à jour les stats toutes les 5 secondes
-@tasks.loop(seconds=5)
+@tasks.loop(minutes=1)
 async def update_stats():
     all_stats = collection9.find()
 
