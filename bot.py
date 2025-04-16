@@ -79,41 +79,36 @@ def create_embed(title, description, color=discord.Color.blue(), footer_text="")
     embed.set_footer(text=footer_text)
     return embed
 
-# Connexion MongoDB
+# ------------------------------------ Connexion MongoDB ------------------------------------
+
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
-print("Mongo URI :", mongo_uri)  # Cela affichera l'URI de connexion (assure-toi de ne pas laisser cela en prod)
+print("Mongo URI :", mongo_uri)  # Ne pas laisser en prod
+
 client = MongoClient(mongo_uri)
 db = client['Cass-Eco2']
 
-# Collections
-collection = db['setup']  # Configuration générale
-collection2 = db['setup_premium']  # Serveurs premium
-collection3 = db['bounty']  # Primes et récompenses des joueurs
-collection4 = db['protection'] #Serveur sous secu ameliorer
-collection5 = db ['clients'] #Stock Clients
-collection6 = db ['partner'] #Stock Partner
-collection7= db ['sanction'] #Stock Sanction
-collection8 = db['idees'] #Stock Idées
-collection9 = db['stats'] #Stock Salon Stats
-collection10 = db['eco'] #Stock Les infos Eco
-collection11 = db['eco_daily'] #Stock le temps de daily
-collection12 = db['rank'] #Stock les Niveau
-collection13 = db['eco_work'] #Stock le temps de Work
-collection14 = db['eco_slut'] #Stock le temps de Slut
-collection15 = db['eco_crime'] #Stock le temps de Crime
-collection16 = db['ticket'] #Stock les Tickets
-collection17 = db['team'] #Stock les Teams
-collection18 = db ['logs'] #Stock les Salons Logs
+# Définition des collections
+collection = db['setup']
+collection2 = db['setup_premium']
+collection3 = db['bounty']
+collection4 = db['protection']
+collection5 = db['clients']
+collection6 = db['partner']
+collection7 = db['sanction']
+collection8 = db['idees']
+collection9 = db['stats']
+collection10 = db['eco']
+collection11 = db['eco_daily']
+collection12 = db['rank']
+collection13 = db['eco_work']
+collection14 = db['eco_slut']
+collection15 = db['eco_crime']
+collection16 = db['ticket']
+collection17 = db['team']
+collection18 = db['logs']
 
-# Exemple de structure de la base de données pour la collection bounty
-# {
-#   "guild_id": str,  # ID du serveur
-#   "user_id": str,   # ID du joueur
-#   "prize": int,     # Prime actuelle
-#   "reward": int     # Récompenses accumulées
-# }
+# ------------------- Fonctions utilitaires générales pour MongoDB -------------------
 
-# Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
     collection2.update_one(
         {"guild_id": guild_id},
@@ -121,31 +116,24 @@ def add_premium_server(guild_id: int, guild_name: str):
         upsert=True
     )
 
-# Fonction pour ajouter ou mettre à jour une prime
 def set_bounty(guild_id: int, user_id: int, prize: int):
-    # Vérifie si le joueur a déjà une prime
     bounty_data = collection3.find_one({"guild_id": guild_id, "user_id": user_id})
-    
     if bounty_data:
-        # Si une prime existe déjà, on met à jour la prime et les récompenses
         collection3.update_one(
             {"guild_id": guild_id, "user_id": user_id},
             {"$set": {"prize": prize}},
         )
     else:
-        # Sinon, on crée un nouveau document pour ce joueur
         collection3.insert_one({
             "guild_id": guild_id,
             "user_id": user_id,
             "prize": prize,
-            "reward": 0  # Initialisation des récompenses à 0
+            "reward": 0
         })
 
-# Fonction pour récupérer les données d'un utilisateur
 def get_user_eco(guild_id, user_id):
     user_data = collection10.find_one({"guild_id": guild_id, "user_id": user_id})
     if not user_data:
-        # Si l'utilisateur n'a pas encore de données, on les crée
         collection10.insert_one({
             "guild_id": guild_id,
             "user_id": user_id,
@@ -154,14 +142,6 @@ def get_user_eco(guild_id, user_id):
         })
         return {"coins": 0, "last_daily": None}
     return user_data
-
-# Fonction pour modifier les paramètres de protection
-def update_protection(guild_id, protection_key, new_value):
-    collection4.update_one(
-        {"guild_id": guild_id},
-        {"$set": {protection_key: new_value}},
-        upsert=True
-    )
 
 def add_sanction(guild_id, user_id, action, reason, duration=None):
     sanction_data = {
@@ -172,11 +152,8 @@ def add_sanction(guild_id, user_id, action, reason, duration=None):
         "duration": duration,
         "timestamp": datetime.datetime.utcnow()
     }
-
-    # Insertion ou mise à jour de la sanction dans la base de données
     collection7.insert_one(sanction_data)
 
-# Fonction pour récupérer le nombre de partenariats et le rank d'un utilisateur
 def get_user_partner_info(user_id: str):
     partner_data = collection6.find_one({"user_id": user_id})
     if partner_data:
@@ -184,20 +161,14 @@ def get_user_partner_info(user_id: str):
     return None, None
 
 def get_premium_servers():
-    """Récupère les IDs des serveurs premium depuis la base de données."""
     premium_docs = collection2.find({}, {"_id": 0, "guild_id": 1})
     return {doc["guild_id"] for doc in premium_docs}
 
-async def get_protection_data(guild_id):
-    data = await protection_col.find_one({"_id": str(guild_id)})
-    return data
-
 def load_guild_settings(guild_id):
-    # Charger les données de la collection principale
     setup_data = collection.find_one({"guild_id": guild_id}) or {}
     setup_premium_data = collection2.find_one({"guild_id": guild_id}) or {}
     bounty_data = collection3.find_one({"guild_id": guild_id}) or {}
-    protection_data = collection4.find_one({"guild_id": guild_id}) or {}
+    protection_data = collection4.find_one({"_id": str(guild_id)}) or {}
     clients_data = collection5.find_one({"guild_id": guild_id}) or {}
     partner_data = collection6.find_one({"guild_id": guild_id}) or {}
     sanction_data = collection7.find_one({"guild_id": guild_id}) or {}
@@ -213,10 +184,7 @@ def load_guild_settings(guild_id):
     team_data = collection17.find_one({"guild_id": guild_id}) or {}
     logs_data = collection18.find_one({"guild_id": guild_id}) or {}
 
-    # Débogage : Afficher les données de setup
-    print(f"Setup data for guild {guild_id}: {setup_data}")
-
-    combined_data = {
+    return {
         "setup": setup_data,
         "setup_premium": setup_premium_data,
         "bounty": bounty_data,
@@ -231,17 +199,14 @@ def load_guild_settings(guild_id):
         "rank": rank_data,
         "eco_work": eco_work_data,
         "eco_slut": eco_slut_data,
-        "eco_crime": eco_slut_data,
+        "eco_crime": eco_crime_data,
         "ticket": ticket_data,
         "team": team_data,
         "logs": logs_data
     }
 
-    return combined_data
-
-# Fonction pour récupérer le préfixe depuis la base de données
 async def get_prefix(bot, message):
-    guild_data = collection.find_one({"guild_id": str(message.guild.id)})  # Récupère les données de la guilde
+    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
     return guild_data['prefix'] if guild_data and 'prefix' in guild_data else '+'
 
 bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None)
@@ -4547,46 +4512,22 @@ async def setup(ctx):
     print("Message d'embed envoyé.")
 #------------------------------------------------------------------------ Super Protection:
 # Fonction pour créer un embed de protection avec une mise en page améliorée
-def create_protection_embed(protection_data):
-    embed = discord.Embed(
-        title="🛡️ **Sécurité du Serveur**",
-        description="Personnalisez les systèmes de protection de votre serveur Discord. "
-                    "Utilisez le menu déroulant ci-dessous pour activer ou désactiver une protection.",
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
-    embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+# 🔧 Options de protection disponibles
+def get_protection_options():
+    return {
+        "Anti-bot 🤖": "anti_bot",
+        "Anti-massban ⚔️": "anti_massban",
+        "Anti-masskick 👢": "anti_masskick",
+        "Anti-createchannel 📂": "anti_createchannel",
+        "Anti-deletechannel ❌": "anti_deletechannel",
+        "Anti-createrole 🎭": "anti_createrole",
+        "Anti-deleterole 🛡️": "anti_deleterole",
+        "Whitelist 🔑": "whitelist"
+    }
 
-    embed.add_field(
-        name="🔄 **Status Global**",
-        value="🟢 **Activé** | 🔴 **Désactivé**",
-        inline=False
-    )
-
-    embed.add_field(
-        name="📌 **Protection actuelle**",
-        value="Les protections actuelles de votre serveur sont affichées ci-dessous. "
-              "Sélectionnez celle que vous souhaitez modifier.",
-        inline=False
-    )
-
-    # Affichage de chaque protection sans doublon d'état
-    for label, value in get_protection_options().items():
-        protection_status = protection_data.get(value, "off").lower()
-        status = "🟢 Activé" if protection_status == "on" else "🔴 Désactivé"
-        
-        embed.add_field(
-            name=f"{label} {get_protection_icon(value)}",
-            value=f"État : {status}\n🔧 Cliquez dans le menu ci-dessous pour changer ce paramètre.",
-            inline=False
-        )
-
-    embed.set_footer(text="Dernière mise à jour automatique lors de l'interaction utilisateur.")
-    return embed
-
-# Retourne l'icône correspondante à chaque protection
+# 🎯 Icônes associées aux protections
 def get_protection_icon(protection_key):
-    icon_map = {
+    return {
         "anti_massban": "⚔️",
         "anti_masskick": "👢",
         "anti_bot": "🤖",
@@ -4595,25 +4536,9 @@ def get_protection_icon(protection_key):
         "anti_createrole": "🎭",
         "anti_deleterole": "🛡️",
         "whitelist": "🔑"
-    }
-    return icon_map.get(protection_key, "🔒")
+    }.get(protection_key, "🔒")
 
-# Fonction pour récupérer les données de protection depuis la base de données
-async def get_protection_data(guild_id):
-    try:
-        data = await collection4.find_one({"_id": str(guild_id)})
-
-        if not data:
-            # Crée un document avec des valeurs par défaut si aucune donnée n'existe
-            data = create_default_protection_data(guild_id)
-            await collection4.insert_one(data)
-            print(f"Document créé pour le guild_id {guild_id} avec les valeurs par défaut.")
-        
-        return data
-    except Exception as e:
-        print(f"Erreur lors de la récupération des données de protection pour le guild_id {guild_id}: {e}")
-        return {}
-
+# 📦 Création de données par défaut
 def create_default_protection_data(guild_id):
     return {
         "_id": str(guild_id),
@@ -4628,150 +4553,153 @@ def create_default_protection_data(guild_id):
         "last_updated": datetime.utcnow()
     }
 
+# 🔄 Récupération des données
+async def get_protection_data(guild_id):
+    try:
+        data = await collection4.find_one({"_id": str(guild_id)})
+        if not data:
+            data = create_default_protection_data(guild_id)
+            await collection4.insert_one(data)
+            print(f"Création des données par défaut pour {guild_id}")
+        return data
+    except Exception as e:
+        print(f"Erreur get_protection_data({guild_id}): {e}")
+        return {}
 
-# Fonction pour mettre à jour les paramètres de protection
+# 🛠️ Mise à jour des protections
 async def update_protection(guild_id, field, value, guild, ctx):
     try:
         if value not in ["on", "off"]:
             raise ValueError("La valeur doit être 'on' ou 'off'.")
 
-        # Mise à jour dans la base de données
-        result = collection4.update_one(
-    {"_id": str(guild_id)},
-    {"$set": {field: value, "last_updated": datetime.utcnow()}}
-)
-        # Vérification si la mise à jour a bien été effectuée
-        if result.modified_count == 0:
-            print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
-        else:
-            print(f"Modification effectuée avec succès pour {field} dans le guild_id {guild_id}.")
+        result = await collection4.update_one(
+            {"_id": str(guild_id)},
+            {"$set": {field: value, "last_updated": datetime.utcnow()}}
+        )
 
-        # Envoi du MP à l'owner du serveur avec un embed
+        if result.modified_count > 0:
+            print(f"{field} mis à jour pour {guild_id}")
+        else:
+            print(f"Aucune modif pour {field} (déjà à cette valeur ?)")
+
         owner = guild.owner
         if owner:
             embed = discord.Embed(
-                title="🔒 **Mise à jour de la protection**",
-                description=f"**{ctx.author.name}** a mis à jour une protection sur votre serveur.",
+                title="🔒 Mise à jour de la protection",
+                description=f"**{ctx.author.name}** a modifié une protection sur votre serveur.",
                 color=discord.Color.green()
             )
-            embed.add_field(
-                name="Protection modifiée",
-                value=f"**Protection** : {field}\n"
-                      f"**Nouvelle valeur** : {value.capitalize()}",
-                inline=False
-            )
-            embed.set_footer(text=f"Serveur : {guild.name} | {guild.id}")
+            embed.add_field(name="Protection modifiée", value=f"**{field}** → **{value.upper()}**", inline=False)
+            embed.set_footer(text=f"Serveur : {guild.name} | ID : {guild.id}")
+
             try:
                 await owner.send(embed=embed)
             except discord.Forbidden:
-                print(f"Impossible d'envoyer un MP à {owner.name}, permissions insuffisantes.")
-            except Exception as e:
-                print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild.id}: {e}")
-        
-        # Retourne le résultat de l'update
+                print(f"Impossible de MP {owner.name}")
         return result
 
     except Exception as e:
-        print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
+        print(f"Erreur update_protection: {e}")
         raise
 
+# 🔐 Vérifie les autorisations de l'utilisateur
 async def is_authorized(ctx):
-    """Vérifie si l'utilisateur a l'autorisation de modifier les protections"""
     if ctx.author.id == ISEY_ID or ctx.author.guild_permissions.administrator:
         return True
+    data = await get_protection_data(ctx.guild.id)
+    return ctx.author.id in data.get("whitelist", [])
+
+# 📊 Embed de protection
+def create_protection_embed(protection_data):
+    embed = discord.Embed(
+        title="🛡️ Sécurité du Serveur",
+        description="Gérez les protections de votre serveur à l'aide du menu ci-dessous.",
+        color=discord.Color.blue()
+    )
+    embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-Q/blob/main/BANNER_ETHERYA-topaz.png?raw=true")
+    embed.set_author(name="Système de Sécurité Avancée", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
+    embed.add_field(name="🔄 Status Global", value="🟢 Activé | 🔴 Désactivé", inline=False)
+    embed.add_field(name="📌 Protections actuelles", value="Modifiez une protection via le menu ci-dessous.", inline=False)
+
+    for label, key in get_protection_options().items():
+        status = protection_data.get(key, "off").lower()
+        icon = get_protection_icon(key)
+        etat = "🟢 Activé" if status == "on" else "🔴 Désactivé"
+        embed.add_field(name=f"{label} {icon}", value=f"État : {etat}", inline=False)
+
+    embed.set_footer(text="🕒 Mise à jour automatique lors des interactions.")
+    return embed
+
+# 🧠 Commande principale
+@bot.command()
+async def protection(ctx):
+    if not await is_authorized(ctx):
+        return await ctx.send("❌ Vous n'avez pas la permission.", ephemeral=True)
 
     guild_id = str(ctx.guild.id)
     data = await get_protection_data(guild_id)
-    if ctx.author.id in data.get("whitelist", []):
-        return True
+    embed = create_protection_embed(data)
+    await send_select_menu(ctx, embed, data, guild_id)
 
-    return False
-
-# Commande principale pour gérer la protection
-@bot.command()
-async def protection(ctx):
-    """Commande principale pour afficher les protections et les modifier"""
-    if not await is_authorized(ctx):
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires pour effectuer cette action.", ephemeral=True)
-        return
-
-    guild_id = str(ctx.guild.id)
-    protection_data = await get_protection_data(guild_id)
-
-    if not protection_data:
-        await ctx.send("⚠️ Aucune donnée de protection trouvée. La configuration par défaut a été appliquée.", ephemeral=True)
-
-    embed = create_protection_embed(protection_data)
-    await send_select_menu(ctx, embed, protection_data, guild_id)
-
+# 🧩 Menu déroulant de configuration
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [
-    discord.SelectOption(label=label, value=value, description="Configurer cette règle de sécurité.")
-    for label, value in get_protection_options().items()
-]
+            discord.SelectOption(
+                label=label,
+                value=value,
+                description="Configurer cette protection."
+            ) for label, value in get_protection_options().items()
+        ]
+
         select = discord.ui.Select(
-            placeholder="🛠️ Sélectionnez une protection à configurer...",
+            placeholder="🛠️ Sélectionnez une protection...",
             options=options,
             min_values=1,
             max_values=1
         )
-
         view = discord.ui.View()
         view.add_item(select)
 
         async def select_callback(interaction: discord.Interaction):
             if interaction.user != ctx.author:
-                await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser ce menu.", ephemeral=True)
-                return
+                return await interaction.response.send_message("❌ Ce menu ne vous est pas destiné.", ephemeral=True)
 
-            selected_value = select.values[0]
-            current_value = protection_data.get(selected_value, "Off")
-
+            selected = select.values[0]
+            current = protection_data.get(selected, "off")
             await interaction.response.send_message(
-                f"🔍 Protection sélectionnée : `{selected_value}`\n"
-                f"🔒 État actuel : **{current_value.capitalize()}**\n\n"
+                f"🔍 Protection : `{selected}`\n"
+                f"État actuel : **{current.upper()}**\n\n"
                 "🟢 Tapez `on` pour activer\n🔴 Tapez `off` pour désactiver",
                 ephemeral=True
             )
 
-            def check(msg):
-                return msg.author == ctx.author and msg.channel == ctx.channel
+            def check(m):
+                return m.author == ctx.author and m.channel == ctx.channel
 
             try:
-                msg = await bot.wait_for("message", check=check, timeout=60.0)
-                new_value = msg.content.lower()
+                msg = await bot.wait_for("message", check=check, timeout=60)
+                new_val = msg.content.lower()
+                if new_val not in ["on", "off"]:
+                    return await interaction.followup.send("❌ Veuillez entrer `on` ou `off`.", ephemeral=True)
 
-                if new_value not in ["on", "off"]:
-                    await interaction.followup.send("❌ Valeur invalide. Veuillez entrer `on` ou `off`.", ephemeral=True)
-                    return
-
-                # ✅ Ligne de mise à jour
-                await update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
-
-                # 🗑️ On supprime le message utilisateur pour garder le salon propre
                 await msg.delete()
-
-                # 🔄 On recharge les données et on met à jour l'embed
-                updated_data = await get_protection_data(guild_id)
-                updated_embed = create_protection_embed(updated_data)
+                await update_protection(guild_id, selected, new_val, ctx.guild, ctx)
+                updated = await get_protection_data(guild_id)
+                updated_embed = create_protection_embed(updated)
                 await interaction.message.edit(embed=updated_embed, view=view)
 
-                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
+                await interaction.followup.send(f"✅ `{selected}` mis à jour : **{new_val.upper()}**", ephemeral=True)
 
             except asyncio.TimeoutError:
-                await interaction.followup.send("⏳ Temps écoulé. Aucune réponse reçue.", ephemeral=True)
-            except Exception as e:
-                await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-                print(f"Erreur dans le callback du select : {e}")
+                await interaction.followup.send("⏳ Temps écoulé, annulation.", ephemeral=True)
 
         select.callback = select_callback
         await ctx.send(embed=embed, view=view)
 
     except Exception as e:
-        print(f"Erreur dans send_select_menu : {e}")
-        await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-
+        print(f"Erreur send_select_menu : {e}")
+        await ctx.send("❌ Erreur lors de l'affichage du menu.", ephemeral=True)
 
 def get_protection_options():
     return {
