@@ -155,14 +155,6 @@ def get_user_eco(guild_id, user_id):
         return {"coins": 0, "last_daily": None}
     return user_data
 
-# Fonction pour modifier les paramètres de protection
-def update_protection(guild_id, protection_key, new_value):
-    collection4.update_one(
-        {"guild_id": guild_id},
-        {"$set": {protection_key: new_value}},
-        upsert=True
-    )
-
 def add_sanction(guild_id, user_id, action, reason, duration=None):
     sanction_data = {
         "guild_id": guild_id,
