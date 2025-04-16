@@ -158,6 +158,11 @@ def get_user_eco(guild_id, user_id):
         return {"coins": 0, "last_daily": None}
     return user_data
 
+# --- Fonction utilitaire pour récupérer le salon configuré ---
+def get_presentation_channel_id(guild_id: int):
+    data = collection21.find_one({"guild_id": guild_id})
+    return data.get("presentation_channel") if data else None
+
 def add_sanction(guild_id, user_id, action, reason, duration=None):
     sanction_data = {
         "guild_id": guild_id,
@@ -440,6 +445,17 @@ sensitive_words = [
     
     # Propagande et manipulation
     "endoctrinement", "secte", "lavage de cerveau", "désinformation", "propagande", "fake news", "manipulation",
+    # Attaques et menaces
+    "raid", "ddos", "dox", "doxx", "hack", "hacking", "botnet", "nuke", "nuker", "crash bot", "flood", "spam", "booter", "rat", "keylogger", "phishing", "malware", "virus", "trojan",
+
+    # Raids Discord
+    "mass ping", "raid bot", "join raid", "leaver bot", "spam bot", "token grabber", "auto join", "multi account", "alts", "alt token",
+
+    # Harcèlement et haine
+    "swat", "swatting", "harass", "threaten", "kill yourself", "kys", "suicide", "death threat", "pedo", "grooming", "cp",
+
+    # Arnaques et fraudes
+    "free nitro", "discord nitro hack", "gift scam", "fake nitro", "steam scam", "nitro generator", "robux generator", "bitcoin giveaway", "crypto scam", "wallet", "metamask"
 ]
 
 user_messages = {}
@@ -7764,18 +7780,17 @@ async def snipe(ctx, index: int = 1):
         await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
 
 
-# Création du formulaire (modal)
-class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
-    pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True)
-    age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True)
-    passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True)
-    bio = TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True)
+# --- Formulaire de présentation ---
+class PresentationForm(discord.ui.Modal, title="📝 Faisons connaissance !"):
+    pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
+    age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
+    passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
+    bio = TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True, max_length=300)
+    objectifs = TextInput(label="Pourquoi as-tu rejoint ce serveur ?", placeholder="Ex: Trouver une équipe, apprendre à coder...", required=True, max_length=150)
+    reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
 
-    # Ce qui se passe lorsque l'utilisateur soumet le formulaire
     async def on_submit(self, interaction: discord.Interaction):
         guild_id = interaction.guild.id
-
-        # Charger les paramètres du serveur depuis la base de données
         guild_settings = load_guild_settings(guild_id)
         presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
 
@@ -7783,48 +7798,55 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
             presentation_channel = interaction.guild.get_channel(presentation_channel_id)
 
             if presentation_channel:
-                # Créer l'embed avec les informations soumises
                 embed = discord.Embed(
-                    title=f"Présentation de {interaction.user.name}",
-                    description="Une nouvelle présentation vient d'être envoyée ! 🎉",
-                    color=discord.Color.blue()
+                    title=f"📢 Nouvelle présentation de {interaction.user.display_name}",
+                    description="Voici une nouvelle présentation ! 🎉",
+                    color=discord.Color.blurple()
                 )
                 embed.set_thumbnail(url=interaction.user.display_avatar.url)
                 embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
                 embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
                 embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
+                embed.add_field(name="🎯 Objectif", value=self.objectifs.value, inline=False)
+                if self.reseaux.value:
+                    embed.add_field(name="🌐 Réseaux sociaux", value=self.reseaux.value, inline=False)
                 embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
-                embed.set_footer(text=f"ID de l'utilisateur: {interaction.user.id}")
+                embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
-                # Envoyer l'embed dans le salon de présentation
                 await presentation_channel.send(embed=embed)
-                await interaction.response.send_message("Ta présentation a été envoyée ! 🎉")
-            else:
-                await interaction.response.send_message("Le salon de présentation n'existe plus ou est invalide.")
-        else:
-            await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
 
-# Fonction de la commande /presentation
-@bot.tree.command(name="presentation", description="Remplis le formulaire pour te présenter à la communauté !")
+                if interaction.response.is_done():
+                    await interaction.followup.send("Ta présentation a été envoyée ! 🎉", ephemeral=True)
+                else:
+                    await interaction.response.send_message("Ta présentation a été envoyée ! 🎉", ephemeral=True)
+            else:
+                msg = "Le salon de présentation n'existe plus ou est invalide."
+                if interaction.response.is_done():
+                    await interaction.followup.send(msg, ephemeral=True)
+                else:
+                    await interaction.response.send_message(msg, ephemeral=True)
+        else:
+            msg = "Le salon de présentation n'a pas été configuré pour ce serveur."
+            if interaction.response.is_done():
+                await interaction.followup.send(msg, ephemeral=True)
+            else:
+                await interaction.response.send_message(msg, ephemeral=True)
+
+
+# --- Commande Slash ---
+@bot.tree.command(name="presentation", description="Remplis un formulaire pour te présenter à la communauté !")
 async def presentation(interaction: discord.Interaction):
     guild_id = interaction.guild.id
-
-    # Charger les paramètres du serveur depuis la base de données
     guild_settings = load_guild_settings(guild_id)
-    print(f"Guild settings for {guild_id}: {guild_settings}")  # Ajout d'un log
-
-    # Récupérer l'ID du salon de présentation depuis les paramètres du serveur
     presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
-    if not presentation_channel_id:
-        print("Salon de présentation non trouvé dans la base de données pour le serveur")
 
-    # Vérifier si le salon de présentation est configuré
     if presentation_channel_id:
-        # Si le salon est configuré, afficher le modal de présentation
         await interaction.response.send_modal(PresentationForm())
     else:
-        # Si le salon n'est pas configuré, informer l'utilisateur
-        await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
+        await interaction.response.send_message(
+            "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
+            ephemeral=True
+        )
 
 # Commande pour définir le salon de présentation
 @bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
