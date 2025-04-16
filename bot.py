@@ -7944,22 +7944,6 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
 async def feedback(interaction: discord.Interaction):
     await interaction.response.send_modal(FeedbackModal())
 
-PROTECTIONS = [
-    "anti_massban",
-    "anti_masskick",
-    "anti_bot",
-    "anti_createchannel",
-    "anti_deletechannel",
-    "anti_createrole",
-    "anti_deleterole",
-    "whitelist"
-]
-
-def is_admin_or_isey():
-    async def predicate(ctx):
-        return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
-    return commands.check(predicate)
-
 class ProtectionMenu(Select):
     def __init__(self, guild_id, protection_data, bot):
         self.guild_id = guild_id
@@ -8003,25 +7987,33 @@ class ProtectionMenu(Select):
                 print("Impossible d’envoyer un DM à l’owner.")
 
         # Réactualiser l'embed
-        embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
+        embed = discord.Embed(title="🛡️ **Système de Protection**", color=discord.Color.blurple())
         for p in PROTECTIONS:
             if p == "whitelist":
                 whitelist_data = collection19.find_one({"guild_id": str(self.guild_id)}) or {}
                 wl_users = whitelist_data.get("whitelist", [])
                 if not wl_users:
-                    embed.add_field(name="whitelist", value="Aucun utilisateur whitelisté.", inline=False)
+                    embed.add_field(name="🌐 Whitelist", value="Aucun utilisateur whitelisté.", inline=False)
                 else:
                     members = []
                     for uid in wl_users:
                         user = interaction.guild.get_member(int(uid)) or await self.bot.fetch_user(int(uid))
                         members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
-                    embed.add_field(name="whitelist", value="\n".join(members), inline=False)
+                    embed.add_field(name="🌐 Whitelist", value="\n".join(members), inline=False)
             else:
-                status = "✅ Activée" if self.protection_data.get(p, False) else "❌ Désactivée"
-                embed.add_field(name=p, value=status, inline=False)
+                status_emoji = "✅" if self.protection_data.get(p, False) else "❌"
+                protection_name = {
+                    "anti_massban": "🚫 Anti MassBan",
+                    "anti_masskick": "🚫 Anti MassKick",
+                    "anti_bot": "🤖 Anti-Bot",
+                    "anti_createchannel": "📂 Anti-Create Channel",
+                    "anti_deletechannel": "🗑️ Anti-Delete Channel",
+                    "anti_createrole": "🎭 Anti-Create Role",
+                    "anti_deleterole": "🛑 Anti-Delete Role",
+                }.get(p, p)
+                embed.add_field(name=f"{status_emoji} {protection_name}", value="Activée" if self.protection_data.get(p, False) else "Désactivée", inline=False)
 
         embed.set_footer(text="Sélectionnez dans le menu déroulant pour activer/désactiver.")
-
         view = View()
         view.add_item(ProtectionMenu(self.guild_id, self.protection_data, self.bot))
         await interaction.response.edit_message(embed=embed, view=view)
@@ -8037,22 +8029,31 @@ async def protection(ctx: commands.Context):
     guild_id = str(ctx.guild.id)
     protection_data = collection4.find_one({"guild_id": guild_id}) or {}
 
-    embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
+    embed = discord.Embed(title="🛡️ **Système de Protection**", color=discord.Color.blurple())
     for prot in PROTECTIONS:
         if prot == "whitelist":
             whitelist_data = collection19.find_one({"guild_id": guild_id}) or {}
             wl_users = whitelist_data.get("whitelist", [])
             if not wl_users:
-                embed.add_field(name="whitelist", value="Aucun utilisateur whitelisté.", inline=False)
+                embed.add_field(name="🌐 Whitelist", value="Aucun utilisateur whitelisté.", inline=False)
             else:
                 members = []
                 for uid in wl_users:
                     user = ctx.guild.get_member(int(uid)) or await ctx.bot.fetch_user(int(uid))
                     members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
-                embed.add_field(name="whitelist", value="\n".join(members), inline=False)
+                embed.add_field(name="🌐 Whitelist", value="\n".join(members), inline=False)
         else:
-            status = "✅ Activée" if protection_data.get(prot, False) else "❌ Désactivée"
-            embed.add_field(name=prot, value=status, inline=False)
+            status_emoji = "✅" if protection_data.get(prot, False) else "❌"
+            protection_name = {
+                "anti_massban": "🚫 Anti MassBan",
+                "anti_masskick": "🚫 Anti MassKick",
+                "anti_bot": "🤖 Anti-Bot",
+                "anti_createchannel": "📂 Anti-Create Channel",
+                "anti_deletechannel": "🗑️ Anti-Delete Channel",
+                "anti_createrole": "🎭 Anti-Create Role",
+                "anti_deleterole": "🛑 Anti-Delete Role",
+            }.get(prot, prot)
+            embed.add_field(name=f"{status_emoji} {protection_name}", value="Activée" if protection_data.get(prot, False) else "Désactivée", inline=False)
 
     embed.set_footer(text="Sélectionnez dans le menu déroulant pour activer/désactiver.")
     view = ProtectionView(guild_id, protection_data, ctx.bot)
