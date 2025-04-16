@@ -8047,19 +8047,18 @@ class ProtectionMenu(Select):
         guild = interaction.guild
         if guild and guild.owner:
             try:
-            msg = (
-            f"📢 **Mise à jour d'une protection sur votre serveur !**\n\n"
-            f"🔐 **Protection :** {PROTECTION_DETAILS[prot][0]}\n"
-            f"⚙️ **Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}\n"
-            f"👤 **Modifiée par :** {interaction.user.mention} (`{interaction.user}`)\n"
-            f"🏠 **Serveur :** {guild.name}\n"
-            f"🕓 **Date :** <t:{int(datetime.utcnow().timestamp())}:f>\n\n"
-            f"ℹ️ Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`."
-        )
-        await guild.owner.send(msg)
-    except discord.Forbidden:
-        print("Impossible d’envoyer un DM à l’owner.")
-
+                msg = (
+                    f"📢 **Mise à jour d'une protection sur votre serveur !**\n\n"
+                    f"🔐 **Protection :** {PROTECTION_DETAILS[prot][0]}\n"
+                    f"⚙️ **Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}\n"
+                    f"👤 **Modifiée par :** {interaction.user.mention} (`{interaction.user}`)\n"
+                    f"🏠 **Serveur :** {guild.name}\n"
+                    f"🕓 **Date :** <t:{int(datetime.utcnow().timestamp())}:f>\n\n"
+                    f"ℹ️ Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`."
+                )
+                await guild.owner.send(msg)
+            except discord.Forbidden:
+                print("Impossible d’envoyer un DM à l’owner.")
 
         # Refresh embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
