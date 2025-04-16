@@ -1600,7 +1600,6 @@ class ClaimCloseView(ui.View):
     async def close_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_modal(TicketModal())
 
-# --- VIEW DU PANEL (OUVERTURE DU TICKET) ---
 class TicketView(ui.View):
     def __init__(self, author_id):
         super().__init__(timeout=None)
@@ -1612,6 +1611,8 @@ class TicketView(ui.View):
             return await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
 
         guild = interaction.guild
+        category = guild.get_channel(1362015652700754052)  # ← Catégorie spécifique
+
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
             interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True),
@@ -1619,7 +1620,11 @@ class TicketView(ui.View):
         }
 
         channel_name = f"︱🤖・{interaction.user.name}"
-        ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites)
+        ticket_channel = await guild.create_text_channel(
+            name=channel_name,
+            overwrites=overwrites,
+            category=category  # ← Ajout ici
+        )
 
         # Mention puis suppression du message
         await ticket_channel.send("@everyone")
