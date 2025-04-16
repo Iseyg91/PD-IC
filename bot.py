@@ -7063,20 +7063,7 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
-import discord
-from discord import app_commands
-from discord.ext import commands
-from discord.ui import Modal, TextInput, Button, View
-
-# Classe contenant les boutons d'interaction
-class SuggestionView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(Button(label="✅ Approuver", style=discord.ButtonStyle.green, custom_id="suggestion_approve"))
-        self.add_item(Button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="suggestion_decline"))
-        self.add_item(Button(label="💬 Commenter", style=discord.ButtonStyle.blurple, custom_id="suggestion_comment"))
-
-# Modal pour écrire une suggestion
+# --- Classe du formulaire de suggestion ---
 class SuggestionModal(Modal):
     def __init__(self):
         super().__init__(title="💡 Nouvelle Suggestion")
@@ -7084,64 +7071,87 @@ class SuggestionModal(Modal):
         self.suggestion_input = TextInput(
             label="Entrez votre suggestion",
             style=discord.TextStyle.paragraph,
-            placeholder="Décrivez clairement votre idée ici...",
+            placeholder="Écrivez ici...",
             required=True,
             max_length=1000
         )
         self.add_item(self.suggestion_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        suggestion_text = self.suggestion_input.value
         guild_id = str(interaction.guild.id)
-        suggestions_data = collection20.find_one({"guild_id": guild_id})
+        data = collection20.find_one({"guild_id": guild_id})
 
-        if not suggestions_data or "suggestion_channel_id" not in suggestions_data or "suggestion_role_id" not in suggestions_data:
-            return await interaction.response.send_message(
-                "❌ Le salon ou le rôle des suggestions n'a pas encore été configuré.",
-                ephemeral=True
-            )
+        if not data or "suggestion_channel_id" not in data or "suggestion_role_id" not in data:
+            return await interaction.response.send_message("❌ Le salon ou le rôle des suggestions n'a pas été configuré.", ephemeral=True)
 
-        suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
-        suggestion_role_id = int(suggestions_data["suggestion_role_id"])
-        channel = interaction.client.get_channel(suggestion_channel_id)
-        role = interaction.guild.get_role(suggestion_role_id)
+        channel = interaction.client.get_channel(int(data["suggestion_channel_id"]))
+        role = interaction.guild.get_role(int(data["suggestion_role_id"]))
 
         if not channel or not role:
-            return await interaction.response.send_message(
-                "❌ Le salon ou le rôle n'existe plus. Vérifiez la configuration.",
-                ephemeral=True
-            )
+            return await interaction.response.send_message("❌ Impossible de trouver le salon ou le rôle configuré.", ephemeral=True)
 
         embed = discord.Embed(
-            title="📢 Nouvelle Suggestion",
-            description=suggestion_text,
+            title="💡 Nouvelle Suggestion",
+            description=self.suggestion_input.value,
             color=discord.Color.green()
         )
-        embed.set_footer(text=f"Par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
-        embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/1828/1828490.png")
+        embed.set_footer(text=f"Suggéré par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
 
-        await channel.send(
+        sent_message = await channel.send(
             content=f"{role.mention} 🚀 Une nouvelle suggestion a été soumise !",
-            embed=embed,
-            view=SuggestionView()
+            embed=embed
         )
+
+        await sent_message.edit(view=SuggestionView(message_id=sent_message.id))
 
         await interaction.response.send_message("✅ Votre suggestion a été envoyée avec succès !", ephemeral=True)
 
-# Commande /suggestion
-@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le serveur")
-async def suggestion(interaction: discord.Interaction):
-    guild_id = str(interaction.guild.id)
-    data = collection20.find_one({"guild_id": guild_id})
+# --- Classe du formulaire de commentaire ---
+class CommentModal(Modal):
+    def __init__(self, original_message_id: int):
+        super().__init__(title="💬 Commenter une suggestion")
+        self.message_id = original_message_id
 
-    if not data or "suggestion_channel_id" not in data or "suggestion_role_id" not in data:
-        return await interaction.response.send_message(
-            "❌ Le système de suggestion n'a pas été configuré. Contacte un administrateur.",
-            ephemeral=True
+        self.comment_input = TextInput(
+            label="Votre commentaire",
+            placeholder="Exprimez votre avis ou amélioration...",
+            style=discord.TextStyle.paragraph,
+            max_length=500
         )
+        self.add_item(self.comment_input)
 
-    await interaction.response.send_modal(SuggestionModal())
+    async def on_submit(self, interaction: discord.Interaction):
+        guild_id = str(interaction.guild.id)
+        data = collection20.find_one({"guild_id": guild_id})
 
+        if not data or "suggestion_channel_id" not in data:
+            return await interaction.response.send_message("❌ Le salon de suggestion est mal configuré.", ephemeral=True)
+
+        channel = interaction.client.get_channel(int(data["suggestion_channel_id"]))
+        if not channel:
+            return await interaction.response.send_message("❌ Le salon de suggestion est introuvable.", ephemeral=True)
+
+        comment_embed = discord.Embed(
+            title="🗨️ Nouveau commentaire sur une suggestion",
+            description=self.comment_input.value,
+            color=discord.Color.blurple()
+        )
+        comment_embed.set_footer(text=f"Par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
+
+        await channel.send(content=f"📝 Commentaire sur la suggestion ID `{self.message_id}` :", embed=comment_embed)
+        await interaction.response.send_message("✅ Commentaire envoyé avec succès !", ephemeral=True)
+
+# --- Vue avec les boutons ---
+class SuggestionView(View):
+    def __init__(self, message_id: int):
+        super().__init__(timeout=None)
+        self.message_id = message_id
+
+        self.add_item(Button(label="✅ Approuver", style=discord.ButtonStyle.green, custom_id="suggestion_approve"))
+        self.add_item(Button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="suggestion_decline"))
+        self.add_item(Button(label="💬 Commenter", style=discord.ButtonStyle.blurple, custom_id=f"suggestion_comment:{message_id}"))
+
+# --- Interaction avec les boutons ---
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
     if interaction.type == discord.InteractionType.component:
@@ -7149,13 +7159,48 @@ async def on_interaction(interaction: discord.Interaction):
 
         if custom_id == "suggestion_approve":
             await interaction.response.send_message("✅ Suggestion approuvée !", ephemeral=True)
-
         elif custom_id == "suggestion_decline":
             await interaction.response.send_message("❌ Suggestion refusée.", ephemeral=True)
+        elif custom_id.startswith("suggestion_comment:"):
+            try:
+                message_id = int(custom_id.split(":")[1])
+                await interaction.response.send_modal(CommentModal(original_message_id=message_id))
+            except Exception:
+                await interaction.response.send_message("❌ Erreur lors de l'ouverture du commentaire.", ephemeral=True)
 
-        elif custom_id == "suggestion_comment":
-            await interaction.response.send_message("💬 Merci de commenter directement sous la suggestion !", ephemeral=True)
+# --- Commande /suggestion pour envoyer une suggestion ---
+@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le serveur")
+async def suggest(interaction: discord.Interaction):
+    guild_id = str(interaction.guild.id)
+    data = collection20.find_one({"guild_id": guild_id})
 
+    if not data or "suggestion_channel_id" not in data or "suggestion_role_id" not in data:
+        return await interaction.response.send_message("❌ Le système de suggestion n'est pas encore configuré.", ephemeral=True)
+
+    await interaction.response.send_modal(SuggestionModal())
+
+# --- Commande /set_suggestion pour configurer le salon + rôle ---
+@bot.tree.command(name="set_suggestion", description="📝 Définir le salon et rôle pour les suggestions")
+@app_commands.describe(channel="Salon pour recevoir les suggestions", role="Rôle à ping lors des suggestions")
+async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("❌ Tu n'as pas les permissions nécessaires.", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+
+    collection20.update_one(
+        {"guild_id": guild_id},
+        {"$set": {
+            "suggestion_channel_id": str(channel.id),
+            "suggestion_role_id": str(role.id)
+        }},
+        upsert=True
+    )
+
+    await interaction.response.send_message(
+        f"✅ Le système de suggestions est maintenant configuré avec {channel.mention} et {role.mention}.",
+        ephemeral=True
+    )
 
 @bot.tree.command(name="set_suggestion", description="🛠️ Définir le salon et rôle des suggestions")
 @app_commands.describe(channel="Salon où les suggestions seront envoyées", role="Rôle à mentionner pour chaque suggestion")
