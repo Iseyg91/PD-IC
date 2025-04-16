@@ -7967,8 +7967,6 @@ PROTECTION_DETAILS = {
     "whitelist": ("✅ Liste blanche", "Utilisateurs exemptés des protections.")
 }
 
-ISEY_ID = 792755123587645461  # Ton ID ici
-
 def is_admin_or_isey():
     async def predicate(ctx):
         return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
@@ -8069,16 +8067,20 @@ class ProtectionMenu(Select):
             value=f"<t:{int(datetime.utcnow().timestamp())}:f>",  # Formatage de date automatique dans Discord
             inline=False
         )
+
         embed.add_field(
             name="ℹ️ Infos supplémentaires :",
             value="Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`.",
             inline=False
         )
 
-        # Envoi du message à l'owner
+# Envoi du message à l'owner
+if guild and guild.owner:
+    try:
         await guild.owner.send(embed=embed)
     except discord.Forbidden:
         print("Impossible d’envoyer un DM à l’owner.")
+
 
         # Refresh embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
