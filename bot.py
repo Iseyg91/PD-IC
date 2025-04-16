@@ -106,6 +106,8 @@ collection16 = db['ticket'] #Stock les Tickets
 collection17 = db['team'] #Stock les Teams
 collection18 = db['logs'] #Stock les Salons Logs
 collection19 = db['wl'] #Stock les whitelist
+collection20 = db['suggestions'] #Stock les Salons Suggestion
+collection21 = db['sondage'] #Stock les Salons Sondage
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -203,6 +205,8 @@ def load_guild_settings(guild_id):
     team_data = collection17.find_one({"guild_id": guild_id}) or {}
     logs_data = collection18.find_one({"guild_id": guild_id}) or {}
     wl_data = collection19.find_one({"guild_id": guild_id}) or {}
+    suggestions_data = collection20.find_one({"guild_id": guild_id}) or {}
+    sondage_data = collection21.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -226,7 +230,9 @@ def load_guild_settings(guild_id):
         "ticket": ticket_data,
         "team": team_data,
         "logs": logs_data,
-        "wl": wl_data
+        "wl": wl_data,
+        "suggestions": suggestions_data,
+        "sondage": sondage_data
     }
 
     return combined_data
@@ -7062,142 +7068,64 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
-# Stockage des suggestions
-suggestions = []
-
-# Dictionnaire pour gérer le cooldown des utilisateurs
-user_cooldown = {}
-
-class SuggestionModal(discord.ui.Modal, title="💡 Nouvelle Suggestion"):
-    def __init__(self):
-        super().__init__()
-
-        self.add_item(discord.ui.TextInput(
-            label="💬 Votre suggestion",
-            style=discord.TextStyle.long,
-            placeholder="Décrivez votre suggestion ici...",
-            required=True,
-            max_length=500
-        ))
-
-        self.add_item(discord.ui.TextInput(
-            label="🎯 Cela concerne Etherya ou le Bot ?",
-            style=discord.TextStyle.short,
-            placeholder="Tapez 'Etherya' ou 'Bot'",
-            required=True
-        ))
-
-        self.add_item(discord.ui.TextInput(
-            label="❔ Pourquoi cette suggestion ?",
-            style=discord.TextStyle.paragraph,
-            placeholder="Expliquez pourquoi cette idée est utile...",
-            required=False
-        ))
-
-    async def on_submit(self, interaction: discord.Interaction):
-        user_id = interaction.user.id
-        # Anti-spam: vérifier cooldown
-        if user_id in user_cooldown and time.time() - user_cooldown[user_id] < 60:
-            return await interaction.response.send_message(
-                "❌ Tu dois attendre avant de soumettre une nouvelle suggestion. Patiente un peu !", ephemeral=True
-            )
-
-        user_cooldown[user_id] = time.time()  # Enregistrer le temps du dernier envoi
-
-        suggestion = self.children[0].value.strip()  # Texte de la suggestion
-        choice = self.children[1].value.strip().lower()  # Sujet (etherya ou bot)
-        reason = self.children[2].value.strip() if self.children[2].value else "Non précisé"
-
-        # Vérification du choix
-        if choice in ["etherya", "eth", "e"]:
-            choice = "Etherya"
-            color = discord.Color.gold()
-        elif choice in ["bot", "b"]:
-            choice = "Le Bot"
-            color = discord.Color.blue()
-        else:
-            return await interaction.response.send_message(
-                "❌ Merci de spécifier un sujet valide : 'Etherya' ou 'Bot'.", ephemeral=True
-            )
-
-        channel = interaction.client.get_channel(SUGGESTION_CHANNEL_ID)
-        if not channel:
-            return await interaction.response.send_message("❌ Je n'ai pas pu trouver le salon des suggestions.", ephemeral=True)
-
-        new_user_mention = f"<@&{SUGGESTION_ROLE}>"
-
-        # Envoie un message de notification à l'utilisateur spécifique
-        await channel.send(f"{new_user_mention} 🔔 **Nouvelle suggestion concernant {choice} !**")
-
-        # Création de l'embed
-        embed = discord.Embed(
-            title="💡 Nouvelle Suggestion !",
-            description=f"📝 **Proposée par** {interaction.user.mention}\n\n>>> {suggestion}",
-            color=color,
-            timestamp=discord.utils.utcnow()
-        )
-
-        embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/3039/3039569.png")  # Icône idée
-        embed.add_field(name="📌 Sujet", value=f"**{choice}**", inline=True)
-        embed.add_field(name="❔ Pourquoi ?", value=reason, inline=False)
-        embed.set_footer(
-            text=f"Envoyée par {interaction.user.display_name}",
-            icon_url=interaction.user.avatar.url if interaction.user.avatar else None
-        )
-
-        # Envoi de l'embed
-        message = await channel.send(embed=embed)
-
-        # Ajouter les réactions
-        await message.add_reaction("❤️")  # Aimer l'idée
-        await message.add_reaction("🔄")  # Idée à améliorer
-        await message.add_reaction("✅")  # Pour
-        await message.add_reaction("❌")  # Contre
-
-        # Sauvegarde de la suggestion pour afficher avec la commande /suggestions
-        suggestions.append({
-            "message_id": message.id,
-            "author": interaction.user,
-            "suggestion": suggestion,
-            "timestamp": time.time()
-        })
-
-        # Confirme l'envoi avec un message sympathique
-        await interaction.response.send_message(
-            f"✅ **Ta suggestion a été envoyée avec succès !**\nNous attendons les votes des autres membres... 🕒",
-            ephemeral=True
-        )
-
-        # Envoi d'un message privé à l'auteur
-        try:
-            dm_embed = discord.Embed(
-                title="📩 Suggestion envoyée !",
-                description=f"Merci pour ta suggestion ! Voici les détails :\n\n**🔹 Sujet** : {choice}\n**💡 Suggestion** : {suggestion}",
-                color=discord.Color.green(),
-                timestamp=discord.utils.utcnow()
-            )
-            dm_embed.set_footer(text="Nous te remercions pour ton aide et tes idées ! 🙌")
-            await interaction.user.send(embed=dm_embed)
-        except discord.Forbidden:
-            print(f"[ERREUR] Impossible d'envoyer un MP à {interaction.user.display_name}.")
-            # Avertir l'utilisateur dans le salon de suggestions si DM est bloqué
-            await channel.send(f"❗ **{interaction.user.display_name}**, il semble que je ne puisse pas t'envoyer un message privé. Vérifie tes paramètres de confidentialité pour autoriser les MPs.")
-            
 @bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour Etherya ou le Bot")
 async def suggest(interaction: discord.Interaction):
     """Commande pour envoyer une suggestion"""
+
+    # Récupérer l'ID du salon des suggestions depuis la base de données
+    guild_id = str(interaction.guild.id)
+    suggestions_data = collection20.find_one({"guild_id": guild_id})
+
+    if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
+        return await interaction.response.send_message(
+            "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
+            ephemeral=True
+        )
+
+    # Récupérer l'ID du salon des suggestions
+    suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
+    channel = interaction.client.get_channel(suggestion_channel_id)
+    if not channel:
+        return await interaction.response.send_message(
+            "❌ Je n'ai pas pu trouver le salon des suggestions. Vérifiez si l'ID est correct.",
+            ephemeral=True
+        )
+
+    # Afficher le modal pour soumettre une suggestion
     await interaction.response.send_modal(SuggestionModal())
 
-# Commande pour afficher les dernières suggestions
 @bot.tree.command(name="suggestions", description="📢 Affiche les dernières suggestions")
 async def suggestions_command(interaction: discord.Interaction):
     """Commande pour afficher les dernières suggestions"""
-    if not suggestions:
-        return await interaction.response.send_message("❌ Aucune suggestion en cours. Sois le premier à proposer une idée !", ephemeral=True)
+
+    # Récupérer l'ID du salon des suggestions depuis la base de données
+    guild_id = str(interaction.guild.id)
+    suggestions_data = collection20.find_one({"guild_id": guild_id})
+
+    if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
+        return await interaction.response.send_message(
+            "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
+            ephemeral=True
+        )
+
+    # Récupérer l'ID du salon des suggestions
+    suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
+    channel = interaction.client.get_channel(suggestion_channel_id)
+    if not channel:
+        return await interaction.response.send_message(
+            "❌ Je n'ai pas pu trouver le salon des suggestions. Vérifiez si l'ID est correct.",
+            ephemeral=True
+        )
 
     # Récupérer les 5 dernières suggestions
     recent_suggestions = suggestions[-5:]
 
+    if not recent_suggestions:
+        return await interaction.response.send_message(
+            "❌ Aucune suggestion en cours. Sois le premier à proposer une idée !", ephemeral=True
+        )
+
+    # Création des embeds pour les suggestions
     embeds = []
     for suggestion_data in recent_suggestions:
         embed = discord.Embed(
@@ -7211,6 +7139,33 @@ async def suggestions_command(interaction: discord.Interaction):
 
     # Envoi des embeds
     await interaction.response.send_message(embeds=embeds)
+
+@bot.tree.command(name="set_suggestion", description="📝 Définir le salon où les suggestions seront envoyées")
+async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel):
+    """Commande pour définir le salon de suggestions"""
+
+    # Vérification si l'utilisateur est un administrateur
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message(
+            "❌ Tu n'as pas les permissions nécessaires pour utiliser cette commande.", ephemeral=True
+        )
+
+    # Récupère l'ID de la guilde
+    guild_id = str(interaction.guild.id)
+
+    # Mise à jour de la collection MongoDB pour stocker l'ID du salon
+    collection20.update_one(
+        {"guild_id": guild_id},
+        {"$set": {"suggestion_channel_id": str(channel.id)}},
+        upsert=True
+    )
+
+    # Confirmation à l'utilisateur
+    await interaction.response.send_message(
+        f"✅ Le salon des suggestions a été mis à jour avec succès !\nLes suggestions seront maintenant envoyées dans {channel.mention}.",
+        ephemeral=True
+    )
+
 #-------------------------------------------------------------------------------- Sondage: /sondage
 
 # Stockage des sondages
