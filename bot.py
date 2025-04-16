@@ -7065,35 +7065,44 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
+import discord
+from discord import app_commands
+from discord.ext import commands
+from discord.ui import Modal, TextInput, Button, View
+
+# Classe contenant les boutons d'interaction
+class SuggestionView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(Button(label="✅ Approuver", style=discord.ButtonStyle.green, custom_id="suggestion_approve"))
+        self.add_item(Button(label="❌ Refuser", style=discord.ButtonStyle.red, custom_id="suggestion_decline"))
+        self.add_item(Button(label="💬 Commenter", style=discord.ButtonStyle.blurple, custom_id="suggestion_comment"))
+
+# Modal pour écrire une suggestion
 class SuggestionModal(Modal):
     def __init__(self):
         super().__init__(title="💡 Nouvelle Suggestion")
 
-        # Champ pour la suggestion
         self.suggestion_input = TextInput(
             label="Entrez votre suggestion",
             style=discord.TextStyle.paragraph,
-            placeholder="Exemple: Ajout d'une nouvelle fonctionnalité...",
+            placeholder="Décrivez clairement votre idée ici...",
             required=True,
             max_length=1000
         )
         self.add_item(self.suggestion_input)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Récupère la suggestion soumise
         suggestion_text = self.suggestion_input.value
-
-        # Récupérer l'ID du salon des suggestions et du rôle depuis la base de données
         guild_id = str(interaction.guild.id)
         suggestions_data = collection20.find_one({"guild_id": guild_id})
 
-        if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
+        if not suggestions_data or "suggestion_channel_id" not in suggestions_data or "suggestion_role_id" not in suggestions_data:
             return await interaction.response.send_message(
-                "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
+                "❌ Le salon ou le rôle des suggestions n'a pas encore été configuré.",
                 ephemeral=True
             )
 
-        # Récupérer l'ID du salon des suggestions et du rôle à mentionner
         suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
         suggestion_role_id = int(suggestions_data["suggestion_role_id"])
         channel = interaction.client.get_channel(suggestion_channel_id)
@@ -7101,93 +7110,38 @@ class SuggestionModal(Modal):
 
         if not channel or not role:
             return await interaction.response.send_message(
-                "❌ Il y a un problème avec la configuration du salon des suggestions ou du rôle. Vérifiez les paramètres.",
+                "❌ Le salon ou le rôle n'existe plus. Vérifiez la configuration.",
                 ephemeral=True
             )
 
-        # Création de l'embed avec un design amélioré
         embed = discord.Embed(
-            title="💡 Nouvelle Suggestion",
+            title="📢 Nouvelle Suggestion",
             description=suggestion_text,
-            color=discord.Color.blue()  # Couleur plus moderne
+            color=discord.Color.green()
         )
-        embed.set_footer(text=f"Suggéré par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
-        embed.set_thumbnail(url="https://example.com/suggestion_icon.png")  # Icône personnalisée
+        embed.set_footer(text=f"Par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
+        embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/1828/1828490.png")
 
-        # Envoi de la suggestion avec mention du rôle
-        suggestion_message = await channel.send(
-            content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
-            embed=embed
-        )
-
-        # Ajouter des boutons interactifs avec un design dynamique
-        button_approve = Button(label="✅ Approuver", style=discord.ButtonStyle.green)
-        button_decline = Button(label="❌ Refuser", style=discord.ButtonStyle.red)
-        button_comment = Button(label="💬 Commenter", style=discord.ButtonStyle.blurple)
-
-        # Organiser les boutons dans une ActionRow
-        action_row = ActionRow(button_approve, button_decline, button_comment)
-
-        # Ajout des boutons dans la réponse
-        await suggestion_message.edit(
-            content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
+        await channel.send(
+            content=f"{role.mention} 🚀 Une nouvelle suggestion a été soumise !",
             embed=embed,
-            components=[action_row]  # Utilisation de ActionRow pour ajouter les boutons
+            view=SuggestionView()
         )
 
-        # Confirmation à l'utilisateur
-        await interaction.response.send_message(
-            "✅ Votre suggestion a été envoyée avec succès ! Merci pour votre contribution.",
-            ephemeral=True
-        )
+        await interaction.response.send_message("✅ Votre suggestion a été envoyée avec succès !", ephemeral=True)
 
-# Gestion des interactions sur les boutons
-@bot.event
-async def on_interaction(interaction: discord.Interaction):
-    if interaction.type == discord.InteractionType.component:
-        if interaction.component.label == "✅ Approuver":
-            await interaction.response.send_message(
-                "👍 La suggestion a été approuvée ! Merci pour votre soutien.",
-                ephemeral=True
-            )
-        elif interaction.component.label == "❌ Refuser":
-            await interaction.response.send_message(
-                "👎 La suggestion a été refusée. Si vous avez des remarques, n'hésitez pas à les partager.",
-                ephemeral=True
-            )
-        elif interaction.component.label == "💬 Commenter":
-            await interaction.response.send_message(
-                "💬 Vous pouvez maintenant ajouter un commentaire sur cette suggestion. Faites-nous part de vos idées.",
-                ephemeral=True
-            )
-
-@bot.tree.command(name="suggestion", description="💡 Soumettre une suggestion pour le Serveur")
-async def suggest(interaction: discord.Interaction):
-    """Commande pour soumettre une suggestion"""
-
-    # Récupérer l'ID du salon des suggestions et du rôle depuis la base de données
+# Commande /suggestion
+@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le serveur")
+async def suggestion(interaction: discord.Interaction):
     guild_id = str(interaction.guild.id)
-    suggestions_data = collection20.find_one({"guild_id": guild_id})
+    data = collection20.find_one({"guild_id": guild_id})
 
-    if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
+    if not data or "suggestion_channel_id" not in data or "suggestion_role_id" not in data:
         return await interaction.response.send_message(
-            "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
+            "❌ Le système de suggestion n'a pas été configuré. Contacte un administrateur.",
             ephemeral=True
         )
 
-    # Récupérer l'ID du salon des suggestions et du rôle à mentionner
-    suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
-    suggestion_role_id = int(suggestions_data["suggestion_role_id"])
-    channel = interaction.client.get_channel(suggestion_channel_id)
-    role = interaction.guild.get_role(suggestion_role_id)
-
-    if not channel or not role:
-        return await interaction.response.send_message(
-            "❌ Il y a un problème avec la configuration du salon des suggestions ou du rôle. Vérifiez les paramètres.",
-            ephemeral=True
-        )
-
-    # Afficher le modal pour soumettre une suggestion
     await interaction.response.send_modal(SuggestionModal())
 
 
