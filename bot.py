@@ -7987,6 +7987,20 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
 async def feedback(interaction: discord.Interaction):
     await interaction.response.send_modal(FeedbackModal())
 
+# Commande /reset_protect
+@bot.tree.command(name="reset_protect", description="Réinitialiser la collection de protection.")
+async def reset_protect(interaction: discord.Interaction):
+    # Vérification de l'ID de l'utilisateur
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
+    # Réinitialiser la collection 'protection'
+    collection4.drop()  # Cela supprimera tous les documents de la collection
+
+    # Réponse de confirmation
+    await interaction.response.send_message("La collection de protection a été réinitialisée avec succès.", ephemeral=True)
+
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
