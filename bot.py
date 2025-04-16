@@ -42,10 +42,6 @@ ETHERYA_SERVER_ID = 1034007767050104892
 WELCOME_CHANNEL_ID = 1355198748296351854
 AUTORIZED_SERVER_ID = 1034007767050104892
 BOUNTY_CHANNEL_ID = 1355298449829920950
-SUGGESTION_CHANNEL_ID = 1355191928467230792
-SUGGESTION_ROLE= 1355157752950821046
-SONDAGE_CHANNEL_ID = 1355157860438376479
-SONDAGE_ID = 1355157752950821046
 ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
 SALON_REPORT_ID = 1361362788672344290
 ROLE_REPORT_ID = 1361306900981092548
@@ -7072,7 +7068,7 @@ async def remove_idee(interaction: discord.Interaction):
 async def suggest(interaction: discord.Interaction):
     """Commande pour envoyer une suggestion"""
 
-    # Récupérer l'ID du salon des suggestions depuis la base de données
+    # Récupérer l'ID du salon des suggestions et du rôle depuis la base de données
     guild_id = str(interaction.guild.id)
     suggestions_data = collection20.find_one({"guild_id": guild_id})
 
@@ -7082,17 +7078,26 @@ async def suggest(interaction: discord.Interaction):
             ephemeral=True
         )
 
-    # Récupérer l'ID du salon des suggestions
+    # Récupérer l'ID du salon des suggestions et du rôle à mentionner
     suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
+    suggestion_role_id = int(suggestions_data["suggestion_role_id"])
     channel = interaction.client.get_channel(suggestion_channel_id)
-    if not channel:
+    role = interaction.guild.get_role(suggestion_role_id)
+
+    if not channel or not role:
         return await interaction.response.send_message(
-            "❌ Je n'ai pas pu trouver le salon des suggestions. Vérifiez si l'ID est correct.",
+            "❌ Il y a un problème avec la configuration du salon des suggestions ou du rôle. Vérifiez les paramètres.",
             ephemeral=True
         )
 
     # Afficher le modal pour soumettre une suggestion
     await interaction.response.send_modal(SuggestionModal())
+
+    # Mentionner le rôle et envoyer la suggestion dans le salon
+    await channel.send(
+        content=f"{role.mention} 💡 Nouvelle suggestion !",  # Mentionne le rôle configuré
+        embed=embed_suggestion  # Utilise l'embed généré avec la suggestion
+    )
 
 @bot.tree.command(name="suggestions", description="📢 Affiche les dernières suggestions")
 async def suggestions_command(interaction: discord.Interaction):
@@ -7141,8 +7146,8 @@ async def suggestions_command(interaction: discord.Interaction):
     await interaction.response.send_message(embeds=embeds)
 
 @bot.tree.command(name="set_suggestion", description="📝 Définir le salon où les suggestions seront envoyées")
-async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel):
-    """Commande pour définir le salon de suggestions"""
+async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
+    """Commande pour définir le salon et le rôle à mentionner pour les suggestions"""
 
     # Vérification si l'utilisateur est un administrateur
     if not interaction.user.guild_permissions.administrator:
@@ -7153,16 +7158,16 @@ async def set_suggestion(interaction: discord.Interaction, channel: discord.Text
     # Récupère l'ID de la guilde
     guild_id = str(interaction.guild.id)
 
-    # Mise à jour de la collection MongoDB pour stocker l'ID du salon
+    # Mise à jour de la collection MongoDB pour stocker l'ID du salon et du rôle
     collection20.update_one(
         {"guild_id": guild_id},
-        {"$set": {"suggestion_channel_id": str(channel.id)}},
+        {"$set": {"suggestion_channel_id": str(channel.id), "suggestion_role_id": str(role.id)}},
         upsert=True
     )
 
     # Confirmation à l'utilisateur
     await interaction.response.send_message(
-        f"✅ Le salon des suggestions a été mis à jour avec succès !\nLes suggestions seront maintenant envoyées dans {channel.mention}.",
+        f"✅ Le salon des suggestions a été mis à jour avec succès !\nLes suggestions seront maintenant envoyées dans {channel.mention} et le rôle {role.mention} sera mentionné à chaque suggestion.",
         ephemeral=True
     )
 
