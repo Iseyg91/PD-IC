@@ -7201,29 +7201,6 @@ async def set_suggestion(interaction: discord.Interaction, channel: discord.Text
         f"✅ Le système de suggestions est maintenant configuré avec {channel.mention} et {role.mention}.",
         ephemeral=True
     )
-
-@bot.tree.command(name="set_suggestion", description="🛠️ Définir le salon et rôle des suggestions")
-@app_commands.describe(channel="Salon où les suggestions seront envoyées", role="Rôle à mentionner pour chaque suggestion")
-async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
-    if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message(
-            "❌ Tu n'as pas les permissions nécessaires pour faire cela.", ephemeral=True
-        )
-
-    collection20.update_one(
-        {"guild_id": str(interaction.guild.id)},
-        {"$set": {
-            "suggestion_channel_id": str(channel.id),
-            "suggestion_role_id": str(role.id)
-        }},
-        upsert=True
-    )
-
-    await interaction.response.send_message(
-        f"✅ Salon défini : {channel.mention}\n📌 Rôle à mentionner : {role.mention}",
-        ephemeral=True
-    )
-
 #-------------------------------------------------------------------------------- Sondage: /sondage
 
 # Stockage des sondages
