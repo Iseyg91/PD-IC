@@ -104,10 +104,9 @@ collection17 = db['team'] #Stock les Teams
 collection18 = db['logs'] #Stock les Salons Logs
 collection19 = db['wl'] #Stock les whitelist
 collection20 = db['suggestions'] #Stock les Salons Suggestion
-collection21 = db['sondage'] #Stock les Salons Sondage
-collection22 = db['presentation'] #Stock les Salon Presentation
-collection23 = db['absence'] #Stock les Salon Absence
-collection24 = db['back_up'] #Stock les Back-up
+collection21 = db['presentation'] #Stock les Salon Presentation
+collection22 = db['absence'] #Stock les Salon Absence
+collection23 = db['back_up'] #Stock les Back-up
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -206,10 +205,9 @@ def load_guild_settings(guild_id):
     logs_data = collection18.find_one({"guild_id": guild_id}) or {}
     wl_data = collection19.find_one({"guild_id": guild_id}) or {}
     suggestions_data = collection20.find_one({"guild_id": guild_id}) or {}
-    sondage_data = collection21.find_one({"guild_id": guild_id}) or {}
-    presentation_data = collection22.find_one({"guild_id": guild_id}) or {}
-    absence_data = collection23.find_one({"guild_id": guild_id}) or {}
-    back_up_data = collection22.find_one({"guild_id": guild_id}) or {}
+    presentation_data = collection21.find_one({"guild_id": guild_id}) or {}
+    absence_data = collection22.find_one({"guild_id": guild_id}) or {}
+    back_up_data = collection23.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -235,7 +233,6 @@ def load_guild_settings(guild_id):
         "logs": logs_data,
         "wl": wl_data,
         "suggestions": suggestions_data,
-        "sondage": sondage_data,
         "presentation": presentation_data,
         "absence": absence_data,
         "back_up": back_up_data
@@ -7223,19 +7220,20 @@ async def set_suggestion(interaction: discord.Interaction, channel: discord.Text
 user_cooldown = {}
 
 # Classe du Modal pour créer un sondage
-class PollModal(discord.ui.Modal, title="📊 Créer un sondage"):
+class PollModal(discord.ui.Modal, title="📊 Créer un sondage interactif"):
     def __init__(self):
         super().__init__()
 
         self.question = discord.ui.TextInput(
-            label="Question du sondage",
+            label="💬 Question principale",
             placeholder="Ex : Quel est votre fruit préféré ?",
-            max_length=200
+            max_length=200,
+            style=discord.TextStyle.paragraph
         )
         self.options = discord.ui.TextInput(
-            label="Options (séparées par des virgules)",
-            placeholder="Ex : Pomme, Banane, Orange",
-            max_length=200
+            label="🧩 Choix possibles (séparés par des virgules)",
+            placeholder="Ex : 🍎 Pomme, 🍌 Banane, 🍇 Raisin, 🍍 Ananas",
+            max_length=300
         )
 
         self.add_item(self.question)
@@ -7244,10 +7242,11 @@ class PollModal(discord.ui.Modal, title="📊 Créer un sondage"):
     async def on_submit(self, interaction: discord.Interaction):
         user_id = interaction.user.id
 
-        # Gestion du cooldown
+        # Cooldown de 60s
         if user_id in user_cooldown and time.time() - user_cooldown[user_id] < 60:
             return await interaction.response.send_message(
-                "⏳ Vous devez attendre 60 secondes entre chaque sondage.", ephemeral=True
+                "⏳ Vous devez attendre **60 secondes** avant de créer un nouveau sondage.",
+                ephemeral=True
             )
 
         user_cooldown[user_id] = time.time()
@@ -7258,50 +7257,40 @@ class PollModal(discord.ui.Modal, title="📊 Créer un sondage"):
 
         if len(options) < 2 or len(options) > 10:
             return await interaction.response.send_message(
-                "❌ Vous devez fournir entre 2 et 10 options.", ephemeral=True
+                "❗ Veuillez entrer **entre 2 et 10 choix** maximum pour votre sondage.",
+                ephemeral=True
             )
 
-        # Création du sondage avec réactions
+        # Génération de l'embed
         embed = discord.Embed(
-            title="📊 Sondage",
-            description=f"**{question}**\n\n" + "\n".join(
-                [f"{chr(0x1F1E6 + i)} {opt}" for i, opt in enumerate(options)]
+            title="📢 Nouveau sondage disponible !",
+            description=(
+                f"🧠 **Question** :\n> *{question}*\n\n"
+                f"🎯 **Choix proposés** :\n" +
+                "\n".join([f"{chr(0x1F1E6 + i)} ┇ {opt}" for i, opt in enumerate(options)])
             ),
-            color=discord.Color.blurple()
+            color=discord.Color.teal()
         )
-        embed.set_footer(text=f"Sondage créé par {interaction.user}", icon_url=interaction.user.display_avatar.url)
+        embed.set_author(
+            name=interaction.user.display_name,
+            icon_url=interaction.user.display_avatar.url
+        )
+        embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/4140/4140047.png")
+        embed.set_footer(text="Réagissez ci-dessous pour voter 🗳️")
+        embed.timestamp = discord.utils.utcnow()
 
         message = await interaction.channel.send(embed=embed)
 
-        # Ajout des réactions pour voter
+        # Ajout des réactions 🇦, 🇧, ...
         for i in range(len(options)):
-            await message.add_reaction(chr(0x1F1E6 + i))  # 🇦, 🇧, 🇨...
+            await message.add_reaction(chr(0x1F1E6 + i))
 
-        await interaction.response.send_message("✅ Sondage envoyé avec succès !", ephemeral=True)
+        await interaction.response.send_message("✅ Votre sondage a été publié avec succès !", ephemeral=True)
 
 # Commande slash /sondage
-@bot.tree.command(name="sondage", description="Créer un sondage avec une question et des options")
+@bot.tree.command(name="sondage", description="📊 Créez un sondage stylé avec des choix")
 async def sondage(interaction: discord.Interaction):
     await interaction.response.send_modal(PollModal())
-
-
-@bot.tree.command(name="set_sondage", description="Configurer les salons et rôles des sondages")
-async def set_sondage(interaction: discord.Interaction, salon_id: discord.TextChannel, role_id: discord.Role):
-    """Cette commande configure le salon et le rôle de mention pour les sondages"""
-    guild_id = interaction.guild.id
-
-    # Met à jour la configuration des sondages
-    collection21.update_one(
-        {"guild_id": str(guild_id)},
-        {"$set": {"sondage_channel_id": str(salon_id.id), "sondage_role_id": str(role_id.id)}},
-        upsert=True
-    )
-
-    await interaction.response.send_message(
-        f"✅ Salon pour les sondages configuré : {salon_id.mention}\n"
-        f"✅ Rôle pour la mention des sondages configuré : {role_id.mention}",
-        ephemeral=True
-    )
 
 #-------------------------------------------------------------------------------- Rappel: /rappel
 
