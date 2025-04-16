@@ -7124,11 +7124,14 @@ class SuggestionModal(Modal):
         button_decline = Button(label="❌ Refuser", style=discord.ButtonStyle.red)
         button_comment = Button(label="💬 Commenter", style=discord.ButtonStyle.blurple)
 
+        # Organiser les boutons dans une ActionRow
+        action_row = ActionRow(button_approve, button_decline, button_comment)
+
         # Ajout des boutons dans la réponse
         await suggestion_message.edit(
             content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
             embed=embed,
-            components=[[button_approve, button_decline, button_comment]]
+            components=[action_row]  # Utilisation de ActionRow pour ajouter les boutons
         )
 
         # Confirmation à l'utilisateur
@@ -7146,19 +7149,16 @@ async def on_interaction(interaction: discord.Interaction):
                 "👍 La suggestion a été approuvée ! Merci pour votre soutien.",
                 ephemeral=True
             )
-            # Action supplémentaire si besoin (ex. mettre à jour la suggestion comme approuvée dans la base)
         elif interaction.component.label == "❌ Refuser":
             await interaction.response.send_message(
                 "👎 La suggestion a été refusée. Si vous avez des remarques, n'hésitez pas à les partager.",
                 ephemeral=True
             )
-            # Action supplémentaire si besoin (ex. marquer la suggestion comme rejetée)
         elif interaction.component.label == "💬 Commenter":
             await interaction.response.send_message(
                 "💬 Vous pouvez maintenant ajouter un commentaire sur cette suggestion. Faites-nous part de vos idées.",
                 ephemeral=True
             )
-            # Action supplémentaire si besoin (ex. ouvrir un fil de discussion pour la suggestion)
 
 @bot.tree.command(name="suggestion", description="💡 Soumettre une suggestion pour le Serveur")
 async def suggest(interaction: discord.Interaction):
