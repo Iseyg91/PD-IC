@@ -7780,9 +7780,6 @@ async def snipe(ctx, index: int = 1):
         await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
 
 
-import discord
-from discord.ui import Modal, TextInput
-
 # --- Formulaire de présentation étape 1 ---
 class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
     pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
@@ -7790,13 +7787,21 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
     passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # On stocke les informations de cette étape dans une variable de session ou base de données.
+        # Vérifier que l'interaction est valide
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+
+        # On stocke les informations de cette étape
         interaction.client.presentation_data = {
             'pseudo': self.pseudo.value,
             'age': self.age.value,
             'passion': self.passion.value,
         }
-        await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
+        try:
+            await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
+        except discord.errors.HTTPException as e:
+            print(f"Erreur lors de l'envoi du deuxième modal : {e}")
+            await interaction.followup.send("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
 
 # --- Formulaire de présentation étape 2 ---
 class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
@@ -7805,6 +7810,10 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
     reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Vérifier que l'interaction est valide
+        if not interaction.response.is_done():
+            await interaction.response.defer()
+
         # Récupérer les données de la première étape
         step1_data = getattr(interaction.client, 'presentation_data', {})
         
@@ -7855,7 +7864,11 @@ async def presentation(interaction: discord.Interaction):
     presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
 
     if presentation_channel_id:
-        await interaction.response.send_modal(PresentationFormStep1())  # Envoie le premier modal
+        try:
+            await interaction.response.send_modal(PresentationFormStep1())  # Envoie le premier modal
+        except discord.errors.HTTPException as e:
+            print(f"Erreur lors de l'envoi du premier modal : {e}")
+            await interaction.response.send_message("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
     else:
         await interaction.response.send_message(
             "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
