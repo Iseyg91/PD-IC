@@ -8041,10 +8041,10 @@ class ProtectionMenu(Select):
         self.protection_data[f"{prot}_updated_by"] = interaction.user.id
         self.protection_data[f"{prot}_updated_at"] = datetime.utcnow()
 
-        # Notify guild owner
-        guild = interaction.guild
-        if guild and guild.owner:
-            try:
+# Notify guild owner
+guild = interaction.guild
+if guild and guild.owner:
+    try:
         embed = discord.Embed(
             title="🔐 Mise à jour d'une protection sur votre serveur",
             description=f"**Protection :** {PROTECTION_DETAILS[prot][0]}\n"
@@ -8074,13 +8074,14 @@ class ProtectionMenu(Select):
             inline=False
         )
 
-# Envoi du message à l'owner
-if guild and guild.owner:
-    try:
-        await guild.owner.send(embed=embed)
-    except discord.Forbidden:
-        print("Impossible d’envoyer un DM à l’owner.")
-
+        # Envoi du message à l'owner
+        if guild and guild.owner:
+            try:
+                await guild.owner.send(embed=embed)
+            except discord.Forbidden:
+                print("Impossible d’envoyer un DM à l’owner.")
+    except Exception as e:
+        print(f"Erreur lors de la création de l'embed: {e}")
 
         # Refresh embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
