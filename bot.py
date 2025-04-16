@@ -8002,22 +8002,24 @@ class ProtectionMenu(Select):
             except discord.Forbidden:
                 print("Impossible d’envoyer un DM à l’owner.")
 
-        # Réactualiser l'embed
+        # Réactualiser l'embed avec plus de style
         embed = discord.Embed(title="🛡️ **Système de Protection**", color=discord.Color.blurple())
         for p in PROTECTIONS:
             if p == "whitelist":
                 whitelist_data = collection19.find_one({"guild_id": str(self.guild_id)}) or {}
                 wl_users = whitelist_data.get("whitelist", [])
                 if not wl_users:
-                    embed.add_field(name="🌐 Whitelist", value="Aucun utilisateur whitelisté.", inline=False)
+                    embed.add_field(name="🌐 **Whitelist**", value="Aucun utilisateur whitelisté.", inline=False)
                 else:
                     members = []
                     for uid in wl_users:
                         user = interaction.guild.get_member(int(uid)) or await self.bot.fetch_user(int(uid))
                         members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
-                    embed.add_field(name="🌐 Whitelist", value="\n".join(members), inline=False)
+                    embed.add_field(name="🌐 **Whitelist**", value="\n".join(members), inline=False)
             else:
-                status_emoji = "✅" if self.protection_data.get(p, False) else "❌"
+                # Ajout d'une barre de progression pour activer/désactiver
+                progress_bar = "🟩" * 5 if self.protection_data.get(p, False) else "🟥" * 5
+                status = "✅ Activée" if self.protection_data.get(p, False) else "❌ Désactivée"
                 protection_name = {
                     "anti_massban": "🚫 Anti MassBan",
                     "anti_masskick": "🚫 Anti MassKick",
@@ -8027,7 +8029,7 @@ class ProtectionMenu(Select):
                     "anti_createrole": "🎭 Anti-Create Role",
                     "anti_deleterole": "🛑 Anti-Delete Role",
                 }.get(p, p)
-                embed.add_field(name=f"{status_emoji} {protection_name}", value="Activée" if self.protection_data.get(p, False) else "Désactivée", inline=False)
+                embed.add_field(name=f"{status} {protection_name}", value=f"{progress_bar} {status}", inline=False)
 
         embed.set_footer(text="Sélectionnez dans le menu déroulant pour activer/désactiver.")
         view = View()
@@ -8051,15 +8053,17 @@ async def protection(ctx: commands.Context):
             whitelist_data = collection19.find_one({"guild_id": guild_id}) or {}
             wl_users = whitelist_data.get("whitelist", [])
             if not wl_users:
-                embed.add_field(name="🌐 Whitelist", value="Aucun utilisateur whitelisté.", inline=False)
+                embed.add_field(name="🌐 **Whitelist**", value="Aucun utilisateur whitelisté.", inline=False)
             else:
                 members = []
                 for uid in wl_users:
                     user = ctx.guild.get_member(int(uid)) or await ctx.bot.fetch_user(int(uid))
                     members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
-                embed.add_field(name="🌐 Whitelist", value="\n".join(members), inline=False)
+                embed.add_field(name="🌐 **Whitelist**", value="\n".join(members), inline=False)
         else:
-            status_emoji = "✅" if protection_data.get(prot, False) else "❌"
+            # Ajout d'une barre de progression pour activer/désactiver
+            progress_bar = "🟩" * 5 if protection_data.get(prot, False) else "🟥" * 5
+            status = "✅ Activée" if protection_data.get(prot, False) else "❌ Désactivée"
             protection_name = {
                 "anti_massban": "🚫 Anti MassBan",
                 "anti_masskick": "🚫 Anti MassKick",
@@ -8069,7 +8073,7 @@ async def protection(ctx: commands.Context):
                 "anti_createrole": "🎭 Anti-Create Role",
                 "anti_deleterole": "🛑 Anti-Delete Role",
             }.get(prot, prot)
-            embed.add_field(name=f"{status_emoji} {protection_name}", value="Activée" if protection_data.get(prot, False) else "Désactivée", inline=False)
+            embed.add_field(name=f"{status} {protection_name}", value=f"{progress_bar} {status}", inline=False)
 
     embed.set_footer(text="Sélectionnez dans le menu déroulant pour activer/désactiver.")
     view = ProtectionView(guild_id, protection_data, ctx.bot)
