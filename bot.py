@@ -105,6 +105,9 @@ collection18 = db['logs'] #Stock les Salons Logs
 collection19 = db['wl'] #Stock les whitelist
 collection20 = db['suggestions'] #Stock les Salons Suggestion
 collection21 = db['sondage'] #Stock les Salons Sondage
+collection22 = db['presentation'] #Stock les Salon Presentation
+collection23 = db['absence'] #Stock les Salon Absence
+collection24 = db['back_up'] #Stock les Back-up
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -204,6 +207,9 @@ def load_guild_settings(guild_id):
     wl_data = collection19.find_one({"guild_id": guild_id}) or {}
     suggestions_data = collection20.find_one({"guild_id": guild_id}) or {}
     sondage_data = collection21.find_one({"guild_id": guild_id}) or {}
+    presentation_data = collection22.find_one({"guild_id": guild_id}) or {}
+    absence_data = collection23.find_one({"guild_id": guild_id}) or {}
+    back_up_data = collection22.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -229,7 +235,11 @@ def load_guild_settings(guild_id):
         "logs": logs_data,
         "wl": wl_data,
         "suggestions": suggestions_data,
-        "sondage": sondage_data
+        "sondage": sondage_data,
+        "presentation": presentation_data,
+        "absence": absence_data,
+        "back_up": back_up_data
+
     }
 
     return combined_data
@@ -7203,12 +7213,6 @@ async def set_suggestion(interaction: discord.Interaction, channel: discord.Text
     )
 #-------------------------------------------------------------------------------- Sondage: /sondage
 
-# Stockage des sondages
-polls = []
-
-# Dictionnaire pour gérer le cooldown des utilisateurs
-user_cooldown = {}
-
 class PollModal(discord.ui.Modal):
     def __init__(self):
         super().__init__(title="📊 Nouveau Sondage")
@@ -7246,12 +7250,27 @@ class PollModal(discord.ui.Modal):
                 "❌ Tu dois fournir au moins deux options pour le sondage.", ephemeral=True
             )
 
-        # Vérification du salon des sondages
-        channel = interaction.client.get_channel(SONDAGE_CHANNEL_ID)
-        if not channel:
-            return await interaction.response.send_message("❌ Je n'ai pas pu trouver le salon des sondages.", ephemeral=True)
+        # Récupérer la configuration du salon et du rôle
+        config = collection21.find_one({"guild_id": str(interaction.guild.id)})
+        if not config or "sondage_channel_id" not in config or "sondage_role_id" not in config:
+            return await interaction.response.send_message(
+                "❌ Le salon des sondages ou le rôle de mention n'est pas configuré. Utilisez /set_sondage pour les configurer.",
+                ephemeral=True
+            )
 
-        new_user_mention = f"<@&{SONDAGE_ID}>"
+        channel_id = int(config["sondage_channel_id"])
+        role_id = int(config["sondage_role_id"])
+
+        channel = interaction.guild.get_channel(channel_id)
+        role = interaction.guild.get_role(role_id)
+
+        if not channel or not role:
+            return await interaction.response.send_message(
+                "❌ Le salon ou le rôle configuré est invalide. Assurez-vous qu'ils existent.",
+                ephemeral=True
+            )
+
+        new_user_mention = role.mention
 
         # Envoie un message de notification à l'utilisateur spécifique
         await channel.send(f"{new_user_mention} 🔔 **Nouveau sondage à répondre !**")
@@ -7278,7 +7297,7 @@ class PollModal(discord.ui.Modal):
         for idx in range(min(len(options), len(reactions))):
             await message.add_reaction(reactions[idx])
 
-        # Sauvegarde du sondage pour afficher avec la commande /sondages
+        # Sauvegarde du sondage pour affichage avec la commande /sondages
         polls.append({
             "message_id": message.id,
             "author": interaction.user,
@@ -7312,30 +7331,24 @@ async def poll(interaction: discord.Interaction):
     """Commande pour créer un sondage"""
     await interaction.response.send_modal(PollModal())
 
-# Commande pour afficher les derniers sondages
-@bot.tree.command(name="sondages", description="📢 Affiche les derniers sondages")
-async def polls_command(interaction: discord.Interaction):
-    """Commande pour afficher les derniers sondages"""
-    if not polls:
-        return await interaction.response.send_message("❌ Aucun sondage en cours. Sois le premier à en créer un !", ephemeral=True)
 
-    # Récupérer les 5 derniers sondages
-    recent_polls = polls[-5:]
+@bot.tree.command(name="set_sondage", description="Configurer les salons et rôles des sondages")
+async def set_sondage(interaction: discord.Interaction, salon_id: discord.TextChannel, role_id: discord.Role):
+    """Cette commande configure le salon et le rôle de mention pour les sondages"""
+    guild_id = interaction.guild.id
 
-    embeds = []
-    for poll_data in recent_polls:
-        embed = discord.Embed(
-            title="📊 Sondage",
-            description=f"📝 **Proposé par** {poll_data['author'].mention}\n\n>>> {poll_data['question']}",
-            color=discord.Color.blue(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.add_field(name="🔘 Options", value="\n".join([f"{idx + 1}. {option}" for idx, option in enumerate(poll_data['options'])]), inline=False)
-        embed.set_footer(text=f"Envoyé le {discord.utils.format_dt(discord.utils.snowflake_time(poll_data['message_id']), 'F')}")
-        embeds.append(embed)
+    # Met à jour la configuration des sondages
+    collection21.update_one(
+        {"guild_id": str(guild_id)},
+        {"$set": {"sondage_channel_id": str(salon_id.id), "sondage_role_id": str(role_id.id)}},
+        upsert=True
+    )
 
-    # Envoi des embeds
-    await interaction.response.send_message(embeds=embeds)
+    await interaction.response.send_message(
+        f"✅ Salon pour les sondages configuré : {salon_id.mention}\n"
+        f"✅ Rôle pour la mention des sondages configuré : {role_id.mention}",
+        ephemeral=True
+    )
 
 #-------------------------------------------------------------------------------- Rappel: /rappel
 
