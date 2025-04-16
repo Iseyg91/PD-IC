@@ -7219,122 +7219,69 @@ async def set_suggestion(interaction: discord.Interaction, channel: discord.Text
     )
 #-------------------------------------------------------------------------------- Sondage: /sondage
 
-class PollModal(discord.ui.Modal):
+# Dictionnaire global pour les cooldowns des sondages
+user_cooldown = {}
+
+# Classe du Modal pour créer un sondage
+class PollModal(discord.ui.Modal, title="📊 Créer un sondage"):
     def __init__(self):
-        super().__init__(title="📊 Nouveau Sondage")
+        super().__init__()
 
-        self.add_item(discord.ui.TextInput(
-            label="❓ Question",
-            style=discord.TextStyle.long,
-            placeholder="Tapez la question du sondage ici...",
-            required=True,
-            max_length=500
-        ))
+        self.question = discord.ui.TextInput(
+            label="Question du sondage",
+            placeholder="Ex : Quel est votre fruit préféré ?",
+            max_length=200
+        )
+        self.options = discord.ui.TextInput(
+            label="Options (séparées par des virgules)",
+            placeholder="Ex : Pomme, Banane, Orange",
+            max_length=200
+        )
 
-        self.add_item(discord.ui.TextInput(
-            label="🗳️ Options (séparées par des virgules)",
-            style=discord.TextStyle.short,
-            placeholder="Option 1, Option 2, Option 3...",
-            required=True
-        ))
+        self.add_item(self.question)
+        self.add_item(self.options)
 
     async def on_submit(self, interaction: discord.Interaction):
         user_id = interaction.user.id
-        # Anti-spam: vérifier cooldown
+
+        # Gestion du cooldown
         if user_id in user_cooldown and time.time() - user_cooldown[user_id] < 60:
             return await interaction.response.send_message(
-                "❌ Tu dois attendre avant de soumettre un nouveau sondage. Patiente un peu !", ephemeral=True
+                "⏳ Vous devez attendre 60 secondes entre chaque sondage.", ephemeral=True
             )
 
-        user_cooldown[user_id] = time.time()  # Enregistrer le temps du dernier envoi
+        user_cooldown[user_id] = time.time()
 
-        question = self.children[0].value.strip()  # Question du sondage
-        options = [opt.strip() for opt in self.children[1].value.split(",")]  # Options du sondage
+        question = self.question.value
+        options_raw = self.options.value
+        options = [opt.strip() for opt in options_raw.split(",") if opt.strip()]
 
-        if len(options) < 2:
+        if len(options) < 2 or len(options) > 10:
             return await interaction.response.send_message(
-                "❌ Tu dois fournir au moins deux options pour le sondage.", ephemeral=True
+                "❌ Vous devez fournir entre 2 et 10 options.", ephemeral=True
             )
 
-        # Récupérer la configuration du salon et du rôle
-        config = collection21.find_one({"guild_id": str(interaction.guild.id)})
-        if not config or "sondage_channel_id" not in config or "sondage_role_id" not in config:
-            return await interaction.response.send_message(
-                "❌ Le salon des sondages ou le rôle de mention n'est pas configuré. Utilisez /set_sondage pour les configurer.",
-                ephemeral=True
-            )
-
-        channel_id = int(config["sondage_channel_id"])
-        role_id = int(config["sondage_role_id"])
-
-        channel = interaction.guild.get_channel(channel_id)
-        role = interaction.guild.get_role(role_id)
-
-        if not channel or not role:
-            return await interaction.response.send_message(
-                "❌ Le salon ou le rôle configuré est invalide. Assurez-vous qu'ils existent.",
-                ephemeral=True
-            )
-
-        new_user_mention = role.mention
-
-        # Envoie un message de notification à l'utilisateur spécifique
-        await channel.send(f"{new_user_mention} 🔔 **Nouveau sondage à répondre !**")
-
-        # Création de l'embed pour le sondage
-        avatar_url = interaction.user.avatar.url if interaction.user.avatar else interaction.user.default_avatar.url
-
+        # Création du sondage avec réactions
         embed = discord.Embed(
-            title="📊 Nouveau Sondage !",
-            description=f"📝 **Proposé par** {interaction.user.mention}\n\n>>> {question}",
-            color=discord.Color.blue(),
-            timestamp=discord.utils.utcnow()
+            title="📊 Sondage",
+            description=f"**{question}**\n\n" + "\n".join(
+                [f"{chr(0x1F1E6 + i)} {opt}" for i, opt in enumerate(options)]
+            ),
+            color=discord.Color.blurple()
         )
+        embed.set_footer(text=f"Sondage créé par {interaction.user}", icon_url=interaction.user.display_avatar.url)
 
-        embed.set_thumbnail(url="https://cdn-icons-png.flaticon.com/512/3001/3001265.png")  # Icône sondage
-        embed.add_field(name="🔘 Options", value="\n".join([f"{idx + 1}. {option}" for idx, option in enumerate(options)]), inline=False)
-        embed.set_footer(text=f"Envoyé par {interaction.user.display_name}", icon_url=avatar_url)
+        message = await interaction.channel.send(embed=embed)
 
-        # Envoi de l'embed
-        message = await channel.send(embed=embed)
+        # Ajout des réactions pour voter
+        for i in range(len(options)):
+            await message.add_reaction(chr(0x1F1E6 + i))  # 🇦, 🇧, 🇨...
 
-        # Ajout des réactions (limite de 10 options)
-        reactions = ["🇦", "🇧", "🇨", "🇩", "🇪", "🇫", "🇬", "🇭", "🇮", "🇯"]
-        for idx in range(min(len(options), len(reactions))):
-            await message.add_reaction(reactions[idx])
+        await interaction.response.send_message("✅ Sondage envoyé avec succès !", ephemeral=True)
 
-        # Sauvegarde du sondage pour affichage avec la commande /sondages
-        polls.append({
-            "message_id": message.id,
-            "author": interaction.user,
-            "question": question,
-            "options": options,
-            "timestamp": time.time()
-        })
-
-        # Confirme l'envoi avec un message sympathique
-        await interaction.response.send_message(
-            f"✅ **Ton sondage a été envoyé avec succès !**\nLes membres peuvent maintenant répondre en choisissant leurs options. 🕒",
-            ephemeral=True
-        )
-
-        # Envoi d'un message privé à l'auteur
-        try:
-            dm_embed = discord.Embed(
-                title="📩 Sondage envoyé !",
-                description=f"Merci pour ton sondage ! Voici les détails :\n\n**❓ Question** : {question}\n**🔘 Options** : {', '.join(options)}",
-                color=discord.Color.green(),
-                timestamp=discord.utils.utcnow()
-            )
-            dm_embed.set_footer(text="Merci pour ta participation et tes idées ! 🙌")
-            await interaction.user.send(embed=dm_embed)
-        except discord.Forbidden:
-            print(f"[ERREUR] Impossible d'envoyer un MP à {interaction.user.display_name}.")
-            await channel.send(f"❗ **{interaction.user.display_name}**, je ne peux pas t'envoyer de message privé. Vérifie tes paramètres de confidentialité.")
-
-@bot.tree.command(name="sondage", description="📊 Crée un sondage pour la communauté")
-async def poll(interaction: discord.Interaction):
-    """Commande pour créer un sondage"""
+# Commande slash /sondage
+@bot.tree.command(name="sondage", description="Créer un sondage avec une question et des options")
+async def sondage(interaction: discord.Interaction):
     await interaction.response.send_modal(PollModal())
 
 
