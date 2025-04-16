@@ -7115,15 +7115,39 @@ class SuggestionModal(Modal):
         embed.set_thumbnail(url="https://example.com/suggestion_icon.png")  # Une icône personnalisée pour le modal
 
         # Envoi de la suggestion avec mention du rôle
-        await channel.send(
+        suggestion_message = await channel.send(
             content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
             embed=embed
         )
 
+        # Ajouter des boutons pour interagir avec la suggestion
+        button_approve = Button(label="✅ Approuver", style=discord.ButtonStyle.green)
+        button_decline = Button(label="❌ Refuser", style=discord.ButtonStyle.red)
+        button_comment = Button(label="💬 Commenter", style=discord.ButtonStyle.blurple)
+
+        # Ajout des boutons dans la réponse
+        await suggestion_message.edit(
+            content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
+            embed=embed,
+            components=[[button_approve, button_decline, button_comment]]
+        )
+
+        # Confirmation de la soumission de la suggestion
         await interaction.response.send_message(
             "✅ Votre suggestion a été envoyée avec succès ! Merci de contribuer !",
             ephemeral=True
         )
+
+# Gestion de la réaction des boutons
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.component:
+        if interaction.component.label == "✅ Approuver":
+            await interaction.response.send_message("👍 La suggestion a été approuvée !", ephemeral=True)
+        elif interaction.component.label == "❌ Refuser":
+            await interaction.response.send_message("👎 La suggestion a été refusée.", ephemeral=True)
+        elif interaction.component.label == "💬 Commenter":
+            await interaction.response.send_message("💬 Vous pouvez maintenant commenter cette suggestion.", ephemeral=True)
 
 @bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le Serveur")
 async def suggest(interaction: discord.Interaction):
