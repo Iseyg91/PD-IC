@@ -7821,7 +7821,7 @@ class ProtectionView(View):
         super().__init__(timeout=None)
         self.add_item(ProtectionMenu(guild_id, protection_data, bot))
 
-@commands.hybrid_command(name="protection", description="Configurer les protections du serveur")
+@bot.hybrid_command(name="protection", description="Configurer les protections du serveur")
 @is_admin_or_isey()
 async def protection(ctx: commands.Context):
     guild_id = str(ctx.guild.id)
