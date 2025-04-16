@@ -4621,24 +4621,24 @@ def create_default_protection_data(guild_id):
     }
 
 
-# Fonction pour mettre à jour les paramètres de protection
-async def update_protection(guild_id, field, value, guild, ctx):
+def update_protection(guild_id, field, value, guild, ctx):
     try:
         if value not in ["on", "off"]:
             raise ValueError("La valeur doit être 'on' ou 'off'.")
 
-        # Mise à jour dans la base de données
-        result = collection4.update_one(
-    {"_id": str(guild_id)},
-    {"$set": {field: value, "last_updated": datetime.utcnow()}}
-)
-        # Vérification si la mise à jour a bien été effectuée
-        if result.modified_count == 0:
-            print(f"Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
-        else:
-            print(f"Modification effectuée avec succès pour {field} dans le guild_id {guild_id}.")
+        # Log de debug
+        print(f"[DEBUG] Tentative de mise à jour: guild_id={guild_id}, field={field}, value={value}")
 
-        # Envoi du MP à l'owner du serveur avec un embed
+        result = collection4.update_one(
+            {"_id": str(guild_id)},
+            {"$set": {field: value, "last_updated": datetime.utcnow()}}
+        )
+
+        if result.modified_count == 0:
+            print(f"[INFO] Aucune modification effectuée pour {field} dans le guild_id {guild_id}.")
+        else:
+            print(f"[INFO] Modification effectuée pour {field} dans le guild_id {guild_id}.")
+
         owner = guild.owner
         if owner:
             embed = discord.Embed(
@@ -4648,23 +4648,21 @@ async def update_protection(guild_id, field, value, guild, ctx):
             )
             embed.add_field(
                 name="Protection modifiée",
-                value=f"**Protection** : {field}\n"
-                      f"**Nouvelle valeur** : {value.capitalize()}",
+                value=f"**Protection** : `{field}`\n**Nouvelle valeur** : `{value.capitalize()}`",
                 inline=False
             )
             embed.set_footer(text=f"Serveur : {guild.name} | {guild.id}")
+            
             try:
-                await owner.send(embed=embed)
-            except discord.Forbidden:
-                print(f"Impossible d'envoyer un MP à {owner.name}, permissions insuffisantes.")
+                # ctx.bot.loop.create_task pour envoyer un message dans une fonction non async
+                ctx.bot.loop.create_task(owner.send(embed=embed))
             except Exception as e:
-                print(f"Erreur lors de l'envoi du MP à l'owner du serveur {guild.id}: {e}")
+                print(f"[ERROR] Impossible d'envoyer un MP à {owner.name}: {e}")
         
-        # Retourne le résultat de l'update
         return result
 
     except Exception as e:
-        print(f"Erreur lors de la mise à jour de {field} pour le guild_id {guild_id}: {e}")
+        print(f"[ERROR] Erreur dans update_protection : {e}")
         raise
 
 async def is_authorized(ctx):
