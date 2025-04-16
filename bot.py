@@ -7998,6 +7998,46 @@ def format_protection_field(prot, data, guild, bot):
 
     return name, value
 
+async def notify_owner_of_protection_change(guild, prot, new_value, interaction):
+    if guild and guild.owner:
+        try:
+            embed = discord.Embed(
+                title="🔐 Mise à jour d'une protection sur votre serveur",
+                description=f"**Protection :** {PROTECTION_DETAILS[prot][0]}\n"
+                            f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
+                color=discord.Color.green() if new_value else discord.Color.red()
+            )
+
+            embed.add_field(
+                name="👤 Modifiée par :",
+                value=f"{interaction.user.mention} (`{interaction.user}`)",
+                inline=False
+            )
+            embed.add_field(
+                name="🏠 Serveur :",
+                value=guild.name,
+                inline=False
+            )
+            embed.add_field(
+                name="🕓 Date de modification :",
+                value=f"<t:{int(datetime.utcnow().timestamp())}:f>",  # Formatage de date automatique dans Discord
+                inline=False
+            )
+
+            embed.add_field(
+                name="ℹ️ Infos supplémentaires :",
+                value="Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`.",
+                inline=False
+            )
+
+            # Envoi du message à l'owner
+            try:
+                await guild.owner.send(embed=embed)
+            except discord.Forbidden:
+                print("Impossible d’envoyer un DM à l’owner.")
+        except Exception as e:
+            print(f"Erreur lors de la création de l'embed: {e}")
+
 class ProtectionMenu(Select):
     def __init__(self, guild_id, protection_data, bot):
         self.guild_id = guild_id
@@ -8041,49 +8081,12 @@ class ProtectionMenu(Select):
         self.protection_data[f"{prot}_updated_by"] = interaction.user.id
         self.protection_data[f"{prot}_updated_at"] = datetime.utcnow()
 
-# Notify guild owner
-guild = interaction.guild
-if guild and guild.owner:
-    try:
-        embed = discord.Embed(
-            title="🔐 Mise à jour d'une protection sur votre serveur",
-            description=f"**Protection :** {PROTECTION_DETAILS[prot][0]}\n"
-                        f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
-            color=discord.Color.green() if new_value else discord.Color.red()
-        )
-
-        embed.add_field(
-            name="👤 Modifiée par :",
-            value=f"{interaction.user.mention} (`{interaction.user}`)",
-            inline=False
-        )
-        embed.add_field(
-            name="🏠 Serveur :",
-            value=guild.name,
-            inline=False
-        )
-        embed.add_field(
-            name="🕓 Date de modification :",
-            value=f"<t:{int(datetime.utcnow().timestamp())}:f>",  # Formatage de date automatique dans Discord
-            inline=False
-        )
-
-        embed.add_field(
-            name="ℹ️ Infos supplémentaires :",
-            value="Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`.",
-            inline=False
-        )
-
-        # Envoi du message à l'owner
+        # Notify guild owner
+        guild = interaction.guild
         if guild and guild.owner:
-            try:
-                await guild.owner.send(embed=embed)
-            except discord.Forbidden:
-                print("Impossible d’envoyer un DM à l’owner.")
-    except Exception as e:
-        print(f"Erreur lors de la création de l'embed: {e}")
+            await notify_owner_of_protection_change(guild, prot, new_value, interaction)
 
-        # Refresh embed
+# Refresh embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
         for p in PROTECTIONS:
             if p == "whitelist":
@@ -8138,6 +8141,7 @@ async def protection(ctx: commands.Context):
     embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer la sécurité du serveur.")
     view = ProtectionView(guild_id, protection_data, ctx.bot)
     await ctx.send(embed=embed, view=view)
+
 
 # Fonction pour ajouter un utilisateur à la whitelist
 @bot.command()
