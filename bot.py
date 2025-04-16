@@ -1490,6 +1490,11 @@ async def on_guild_channel_delete(channel):
 @bot.event
 async def on_guild_channel_update(before, after):
     if before.guild.id == PROJECT_DELTA:
+        # Ignorer si c'est l'admin (toi) qui modifie le salon
+        if before.guild.me.id == after.guild.me.id:
+            return
+        
+        # Récupérer le salon de log pour les channels
         channel_log = get_log_channel(before.guild, "channels")
         if channel_log:
             embed = discord.Embed(
@@ -1510,6 +1515,7 @@ async def on_guild_channel_update(before, after):
             embed.timestamp = discord.utils.utcnow()
 
             await channel_log.send(embed=embed)
+
 
 # --- Voice state update ---
 @bot.event
