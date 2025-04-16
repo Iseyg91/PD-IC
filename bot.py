@@ -4710,57 +4710,50 @@ async def send_select_menu(ctx, embed, protection_data, guild_id):
         view = discord.ui.View()
         view.add_item(select)
 
-        async def select_callback(interaction: discord.Interaction):
-            if interaction.user != ctx.author:
-                await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser ce menu.", ephemeral=True)
-                return
+async def select_callback(interaction: discord.Interaction):
+    if interaction.user != ctx.author:
+        await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser ce menu.", ephemeral=True)
+        return
 
-            selected_value = select.values[0]
-            current_value = protection_data.get(selected_value, "Off")
+    selected_value = select.values[0]
+    current_value = protection_data.get(selected_value, "Off")
 
-            await interaction.response.send_message(
-                f"🔍 Protection sélectionnée : `{selected_value}`\n"
-                f"🔒 État actuel : **{current_value.capitalize()}**\n\n"
-                "🟢 Tapez `on` pour activer\n🔴 Tapez `off` pour désactiver",
-                ephemeral=True
-            )
+    await interaction.response.send_message(
+        f"🔍 Protection sélectionnée : `{selected_value}`\n"
+        f"🔒 État actuel : **{current_value.capitalize()}**\n\n"
+        "🟢 Tapez `on` pour activer\n🔴 Tapez `off` pour désactiver",
+        ephemeral=True
+    )
 
-            def check(msg):
-                return msg.author == ctx.author and msg.channel == ctx.channel
+    def check(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
 
-            try:
-                msg = await bot.wait_for("message", check=check, timeout=60.0)
-                new_value = msg.content.lower()
+    try:
+        msg = await bot.wait_for("message", check=check, timeout=60.0)
+        new_value = msg.content.lower()
 
-                if new_value not in ["on", "off"]:
-                    await interaction.followup.send("❌ Valeur invalide. Veuillez entrer `on` ou `off`.", ephemeral=True)
-                    return
+        if new_value not in ["on", "off"]:
+            await interaction.followup.send("❌ Valeur invalide. Veuillez entrer `on` ou `off`.", ephemeral=True)
+            return
 
-                # ✅ Ligne de mise à jour
-                await update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
+        # ✅ Ligne corrigée — pas de await car update_protection n'est pas async
+        update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
 
-                # 🗑️ On supprime le message utilisateur pour garder le salon propre
-                await msg.delete()
+        # 🗑️ Supprime le message utilisateur pour garder le salon propre
+        await msg.delete()
 
-                # 🔄 On recharge les données et on met à jour l'embed
-                updated_data = await get_protection_data(guild_id)
-                updated_embed = create_protection_embed(updated_data)
-                await interaction.message.edit(embed=updated_embed, view=view)
+        # 🔄 Recharge les données et met à jour l'embed
+        updated_data = await get_protection_data(guild_id)
+        updated_embed = create_protection_embed(updated_data)
+        await interaction.message.edit(embed=updated_embed, view=view)
 
-                await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
+        await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
 
-            except asyncio.TimeoutError:
-                await interaction.followup.send("⏳ Temps écoulé. Aucune réponse reçue.", ephemeral=True)
-            except Exception as e:
-                await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-                print(f"Erreur dans le callback du select : {e}")
-
-        select.callback = select_callback
-        await ctx.send(embed=embed, view=view)
-
+    except asyncio.TimeoutError:
+        await interaction.followup.send("⏳ Temps écoulé. Aucune réponse reçue.", ephemeral=True)
     except Exception as e:
-        print(f"Erreur dans send_select_menu : {e}")
-        await ctx.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+        print(f"Erreur dans le callback du select : {e}")
 
 
 def get_protection_options():
