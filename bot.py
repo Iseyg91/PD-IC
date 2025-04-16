@@ -7064,7 +7064,56 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
-@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour Etherya ou le Bot")
+
+class SuggestionModal(Modal):
+    def __init__(self):
+        super().__init__(title="💡 Nouvelle Suggestion")
+
+        # Champ pour la suggestion
+        self.suggestion_input = TextInput(
+            label="Entrez votre suggestion",
+            style=discord.TextStyle.paragraph,
+            placeholder="Écrivez ici...",
+            required=True,
+            max_length=1000
+        )
+        self.add_item(self.suggestion_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # Récupère la suggestion soumise
+        suggestion_text = self.suggestion_input.value
+
+        # Récupérer l'ID du salon des suggestions et du rôle depuis la base de données
+        guild_id = str(interaction.guild.id)
+        suggestions_data = collection20.find_one({"guild_id": guild_id})
+
+        if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
+            return await interaction.response.send_message(
+                "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
+                ephemeral=True
+            )
+
+        # Récupérer l'ID du salon des suggestions et du rôle à mentionner
+        suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
+        suggestion_role_id = int(suggestions_data["suggestion_role_id"])
+        channel = interaction.client.get_channel(suggestion_channel_id)
+        role = interaction.guild.get_role(suggestion_role_id)
+
+        if not channel or not role:
+            return await interaction.response.send_message(
+                "❌ Il y a un problème avec la configuration du salon des suggestions ou du rôle. Vérifiez les paramètres.",
+                ephemeral=True
+            )
+
+        # Envoie la suggestion avec mention du rôle
+        await channel.send(
+            content=f"{role.mention} 💡 Nouvelle suggestion !",
+            embed=discord.Embed(description=suggestion_text, color=discord.Color.blue())
+        )
+
+        await interaction.response.send_message("✅ Votre suggestion a été envoyée avec succès !", ephemeral=True)
+
+@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le Serveur")
 async def suggest(interaction: discord.Interaction):
     """Commande pour envoyer une suggestion"""
 
