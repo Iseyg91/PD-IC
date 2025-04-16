@@ -4633,7 +4633,7 @@ class InfoSelect(Select):
                 new_value = response.mentions[0].id if response.mentions else None
             elif param in ["admin_role", "staff_role"]:
                 new_value = response.role_mentions[0].id if response.role_mentions else None
-            elif param in ["sanctions_channel", "reports_channel","suggestion_channel","sondage_channel","presentation_channel"]:
+            elif param in ["sanctions_channel", "reports_channel"]:
                 new_value = response.channel_mentions[0].id if response.channel_mentions else None
 
             if new_value:
@@ -4805,7 +4805,6 @@ async def setup(ctx):
     view = SetupView(ctx, guild_data, collection)
     await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
     print("Message d'embed envoyé.")
-#------------------------------------------------------------------------ Super Protection:
 
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
@@ -7778,7 +7777,7 @@ class PresentationForm(discord.ui.Modal, title="Faisons connaissance !"):
 
         # Charger les paramètres du serveur depuis la base de données
         guild_settings = load_guild_settings(guild_id)
-        presentation_channel_id = guild_settings.get('setup', {}).get('presentation_channel')
+        presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
 
         if presentation_channel_id:
             presentation_channel = interaction.guild.get_channel(presentation_channel_id)
@@ -7815,7 +7814,7 @@ async def presentation(interaction: discord.Interaction):
     print(f"Guild settings for {guild_id}: {guild_settings}")  # Ajout d'un log
 
     # Récupérer l'ID du salon de présentation depuis les paramètres du serveur
-    presentation_channel_id = guild_settings.get('setup', {}).get('presentation_channel')
+    presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
     if not presentation_channel_id:
         print("Salon de présentation non trouvé dans la base de données pour le serveur")
 
@@ -7826,6 +7825,30 @@ async def presentation(interaction: discord.Interaction):
     else:
         # Si le salon n'est pas configuré, informer l'utilisateur
         await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.")
+
+# Commande pour définir le salon de présentation
+@bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
+@app_commands.checks.has_permissions(administrator=True)
+async def set_presentation(interaction: discord.Interaction, salon: discord.TextChannel):
+    guild_id = interaction.guild.id
+    channel_id = salon.id
+
+    # Mise à jour ou insertion dans la collection21
+    collection21.update_one(
+        {"guild_id": guild_id},
+        {"$set": {"presentation_channel": channel_id}},
+        upsert=True
+    )
+
+    await interaction.response.send_message(
+        f"✅ Le salon de présentation a bien été défini sur {salon.mention}.", ephemeral=True
+    )
+
+# Gérer les erreurs de permissions
+@set_presentation.error
+async def set_presentation_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.MissingPermissions):
+        await interaction.response.send_message("❌ Vous devez être administrateur pour utiliser cette commande.", ephemeral=True)
 
 @bot.command()
 @commands.has_permissions(administrator=True)
