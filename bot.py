@@ -8007,7 +8007,7 @@ class ProtectionMenu(Select):
         for p in PROTECTIONS:
             if p == "whitelist":
                 whitelist_data = collection19.find_one({"guild_id": str(self.guild_id)}) or {}
-                wl_users = whitelist_data.get("users", [])
+                wl_users = whitelist_data.get("whitelist", [])
                 if not wl_users:
                     embed.add_field(name="whitelist", value="Aucun utilisateur whitelisté.", inline=False)
                 else:
@@ -8041,7 +8041,7 @@ async def protection(ctx: commands.Context):
     for prot in PROTECTIONS:
         if prot == "whitelist":
             whitelist_data = collection19.find_one({"guild_id": guild_id}) or {}
-            wl_users = whitelist_data.get("users", [])
+            wl_users = whitelist_data.get("whitelist", [])
             if not wl_users:
                 embed.add_field(name="whitelist", value="Aucun utilisateur whitelisté.", inline=False)
             else:
