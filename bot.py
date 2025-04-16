@@ -4620,7 +4620,6 @@ def create_default_protection_data(guild_id):
         "last_updated": datetime.utcnow()
     }
 
-
 def update_protection(guild_id, field, value, guild, ctx):
     try:
         if value not in ["on", "off"]:
@@ -4697,25 +4696,36 @@ async def protection(ctx):
 async def send_select_menu(ctx, embed, protection_data, guild_id):
     try:
         options = [
-    discord.SelectOption(label=label, value=value, description="Configurer cette règle de sécurité.")
-    for label, value in get_protection_options().items()
-]
-        select = discord.ui.Select(
-            placeholder="🛠️ Sélectionnez une protection à configurer...",
-            options=options,
-            min_values=1,
-            max_values=1
-        )
+            discord.SelectOption(label=label, value=value, description="Configurer cette règle de sécurité.")
+            for label, value in get_protection_options().items()
+        ]
+
+        class ProtectionSelect(discord.ui.Select):
+            def __init__(self):
+                super().__init__(
+                    placeholder="🛠️ Sélectionnez une protection à configurer...",
+                    min_values=1,
+                    max_values=1,
+                    options=options
+                )
+
+            async def callback(self, interaction: discord.Interaction):
+                await select_callback(interaction, self.values[0], ctx, protection_data, guild_id)
 
         view = discord.ui.View()
-        view.add_item(select)
+        view.add_item(ProtectionSelect())
 
-async def select_callback(interaction: discord.Interaction):
+        await ctx.send(embed=embed, view=view)
+    
+    except Exception as e:
+        print(f"[ERROR] Erreur dans send_select_menu : {e}")
+
+# Callback pour le traitement de la sélection
+async def select_callback(interaction: discord.Interaction, selected_value, ctx, protection_data, guild_id):
     if interaction.user != ctx.author:
         await interaction.response.send_message("❌ Vous n'êtes pas autorisé à utiliser ce menu.", ephemeral=True)
         return
 
-    selected_value = select.values[0]
     current_value = protection_data.get(selected_value, "Off")
 
     await interaction.response.send_message(
@@ -4736,16 +4746,16 @@ async def select_callback(interaction: discord.Interaction):
             await interaction.followup.send("❌ Valeur invalide. Veuillez entrer `on` ou `off`.", ephemeral=True)
             return
 
-        # ✅ Ligne corrigée — pas de await car update_protection n'est pas async
+        # ✅ Mise à jour de la protection
         update_protection(guild_id, selected_value, new_value, ctx.guild, ctx)
 
-        # 🗑️ Supprime le message utilisateur pour garder le salon propre
+        # 🗑️ Supprime le message utilisateur
         await msg.delete()
 
-        # 🔄 Recharge les données et met à jour l'embed
+        # 🔄 Met à jour l'embed
         updated_data = await get_protection_data(guild_id)
         updated_embed = create_protection_embed(updated_data)
-        await interaction.message.edit(embed=updated_embed, view=view)
+        await interaction.message.edit(embed=updated_embed, view=None)
 
         await interaction.followup.send(f"✅ La protection `{selected_value}` a été mise à jour à **{new_value.capitalize()}**.", ephemeral=True)
 
@@ -4754,7 +4764,6 @@ async def select_callback(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
         print(f"Erreur dans le callback du select : {e}")
-
 
 def get_protection_options():
     return {
