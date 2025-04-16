@@ -7144,76 +7144,25 @@ async def suggestion(interaction: discord.Interaction):
 
     await interaction.response.send_modal(SuggestionModal())
 
-
-@bot.tree.command(name="suggestions", description="📢 Affiche les dernières suggestions")
-async def suggestions_command(interaction: discord.Interaction):
-    """Commande pour afficher les dernières suggestions"""
-
-    # Récupérer l'ID du salon des suggestions depuis la base de données
-    guild_id = str(interaction.guild.id)
-    suggestions_data = collection20.find_one({"guild_id": guild_id})
-
-    if not suggestions_data or "suggestion_channel_id" not in suggestions_data:
-        return await interaction.response.send_message(
-            "❌ Le salon des suggestions n'a pas encore été configuré. Un administrateur doit le définir.",
-            ephemeral=True
-        )
-
-    # Récupérer l'ID du salon des suggestions
-    suggestion_channel_id = int(suggestions_data["suggestion_channel_id"])
-    channel = interaction.client.get_channel(suggestion_channel_id)
-    if not channel:
-        return await interaction.response.send_message(
-            "❌ Je n'ai pas pu trouver le salon des suggestions. Vérifiez si l'ID est correct.",
-            ephemeral=True
-        )
-
-    # Récupérer les 5 dernières suggestions
-    recent_suggestions = suggestions[-5:]
-
-    if not recent_suggestions:
-        return await interaction.response.send_message(
-            "❌ Aucune suggestion en cours. Sois le premier à proposer une idée !", ephemeral=True
-        )
-
-    # Création des embeds pour les suggestions
-    embeds = []
-    for suggestion_data in recent_suggestions:
-        embed = discord.Embed(
-            title="💡 Suggestion",
-            description=f"📝 **Proposée par** {suggestion_data['author'].mention}\n\n>>> {suggestion_data['suggestion']}",
-            color=discord.Color.green(),
-            timestamp=discord.utils.utcnow()
-        )
-        embed.set_footer(text=f"Envoyée le {discord.utils.format_dt(discord.utils.snowflake_time(suggestion_data['message_id']), 'F')}")
-        embeds.append(embed)
-
-    # Envoi des embeds
-    await interaction.response.send_message(embeds=embeds)
-
-@bot.tree.command(name="set_suggestion", description="📝 Définir le salon où les suggestions seront envoyées")
+@bot.tree.command(name="set_suggestion", description="🛠️ Définir le salon et rôle des suggestions")
+@app_commands.describe(channel="Salon où les suggestions seront envoyées", role="Rôle à mentionner pour chaque suggestion")
 async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
-    """Commande pour définir le salon et le rôle à mentionner pour les suggestions"""
-
-    # Vérification si l'utilisateur est un administrateur
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message(
-            "❌ Tu n'as pas les permissions nécessaires pour utiliser cette commande.", ephemeral=True
+            "❌ Tu n'as pas les permissions nécessaires pour faire cela.", ephemeral=True
         )
 
-    # Récupère l'ID de la guilde
-    guild_id = str(interaction.guild.id)
-
-    # Mise à jour de la collection MongoDB pour stocker l'ID du salon et du rôle
     collection20.update_one(
-        {"guild_id": guild_id},
-        {"$set": {"suggestion_channel_id": str(channel.id), "suggestion_role_id": str(role.id)}},
+        {"guild_id": str(interaction.guild.id)},
+        {"$set": {
+            "suggestion_channel_id": str(channel.id),
+            "suggestion_role_id": str(role.id)
+        }},
         upsert=True
     )
 
-    # Confirmation à l'utilisateur
     await interaction.response.send_message(
-        f"✅ Le salon des suggestions a été mis à jour avec succès !\nLes suggestions seront maintenant envoyées dans {channel.mention} et le rôle {role.mention} sera mentionné à chaque suggestion.",
+        f"✅ Salon défini : {channel.mention}\n📌 Rôle à mentionner : {role.mention}",
         ephemeral=True
     )
 
