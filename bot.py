@@ -7064,7 +7064,6 @@ async def remove_idee(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, view=view)
 
 #--------------------------------------------------------------------------------------------
-
 class SuggestionModal(Modal):
     def __init__(self):
         super().__init__(title="💡 Nouvelle Suggestion")
@@ -7073,7 +7072,7 @@ class SuggestionModal(Modal):
         self.suggestion_input = TextInput(
             label="Entrez votre suggestion",
             style=discord.TextStyle.paragraph,
-            placeholder="Écrivez ici...",
+            placeholder="Exemple: Ajout d'une nouvelle fonctionnalité...",
             required=True,
             max_length=1000
         )
@@ -7105,14 +7104,14 @@ class SuggestionModal(Modal):
                 ephemeral=True
             )
 
-        # Création de l'embed avec un design plus esthétique
+        # Création de l'embed avec un design amélioré
         embed = discord.Embed(
             title="💡 Nouvelle Suggestion",
             description=suggestion_text,
-            color=discord.Color.green()  # Choix d'une couleur agréable
+            color=discord.Color.blue()  # Couleur plus moderne
         )
         embed.set_footer(text=f"Suggéré par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
-        embed.set_thumbnail(url="https://example.com/suggestion_icon.png")  # Une icône personnalisée pour le modal
+        embed.set_thumbnail(url="https://example.com/suggestion_icon.png")  # Icône personnalisée
 
         # Envoi de la suggestion avec mention du rôle
         suggestion_message = await channel.send(
@@ -7120,7 +7119,7 @@ class SuggestionModal(Modal):
             embed=embed
         )
 
-        # Ajouter des boutons pour interagir avec la suggestion
+        # Ajouter des boutons interactifs avec un design dynamique
         button_approve = Button(label="✅ Approuver", style=discord.ButtonStyle.green)
         button_decline = Button(label="❌ Refuser", style=discord.ButtonStyle.red)
         button_comment = Button(label="💬 Commenter", style=discord.ButtonStyle.blurple)
@@ -7132,26 +7131,38 @@ class SuggestionModal(Modal):
             components=[[button_approve, button_decline, button_comment]]
         )
 
-        # Confirmation de la soumission de la suggestion
+        # Confirmation à l'utilisateur
         await interaction.response.send_message(
-            "✅ Votre suggestion a été envoyée avec succès ! Merci de contribuer !",
+            "✅ Votre suggestion a été envoyée avec succès ! Merci pour votre contribution.",
             ephemeral=True
         )
 
-# Gestion de la réaction des boutons
+# Gestion des interactions sur les boutons
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
     if interaction.type == discord.InteractionType.component:
         if interaction.component.label == "✅ Approuver":
-            await interaction.response.send_message("👍 La suggestion a été approuvée !", ephemeral=True)
+            await interaction.response.send_message(
+                "👍 La suggestion a été approuvée ! Merci pour votre soutien.",
+                ephemeral=True
+            )
+            # Action supplémentaire si besoin (ex. mettre à jour la suggestion comme approuvée dans la base)
         elif interaction.component.label == "❌ Refuser":
-            await interaction.response.send_message("👎 La suggestion a été refusée.", ephemeral=True)
+            await interaction.response.send_message(
+                "👎 La suggestion a été refusée. Si vous avez des remarques, n'hésitez pas à les partager.",
+                ephemeral=True
+            )
+            # Action supplémentaire si besoin (ex. marquer la suggestion comme rejetée)
         elif interaction.component.label == "💬 Commenter":
-            await interaction.response.send_message("💬 Vous pouvez maintenant commenter cette suggestion.", ephemeral=True)
+            await interaction.response.send_message(
+                "💬 Vous pouvez maintenant ajouter un commentaire sur cette suggestion. Faites-nous part de vos idées.",
+                ephemeral=True
+            )
+            # Action supplémentaire si besoin (ex. ouvrir un fil de discussion pour la suggestion)
 
-@bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le Serveur")
+@bot.tree.command(name="suggestion", description="💡 Soumettre une suggestion pour le Serveur")
 async def suggest(interaction: discord.Interaction):
-    """Commande pour envoyer une suggestion"""
+    """Commande pour soumettre une suggestion"""
 
     # Récupérer l'ID du salon des suggestions et du rôle depuis la base de données
     guild_id = str(interaction.guild.id)
@@ -7178,11 +7189,6 @@ async def suggest(interaction: discord.Interaction):
     # Afficher le modal pour soumettre une suggestion
     await interaction.response.send_modal(SuggestionModal())
 
-    # Mentionner le rôle et envoyer la suggestion dans le salon
-    await channel.send(
-        content=f"{role.mention} 💡 Nouvelle suggestion !",  # Mentionne le rôle configuré
-        embed=embed_suggestion  # Utilise l'embed généré avec la suggestion
-    )
 
 @bot.tree.command(name="suggestions", description="📢 Affiche les dernières suggestions")
 async def suggestions_command(interaction: discord.Interaction):
