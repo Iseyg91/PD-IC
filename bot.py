@@ -7944,6 +7944,17 @@ class FeedbackModal(discord.ui.Modal, title="Envoyer un feedback"):
 async def feedback(interaction: discord.Interaction):
     await interaction.response.send_modal(FeedbackModal())
 
+PROTECTIONS = [
+    "anti_massban",
+    "anti_masskick",
+    "anti_bot",
+    "anti_createchannel",
+    "anti_deletechannel",
+    "anti_createrole",
+    "anti_deleterole",
+    "whitelist"
+]
+
 def is_admin_or_isey():
     async def predicate(ctx):
         return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
