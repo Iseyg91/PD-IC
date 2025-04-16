@@ -7105,13 +7105,25 @@ class SuggestionModal(Modal):
                 ephemeral=True
             )
 
-        # Envoie la suggestion avec mention du rôle
+        # Création de l'embed avec un design plus esthétique
+        embed = discord.Embed(
+            title="💡 Nouvelle Suggestion",
+            description=suggestion_text,
+            color=discord.Color.green()  # Choix d'une couleur agréable
+        )
+        embed.set_footer(text=f"Suggéré par {interaction.user.display_name}", icon_url=interaction.user.avatar.url)
+        embed.set_thumbnail(url="https://example.com/suggestion_icon.png")  # Une icône personnalisée pour le modal
+
+        # Envoi de la suggestion avec mention du rôle
         await channel.send(
-            content=f"{role.mention} 💡 Nouvelle suggestion !",
-            embed=discord.Embed(description=suggestion_text, color=discord.Color.blue())
+            content=f"{role.mention} 🚀 Nouvelle suggestion reçue !",
+            embed=embed
         )
 
-        await interaction.response.send_message("✅ Votre suggestion a été envoyée avec succès !", ephemeral=True)
+        await interaction.response.send_message(
+            "✅ Votre suggestion a été envoyée avec succès ! Merci de contribuer !",
+            ephemeral=True
+        )
 
 @bot.tree.command(name="suggestion", description="💡 Envoie une suggestion pour le Serveur")
 async def suggest(interaction: discord.Interaction):
