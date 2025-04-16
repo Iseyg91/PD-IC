@@ -1856,9 +1856,7 @@ class TicketView(ui.View):
 
     @ui.button(label="Passé Commande", style=ButtonStyle.success, custom_id="open_ticket")
     async def open_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.author_id:
-            return await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser ce bouton.", ephemeral=True)
-
+    
         guild = interaction.guild
         category = guild.get_channel(1362015652700754052)  # ← Catégorie spécifique
 
@@ -7143,6 +7141,21 @@ async def suggestion(interaction: discord.Interaction):
         )
 
     await interaction.response.send_modal(SuggestionModal())
+
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.component:
+        custom_id = interaction.data.get("custom_id")
+
+        if custom_id == "suggestion_approve":
+            await interaction.response.send_message("✅ Suggestion approuvée !", ephemeral=True)
+
+        elif custom_id == "suggestion_decline":
+            await interaction.response.send_message("❌ Suggestion refusée.", ephemeral=True)
+
+        elif custom_id == "suggestion_comment":
+            await interaction.response.send_message("💬 Merci de commenter directement sous la suggestion !", ephemeral=True)
+
 
 @bot.tree.command(name="set_suggestion", description="🛠️ Définir le salon et rôle des suggestions")
 @app_commands.describe(channel="Salon où les suggestions seront envoyées", role="Rôle à mentionner pour chaque suggestion")
