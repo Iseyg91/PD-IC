@@ -7218,7 +7218,7 @@ class PollModal(discord.ui.Modal):
         super().__init__(title="📊 Nouveau Sondage")
 
         self.add_item(discord.ui.TextInput(
-            label="❓ Question du sondage",
+            label="❓ Question",
             style=discord.TextStyle.long,
             placeholder="Tapez la question du sondage ici...",
             required=True,
@@ -7226,7 +7226,7 @@ class PollModal(discord.ui.Modal):
         ))
 
         self.add_item(discord.ui.TextInput(
-            label="🗳️ Options du sondage (séparées par des virgules)",
+            label="🗳️ Options (séparées par des virgules)",
             style=discord.TextStyle.short,
             placeholder="Option 1, Option 2, Option 3...",
             required=True
