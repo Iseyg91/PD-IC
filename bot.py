@@ -7780,16 +7780,42 @@ async def snipe(ctx, index: int = 1):
         await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
 
 
-# --- Formulaire de présentation ---
-class PresentationForm(discord.ui.Modal, title="📝 Faisons connaissance !"):
+import discord
+from discord.ui import Modal, TextInput
+
+# --- Formulaire de présentation étape 1 ---
+class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
     pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
     age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
     passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        # On stocke les informations de cette étape dans une variable de session ou base de données.
+        interaction.client.presentation_data = {
+            'pseudo': self.pseudo.value,
+            'age': self.age.value,
+            'passion': self.passion.value,
+        }
+        await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
+
+# --- Formulaire de présentation étape 2 ---
+class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
     bio = TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True, max_length=300)
     objectifs = TextInput(label="Pourquoi as-tu rejoint ce serveur ?", placeholder="Ex: Trouver une équipe, apprendre à coder...", required=True, max_length=150)
     reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
+        # Récupérer les données de la première étape
+        step1_data = getattr(interaction.client, 'presentation_data', {})
+        
+        # Ajouter les informations de cette étape
+        step1_data.update({
+            'bio': self.bio.value,
+            'objectifs': self.objectifs.value,
+            'reseaux': self.reseaux.value,
+        })
+
+        # On envoie la présentation dans le salon
         guild_id = interaction.guild.id
         guild_settings = load_guild_settings(guild_id)
         presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
@@ -7804,34 +7830,22 @@ class PresentationForm(discord.ui.Modal, title="📝 Faisons connaissance !"):
                     color=discord.Color.blurple()
                 )
                 embed.set_thumbnail(url=interaction.user.display_avatar.url)
-                embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=True)
-                embed.add_field(name="🎂 Âge", value=self.age.value, inline=True)
-                embed.add_field(name="🎨 Passion", value=self.passion.value, inline=False)
-                embed.add_field(name="🎯 Objectif", value=self.objectifs.value, inline=False)
-                if self.reseaux.value:
-                    embed.add_field(name="🌐 Réseaux sociaux", value=self.reseaux.value, inline=False)
-                embed.add_field(name="📝 Bio", value=self.bio.value, inline=False)
+                embed.add_field(name="👤 Pseudo", value=step1_data['pseudo'], inline=True)
+                embed.add_field(name="🎂 Âge", value=step1_data['age'], inline=True)
+                embed.add_field(name="🎨 Passion", value=step1_data['passion'], inline=False)
+                embed.add_field(name="🎯 Objectif", value=step1_data['objectifs'], inline=False)
+                if step1_data['reseaux']:
+                    embed.add_field(name="🌐 Réseaux sociaux", value=step1_data['reseaux'], inline=False)
+                embed.add_field(name="📝 Bio", value=step1_data['bio'], inline=False)
                 embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
                 await presentation_channel.send(embed=embed)
 
-                if interaction.response.is_done():
-                    await interaction.followup.send("Ta présentation a été envoyée ! 🎉", ephemeral=True)
-                else:
-                    await interaction.response.send_message("Ta présentation a été envoyée ! 🎉", ephemeral=True)
+                await interaction.response.send_message("Ta présentation a été envoyée ! 🎉", ephemeral=True)
             else:
-                msg = "Le salon de présentation n'existe plus ou est invalide."
-                if interaction.response.is_done():
-                    await interaction.followup.send(msg, ephemeral=True)
-                else:
-                    await interaction.response.send_message(msg, ephemeral=True)
+                await interaction.response.send_message("Le salon de présentation n'existe plus ou est invalide.", ephemeral=True)
         else:
-            msg = "Le salon de présentation n'a pas été configuré pour ce serveur."
-            if interaction.response.is_done():
-                await interaction.followup.send(msg, ephemeral=True)
-            else:
-                await interaction.response.send_message(msg, ephemeral=True)
-
+            await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.", ephemeral=True)
 
 # --- Commande Slash ---
 @bot.tree.command(name="presentation", description="Remplis un formulaire pour te présenter à la communauté !")
@@ -7841,12 +7855,13 @@ async def presentation(interaction: discord.Interaction):
     presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
 
     if presentation_channel_id:
-        await interaction.response.send_modal(PresentationForm())
+        await interaction.response.send_modal(PresentationFormStep1())  # Envoie le premier modal
     else:
         await interaction.response.send_message(
             "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
             ephemeral=True
         )
+
 
 # Commande pour définir le salon de présentation
 @bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
