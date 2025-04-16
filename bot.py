@@ -8047,18 +8047,38 @@ class ProtectionMenu(Select):
         guild = interaction.guild
         if guild and guild.owner:
             try:
-                msg = (
-                    f"📢 **Mise à jour d'une protection sur votre serveur !**\n\n"
-                    f"🔐 **Protection :** {PROTECTION_DETAILS[prot][0]}\n"
-                    f"⚙️ **Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}\n"
-                    f"👤 **Modifiée par :** {interaction.user.mention} (`{interaction.user}`)\n"
-                    f"🏠 **Serveur :** {guild.name}\n"
-                    f"🕓 **Date :** <t:{int(datetime.utcnow().timestamp())}:f>\n\n"
-                    f"ℹ️ Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`."
-                )
-                await guild.owner.send(msg)
-            except discord.Forbidden:
-                print("Impossible d’envoyer un DM à l’owner.")
+        embed = discord.Embed(
+            title="🔐 Mise à jour d'une protection sur votre serveur",
+            description=f"**Protection :** {PROTECTION_DETAILS[prot][0]}\n"
+                        f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
+            color=discord.Color.green() if new_value else discord.Color.red()
+        )
+
+        embed.add_field(
+            name="👤 Modifiée par :",
+            value=f"{interaction.user.mention} (`{interaction.user}`)",
+            inline=False
+        )
+        embed.add_field(
+            name="🏠 Serveur :",
+            value=guild.name,
+            inline=False
+        )
+        embed.add_field(
+            name="🕓 Date de modification :",
+            value=f"<t:{int(datetime.utcnow().timestamp())}:f>",  # Formatage de date automatique dans Discord
+            inline=False
+        )
+        embed.add_field(
+            name="ℹ️ Infos supplémentaires :",
+            value="Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`.",
+            inline=False
+        )
+
+        # Envoi du message à l'owner
+        await guild.owner.send(embed=embed)
+    except discord.Forbidden:
+        print("Impossible d’envoyer un DM à l’owner.")
 
         # Refresh embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
