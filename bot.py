@@ -638,37 +638,50 @@ async def send_alert_to_admin(message, detected_word):
         
         if not channel:
             # Si le salon n'existe pas dans ce serveur, on va chercher dans un autre serveur
-            guild = bot.get_guild(1359963854200639498)  # Remplace SERVER_ID par l'ID du serveur où tu veux envoyer l'alerte
-            channel = guild.get_channel(1361329246236053586)
-        
+            guild = bot.get_guild(1359963854200639498)
+            if guild:
+                channel = guild.get_channel(1361329246236053586)
+
         if channel:
             # Mentionner le rôle avant l'embed
-            role_mention = "<@&1361306900981092548>"  # Mentionne le rôle
-
-            # Envoyer un message avant l'embed
+            role_mention = "<@&1361306900981092548>"
             await channel.send(f"{role_mention} 🚨 Un mot sensible a été détecté ! Veuillez vérifier immédiatement.")
 
-            # Créer l'embed
+            # Création de l'embed
             embed = discord.Embed(
                 title="🚨 Alerte : Mot sensible détecté !",
                 description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
                 color=discord.Color.red(),
                 timestamp=datetime.utcnow()
             )
-            embed.add_field(name="📍 Salon", value=f"{message.channel.mention}", inline=True)
-            embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
-            embed.add_field(name="💬 Message", value=f"```{message.content}```", inline=False)
-            embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
-            if message.guild:
-                embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
-            embed.set_footer(text="Système de détection automatique", icon_url=bot.user.avatar.url)
 
-            # Envoyer l'embed après le message
+            embed.add_field(name="📍 Salon", value=message.channel.mention, inline=True)
+            embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
+            embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
+
+            msg_content = message.content
+            if len(msg_content) > 900:
+                msg_content = msg_content[:900] + "..."
+
+            embed.add_field(name="💬 Message", value=f"```{msg_content}```", inline=False)
+
+            # S'assurer que jump_url est disponible
+            if hasattr(message, "jump_url"):
+                embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+
+            avatar_url = bot.user.avatar.url if bot.user.avatar else None
+            if avatar_url:
+                embed.set_footer(text="Système de détection automatique", icon_url=avatar_url)
+            else:
+                embed.set_footer(text="Système de détection automatique")
+
             await channel.send(embed=embed)
         else:
-            print("⚠️ Le salon spécifié n'a pas pu être trouvé dans le serveur.")
+            print("⚠️ Le salon n’a pas pu être trouvé dans le serveur cible.")
+
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+
 #-------------------------------------------------------------------------- Bot Event:
 
 @bot.event
