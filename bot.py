@@ -489,139 +489,146 @@ cooldowns = {}
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
-
-    user_id = str(message.author.id)
-
-    # 🚫 Blacklist : ignore tous les messages sauf si mot sensible
-    blacklisted = collection25.find_one({"user_id": user_id})
-    if blacklisted:
-        for word in sensitive_words:
-            if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-                print(f"🚨 Mot sensible détecté (blacklisté) dans le message de {message.author}: {word}")
-                asyncio.create_task(send_alert_to_admin(message, word))
-                break
-        return  # Stop toute action du bot pour un utilisateur blacklisté
-
-    # 💬 1. Vérifie les mots sensibles
-    for word in sensitive_words:
-        if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-            print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
-            asyncio.create_task(send_alert_to_admin(message, word))
-            break
-
-    # 📣 2. Répond si le bot est mentionné
-    if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
-        embed = discord.Embed(
-            title="👋 Besoin d’aide ?",
-            description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
-                         "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
-                         "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
-                         "✨ **Profite bien du serveur et amuse-toi !**"),
-            color=discord.Color.blue()
-        )
-        embed.set_thumbnail(url=bot.user.avatar.url)
-        embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=bot.user.avatar.url)
-
-        view = View()
-        button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
-
-        async def button_callback(interaction: discord.Interaction):
-            ctx = await bot.get_context(interaction.message)
-            await ctx.invoke(bot.get_command("help"))
-            await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
-
-        button.callback = button_callback
-        view.add_item(button)
-
-        await message.channel.send(embed=embed, view=view)
-        return
-
-    # 📦 3. Gestion des partenariats dans un salon spécifique
-    if message.channel.id == partnership_channel_id:
-        user_id = str(message.author.id)
-        rank, partnerships = get_user_partner_info(user_id)
-
-        await message.channel.send("<@&1355157749994098860>")
-
-        embed = discord.Embed(
-            title="Merci du partenariat 🤝",
-            description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
-            color=discord.Color.green()
-        )
-
-        embed.set_footer(
-            text="Partenariat réalisé",
-            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2024-09-28_211041.png?raw=true"
-        )
-        embed.set_image(
-            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2025-02-15_231405.png?raw=true"
-        )
-
-        await message.channel.send(embed=embed)
-
-    # ⚙️ 4. Configuration du serveur pour sécurité
-    guild_data = collection.find_one({"guild_id": str(message.guild.id)})
-    if not guild_data:
-        await bot.process_commands(message)
-        return
-
-    # 🔗 5. Anti-lien
-    if guild_data.get("anti_link", False):
-        if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
-            await message.delete()
-            await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
-            return
-
-    # 💣 6. Anti-spam
-    if guild_data.get("anti_spam_limit", False):
-        now = time.time()
-        user_id = message.author.id
-
-        if user_id not in user_messages:
-            user_messages[user_id] = []
-        user_messages[user_id].append(now)
-
-        recent_messages = [t for t in user_messages[user_id] if t > now - 5]
-        user_messages[user_id] = recent_messages
-
-        if len(recent_messages) > 10:
-            await message.guild.ban(message.author, reason="Spam excessif")
-            return
-
-        spam_messages = [t for t in user_messages[user_id] if t > now - 60]
-        if len(spam_messages) > guild_data["anti_spam_limit"]:
-            await message.delete()
-            await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
-            return
-
-    # 📣 7. Anti-everyone
-    if guild_data.get("anti_everyone", False):
-        if "@everyone" in message.content or "@here" in message.content:
-            await message.delete()
-            await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
-            return
-
-    # 🎉 8. Ajouter des Coins pour chaque message
-    if message.guild.id == 1359963854200639498:
+    try:
+        # Ignore les messages de bots
         if message.author.bot:
             return
-        coins_to_add = random.randint(3, 5)
-        add_coins(message.guild.id, str(message.author.id), coins_to_add)
 
-    # 🔄 9. Cooldown et mise à jour des XP
-    user_id = str(message.author.id)
-    guild_id = str(message.guild.id)
-    now = datetime.utcnow()
+        # Ignore les messages privés (DM)
+        if message.guild is None:
+            return
 
-    # Cooldown de 60s
-    if user_id not in cooldowns or now > cooldowns[user_id]:
-        update_user_xp(guild_id, user_id, xp_rate["message"])
-        cooldowns[user_id] = now + timedelta(seconds=60)
+        user_id = str(message.author.id)
 
-    # ✅ 10. Exécution normale des commandes
-    await bot.process_commands(message)
+        # 🚫 0. Blacklist : ignore tous les messages sauf si mot sensible
+        blacklisted = collection25.find_one({"user_id": user_id})
+        if blacklisted:
+            for word in sensitive_words:
+                if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+                    print(f"🚨 Mot sensible détecté (blacklisté) dans le message de {message.author}: {word}")
+                    asyncio.create_task(send_alert_to_admin(message, word))
+                    break
+            return  # Empêche toute autre action pour les blacklistés
+
+        # 💬 1. Vérifie les mots sensibles
+        for word in sensitive_words:
+            if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+                print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
+                asyncio.create_task(send_alert_to_admin(message, word))
+                break
+
+        # 📣 2. Répond si le bot est mentionné
+        if bot.user.mentioned_in(message) and message.content.strip().startswith(f"<@{bot.user.id}>"):
+            avatar_url = bot.user.avatar.url if bot.user.avatar else None
+
+            embed = discord.Embed(
+                title="👋 Besoin d’aide ?",
+                description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
+                             "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
+                             "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
+                             "✨ **Profite bien du serveur et amuse-toi !**"),
+                color=discord.Color.blue()
+            )
+            embed.set_thumbnail(url=avatar_url)
+            embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=avatar_url)
+
+            view = View()
+            button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
+
+            async def button_callback(interaction: discord.Interaction):
+                ctx = await bot.get_context(interaction.message)
+                await ctx.invoke(bot.get_command("help"))
+                await interaction.response.send_message("Voici la liste des commandes !", ephemeral=True)
+
+            button.callback = button_callback
+            view.add_item(button)
+
+            await message.channel.send(embed=embed, view=view)
+            return
+
+        # 📦 3. Gestion des partenariats dans un salon spécifique
+        if message.channel.id == partnership_channel_id:
+            user_id = str(message.author.id)
+            rank, partnerships = get_user_partner_info(user_id)
+
+            await message.channel.send("<@&1355157749994098860>")
+
+            embed = discord.Embed(
+                title="Merci du partenariat 🤝",
+                description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
+                color=discord.Color.green()
+            )
+            embed.set_footer(
+                text="Partenariat réalisé",
+                icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2024-09-28_211041.png?raw=true"
+            )
+            embed.set_image(
+                url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2025-02-15_231405.png?raw=true"
+            )
+
+            await message.channel.send(embed=embed)
+
+        # ⚙️ 4. Configuration du serveur pour sécurité
+        guild_data = collection.find_one({"guild_id": str(message.guild.id)})
+        if not guild_data:
+            await bot.process_commands(message)
+            return
+
+        # 🔗 5. Anti-lien
+        if guild_data.get("anti_link", False):
+            if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
+                await message.delete()
+                await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
+                return
+
+        # 💣 6. Anti-spam
+        if guild_data.get("anti_spam_limit", False):
+            now = time.time()
+            user_id = message.author.id
+
+            if user_id not in user_messages:
+                user_messages[user_id] = []
+            user_messages[user_id].append(now)
+
+            recent_messages = [t for t in user_messages[user_id] if t > now - 5]
+            user_messages[user_id] = recent_messages
+
+            if len(recent_messages) > 10:
+                await message.guild.ban(message.author, reason="Spam excessif")
+                return
+
+            spam_messages = [t for t in user_messages[user_id] if t > now - 60]
+            if len(spam_messages) > guild_data["anti_spam_limit"]:
+                await message.delete()
+                await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
+                return
+
+        # 📣 7. Anti-everyone
+        if guild_data.get("anti_everyone", False):
+            if "@everyone" in message.content or "@here" in message.content:
+                await message.delete()
+                await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
+                return
+
+        # 🎉 8. Ajouter des Coins pour chaque message
+        if message.guild.id == 1359963854200639498:
+            coins_to_add = random.randint(3, 5)
+            add_coins(message.guild.id, str(message.author.id), coins_to_add)
+
+        # 🔄 9. Cooldown et mise à jour des XP
+        now = datetime.utcnow()
+        guild_id = str(message.guild.id)
+
+        if user_id not in cooldowns or now > cooldowns[user_id]:
+            update_user_xp(guild_id, user_id, xp_rate["message"])
+            cooldowns[user_id] = now + timedelta(seconds=60)
+
+        # ✅ 10. Exécution normale des commandes
+        await bot.process_commands(message)
+
+    except Exception:
+        print("❌ Erreur dans on_message :")
+        traceback.print_exc()
 
 # 🔔 Fonction d'envoi d'alerte dans le salon spécifique
 async def send_alert_to_admin(message, detected_word):
