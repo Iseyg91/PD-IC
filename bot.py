@@ -42,6 +42,12 @@ PROJECT_DELTA = 1359963854200639498
 STAFF_PROJECT = 1359963854422933876
 STAFF_DELTA = 1362339333658382488
 
+# --- ID Sanctions Serveur Delta ---
+WARN_LOG_CHANNEL = 1362435917104681230
+UNWARN_LOG_CHANNEL = 1362435929452707910
+BLACKLIST_LOG_CHANNEL = 1362435853997314269
+UNBLACKLIST_LOG_CHANNEL = 1362435888826814586
+
 # --- ID Gestion Delta ---
 SUPPORT_ROLE_ID = 1359963854422933876
 SALON_REPORT_ID = 1361362788672344290
@@ -1903,7 +1909,19 @@ async def delta_warn(ctx, member: discord.Member, *, reason: str):
     except:
         pass
 
-    await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
+    embed = discord.Embed(
+        title="📌 Avertissement appliqué",
+        description=f"{member.mention} a été averti.",
+        color=discord.Color.orange()
+    )
+    embed.add_field(name="👮 Modérateur", value=ctx.author.mention, inline=True)
+    embed.add_field(name="💬 Raison", value=reason, inline=False)
+    embed.timestamp = datetime.utcnow()
+    await ctx.reply(embed=embed)
+
+    log_channel = bot.get_channel(WARN_LOG_CHANNEL)
+    if log_channel:
+        await log_channel.send(embed=embed)
 
 # RETRAIT AVERTISSEMENT
 @bot.hybrid_command(name="delta-unwarn", description="Retirer un avertissement")
@@ -1917,7 +1935,20 @@ async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
             await member.send(f"✅ Ton **avertissement** sur **Project : Delta** a été retiré.\n**Raison :** `{reason}`")
         except:
             pass
-        await ctx.reply(f"Warn de {member.mention} supprimé pour : `{reason}`")
+
+        embed = discord.Embed(
+            title="✅ Avertissement retiré",
+            description=f"{member.mention} n'est plus averti.",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="👮 Modérateur", value=ctx.author.mention, inline=True)
+        embed.add_field(name="💬 Raison", value=reason, inline=False)
+        embed.timestamp = datetime.utcnow()
+        await ctx.reply(embed=embed)
+
+        log_channel = bot.get_channel(UNWARN_LOG_CHANNEL)
+        if log_channel:
+            await log_channel.send(embed=embed)
     else:
         await ctx.reply(f"{member.mention} n'a pas de warn.")
 
@@ -1934,7 +1965,7 @@ async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
         {"user_id": str(member.id)},
         {"$set": {
             "reason": reason,
-            "timestamp": datetime.datetime.utcnow()
+            "timestamp": datetime.utcnow()
         }},
         upsert=True
     )
@@ -1944,7 +1975,19 @@ async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
     except:
         pass
 
-    await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
+    embed = discord.Embed(
+        title="⛔ Utilisateur blacklist",
+        description=f"{member.mention} a été ajouté à la blacklist.",
+        color=discord.Color.red()
+    )
+    embed.add_field(name="👮 Modérateur", value=ctx.author.mention, inline=True)
+    embed.add_field(name="💬 Raison", value=reason, inline=False)
+    embed.timestamp = datetime.utcnow()
+    await ctx.reply(embed=embed)
+
+    log_channel = bot.get_channel(BLACKLIST_LOG_CHANNEL)
+    if log_channel:
+        await log_channel.send(embed=embed)
 
 # UNBLACKLIST
 @bot.hybrid_command(name="delta-unblacklist", description="Retirer un utilisateur de la blacklist")
@@ -1958,7 +2001,20 @@ async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
             await member.send(f"✅ Tu as été **retiré de la blacklist** du bot **Project : Delta**.\n**Raison :** `{reason}`")
         except:
             pass
-        await ctx.reply(f"{member.mention} a été retiré de la **blacklist** pour : `{reason}`")
+
+        embed = discord.Embed(
+            title="📤 Utilisateur retiré de la blacklist",
+            description=f"{member.mention} a été unblacklist.",
+            color=discord.Color.green()
+        )
+        embed.add_field(name="👮 Modérateur", value=ctx.author.mention, inline=True)
+        embed.add_field(name="💬 Raison", value=reason, inline=False)
+        embed.timestamp = datetime.utcnow()
+        await ctx.reply(embed=embed)
+
+        log_channel = bot.get_channel(UNBLACKLIST_LOG_CHANNEL)
+        if log_channel:
+            await log_channel.send(embed=embed)
     else:
         await ctx.reply(f"{member.mention} n'était pas blacklist.")
 
