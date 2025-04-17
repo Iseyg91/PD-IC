@@ -4026,7 +4026,7 @@ async def list_clients(interaction: discord.Interaction):
 def is_owner(ctx):
     return ctx.author.id == ISEY_ID
 
-@bot.command()
+@bot.hybrid_command()
 async def shutdown(ctx):
     if is_owner(ctx):
         embed = discord.Embed(
