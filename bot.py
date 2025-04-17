@@ -8620,7 +8620,7 @@ async def create_backup(interaction: discord.Interaction, name: str):
         "backup_name": name,
         "created_by": str(interaction.user.id),
         "data": data,
-        "timestamp": datetime.datetime.utcnow()
+        "timestamp": datetime.utcnow()
     })
 
     await interaction.response.send_message(f"✅ Sauvegarde `{name}` créée avec succès.", ephemeral=True)
