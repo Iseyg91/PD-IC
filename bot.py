@@ -1870,7 +1870,7 @@ def is_staff(ctx):
     member = guild.get_member(ctx.author.id)
     if not member:
         return False
-    return any(role.id == STAFF_DELTA_ROLE_ID for role in member.roles)
+    return any(role.id == STAFF_DELTA for role in member.roles)
 
 # Vérifie si la cible est un admin sur PROJECT_DELTA
 async def is_target_protected(user_id: int):
