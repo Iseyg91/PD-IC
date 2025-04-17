@@ -7770,12 +7770,19 @@ async def snipe(ctx, index: int = 1):
 
 # --- Formulaire de présentation étape 1 ---
 class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
-    pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
-    age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
-    passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
+    def __init__(self):
+        super().__init__()
+
+        self.pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
+        self.age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
+        self.passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
+
+        self.add_item(self.pseudo)
+        self.add_item(self.age)
+        self.add_item(self.passion)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # On stocke les informations de cette étape
+        # Stockage temporaire des données
         interaction.client.presentation_data = {
             'pseudo': self.pseudo.value,
             'age': self.age.value,
@@ -7783,30 +7790,55 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
         }
 
         try:
-            await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
-        except Exception as e:
-            print("Erreur lors de l'envoi du deuxième modal :")
-            traceback.print_exc()
+            await interaction.response.send_modal(PresentationFormStep2())
+        except discord.errors.HTTPException as e:
+            print(f"Erreur lors de l'envoi du deuxième modal : {e}")
+            if not interaction.response.is_done():
+                await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("❌ Une erreur est survenue lors de l'envoi de la suite du formulaire.", ephemeral=True)
+
 
 # --- Formulaire de présentation étape 2 ---
 class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
-    bio = TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True, max_length=300)
-    objectifs = TextInput(label="Pourquoi as-tu rejoint ce serveur ?", placeholder="Ex: Trouver une équipe, apprendre à coder...", required=True, max_length=150)
-    reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
+    def __init__(self):
+        super().__init__()
+
+        self.bio = TextInput(
+            label="Une courte bio",
+            placeholder="Parle un peu de toi...",
+            style=TextStyle.paragraph,
+            required=True,
+            max_length=300
+        )
+        self.objectifs = TextInput(
+            label="Pourquoi as-tu rejoint ce serveur ?",
+            placeholder="Ex: Trouver une équipe, apprendre à coder...",
+            required=True,
+            max_length=150
+        )
+        self.reseaux = TextInput(
+            label="Tes réseaux sociaux préférés",
+            placeholder="Ex: Twitter, TikTok, Discord...",
+            required=False,
+            max_length=100
+        )
+
+        self.add_item(self.bio)
+        self.add_item(self.objectifs)
+        self.add_item(self.reseaux)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Récupérer les données de la première étape
+        # Récupération des données de la première étape
         step1_data = getattr(interaction.client, 'presentation_data', {})
-        
-        # Ajouter les infos de cette étape
+
+        # Fusion avec les données de cette étape
         step1_data.update({
             'bio': self.bio.value,
             'objectifs': self.objectifs.value,
             'reseaux': self.reseaux.value,
         })
 
-        # Récupérer la config du serveur
+        # Chargement de la config serveur
         guild_id = interaction.guild.id
         guild_settings = load_guild_settings(guild_id)
         presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
@@ -7831,11 +7863,12 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
                 embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
                 await presentation_channel.send(embed=embed)
-                await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès !", ephemeral=True)
+                await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès ! 🎉", ephemeral=True)
             else:
-                await interaction.response.send_message("❌ Le salon de présentation est introuvable.", ephemeral=True)
+                await interaction.response.send_message("❌ Le salon de présentation n'existe plus ou est invalide.", ephemeral=True)
         else:
-            await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré.", ephemeral=True)
+            await interaction.response.send_message("❌ Le salon de présentation n'est pas configuré.", ephemeral=True)
+
 
 # --- Commande Slash ---
 @bot.tree.command(name="presentation", description="Remplis un formulaire pour te présenter à la communauté !")
@@ -7847,16 +7880,14 @@ async def presentation(interaction: discord.Interaction):
     if presentation_channel_id:
         try:
             await interaction.response.send_modal(PresentationFormStep1())
-        except Exception as e:
-            print("Erreur lors de l'envoi du premier modal :")
-            traceback.print_exc()
-            await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+        except discord.errors.HTTPException as e:
+            print(f"Erreur lors de l'envoi du premier modal : {e}")
+            await interaction.response.send_message("❌ Une erreur est survenue lors de l'envoi du formulaire.", ephemeral=True)
     else:
         await interaction.response.send_message(
-            "⚠️ Le salon de présentation n’a pas encore été configuré. Veuillez contacter un administrateur.",
+            "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
             ephemeral=True
         )
-
 # Commande pour définir le salon de présentation
 @bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
 @app_commands.checks.has_permissions(administrator=True)
