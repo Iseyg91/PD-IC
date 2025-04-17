@@ -33,22 +33,36 @@ start_time = time.time()
 client = discord.Client(intents=intents)
 
 #Configuration du Bot:
+# --- ID Owner Bot ---
+ISEY_ID = 792755123587645461
+
+# --- ID Staff Serveur Delta ---
 PROJECT_DELTA = 1359963854200639498
 STAFF_PROJECT = 1359963854422933876
-LOG_CHANNEL_ID = 1360864790540582942
-LOG_CHANNEL_RETIRE_ID = 1360864806957092934
-ISEY_ID = 792755123587645461
-partnership_channel_id = 1355158081855688745
-ROLE_ID = 1355157749994098860
-ETHERYA_SERVER_ID = 1034007767050104892
-WELCOME_CHANNEL_ID = 1355198748296351854
-AUTORIZED_SERVER_ID = 1034007767050104892
-BOUNTY_CHANNEL_ID = 1355298449829920950
-ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
+STAFF_DELTA = 1362339333658382488
+
+# --- ID Gestion Delta ---
+SUPPORT_ROLE_ID = 1359963854422933876
 SALON_REPORT_ID = 1361362788672344290
 ROLE_REPORT_ID = 1361306900981092548
-SUPPORT_ROLE_ID = 1359963854422933876
 TRANSCRIPT_CHANNEL_ID = 1361669998665535499
+
+# --- ID Gestion Clients Delta ---
+LOG_CHANNEL_RETIRE_ID = 1360864806957092934
+LOG_CHANNEL_ID = 1360864790540582942
+
+# --- ID Delta2 ---
+ECO_ROLES_VIP = [1359963854402228315, 1361307897287675989]
+
+# --- ID Etherya ---
+BOUNTY_CHANNEL_ID = 1355298449829920950
+ETHERYA_SERVER_ID = 1034007767050104892
+AUTORIZED_SERVER_ID = 1034007767050104892
+WELCOME_CHANNEL_ID = 1355198748296351854
+
+# --- ID Etherya Partenariats ---
+partnership_channel_id = 1355158081855688745
+ROLE_ID = 1355157749994098860
 
 log_channels = {
     "sanctions": 1361669286833426473,
@@ -108,6 +122,8 @@ collection20 = db['suggestions'] #Stock les Salons Suggestion
 collection21 = db['presentation'] #Stock les Salon Presentation
 collection22 = db['absence'] #Stock les Salon Absence
 collection23 = db['back_up'] #Stock les Back-up
+collection24 = db['delta_warn'] #Stock les Warn Delta
+collection25 = db['delta_bl'] #Stock les Bl Delta
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -219,6 +235,8 @@ def load_guild_settings(guild_id):
     presentation_data = collection21.find_one({"guild_id": guild_id}) or {}
     absence_data = collection22.find_one({"guild_id": guild_id}) or {}
     back_up_data = collection23.find_one({"guild_id": guild_id}) or {}
+    delta_warn_data = collection24.find_one({"guild_id": guild_id}) or {}
+    delta_bl_data = collection25.find_one({"guild_id": guild_id}) or {}
 
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -246,7 +264,9 @@ def load_guild_settings(guild_id):
         "suggestions": suggestions_data,
         "presentation": presentation_data,
         "absence": absence_data,
-        "back_up": back_up_data
+        "back_up": back_up_data,
+        "delta_warn": delta_warn_data,
+        "delta_bl": delta_bl_data
 
     }
 
@@ -471,6 +491,18 @@ cooldowns = {}
 async def on_message(message):
     if message.author.bot:
         return
+
+    user_id = str(message.author.id)
+
+    # 🚫 Blacklist : ignore tous les messages sauf si mot sensible
+    blacklisted = collection25.find_one({"user_id": user_id})
+    if blacklisted:
+        for word in sensitive_words:
+            if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
+                print(f"🚨 Mot sensible détecté (blacklisté) dans le message de {message.author}: {word}")
+                asyncio.create_task(send_alert_to_admin(message, word))
+                break
+        return  # Stop toute action du bot pour un utilisateur blacklisté
 
     # 💬 1. Vérifie les mots sensibles
     for word in sensitive_words:
@@ -1805,7 +1837,179 @@ async def is_admin(interaction: discord.Interaction):
     # Utilisation de interaction.user pour accéder aux permissions
     return interaction.user.guild_permissions.administrator
 
-#---------------------------------------------------------------------------- Logs:
+#---------------------------------------------------------------------------- Staff Project : Delta:
+
+# Fonction pour vérifier si l'utilisateur est STAFF
+def is_staff(ctx):
+    return STAFF_DELTA in [role.id for role in ctx.author.roles]
+
+@bot.hybrid_command(name="delta-warn")
+async def delta_warn(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+    
+    collection24.insert_one({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id),
+        "moderator_id": str(ctx.author.id),
+        "reason": reason,
+        "timestamp": datetime.datetime.utcnow()
+    })
+    await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
+
+@bot.hybrid_command(name="delta-unwarn")
+async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    warn = collection24.find_one_and_delete({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+    if warn:
+        await ctx.reply(f"Warn de {member.mention} supprimé pour : `{reason}`")
+    else:
+        await ctx.reply(f"{member.mention} n'a pas de warn.")
+
+@bot.hybrid_command(name="delta-blacklist")
+async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    collection25.update_one(
+        {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
+        {"$set": {
+            "reason": reason,
+            "timestamp": datetime.datetime.utcnow()
+        }},
+        upsert=True
+    )
+    await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
+
+@bot.hybrid_command(name="delta-unblacklist")
+async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    result = collection25.delete_one({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+    if result.deleted_count:
+        await ctx.reply(f"{member.mention} a été retiré de la **blacklist** pour : `{reason}`")
+    else:
+        await ctx.reply(f"{member.mention} n'était pas blacklist.")
+
+@bot.hybrid_command(name="delta-list-warn")
+async def delta_list_warn(ctx, member: discord.Member):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+    
+    warns = collection24.find({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+
+    warn_list = list(warns)
+    if not warn_list:
+        return await ctx.reply(f"Aucun warn trouvé pour {member.mention}.")
+
+    embed = discord.Embed(title=f"Warns de {member.display_name}", color=discord.Color.orange())
+    for i, warn in enumerate(warn_list, start=1):
+        mod = await bot.fetch_user(int(warn['moderator_id']))
+        embed.add_field(
+            name=f"⚠️ Warn #{i}",
+            value=f"**Par:** {mod.mention}\n**Raison:** `{warn['reason']}`\n**Date:** <t:{int(warn['timestamp'].timestamp())}:R>",
+            inline=False
+        )
+
+    await ctx.reply(embed=embed)
+
+# Fonction pour vérifier si l'utilisateur est STAFF
+def is_staff(ctx):
+    return STAFF_DELTA in [role.id for role in ctx.author.roles]
+
+@bot.hybrid_command(name="delta-warn")
+async def delta_warn(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+    
+    collection24.insert_one({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id),
+        "moderator_id": str(ctx.author.id),
+        "reason": reason,
+        "timestamp": datetime.datetime.utcnow()
+    })
+    await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
+
+@bot.hybrid_command(name="delta-unwarn")
+async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    warn = collection24.find_one_and_delete({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+    if warn:
+        await ctx.reply(f"Warn de {member.mention} supprimé pour : `{reason}`")
+    else:
+        await ctx.reply(f"{member.mention} n'a pas de warn.")
+
+@bot.hybrid_command(name="delta-blacklist")
+async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    collection25.update_one(
+        {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
+        {"$set": {
+            "reason": reason,
+            "timestamp": datetime.datetime.utcnow()
+        }},
+        upsert=True
+    )
+    await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
+
+@bot.hybrid_command(name="delta-unblacklist")
+async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    result = collection25.delete_one({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+    if result.deleted_count:
+        await ctx.reply(f"{member.mention} a été retiré de la **blacklist** pour : `{reason}`")
+    else:
+        await ctx.reply(f"{member.mention} n'était pas blacklist.")
+
+@bot.hybrid_command(name="delta-list-warn")
+async def delta_list_warn(ctx, member: discord.Member):
+    if not is_staff(ctx):
+        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+    
+    warns = collection24.find({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id)
+    })
+
+    warn_list = list(warns)
+    if not warn_list:
+        return await ctx.reply(f"Aucun warn trouvé pour {member.mention}.")
+
+    embed = discord.Embed(title=f"Warns de {member.display_name}", color=discord.Color.orange())
+    for i, warn in enumerate(warn_list, start=1):
+        mod = await bot.fetch_user(int(warn['moderator_id']))
+        embed.add_field(
+            name=f"⚠️ Warn #{i}",
+            value=f"**Par:** {mod.mention}\n**Raison:** `{warn['reason']}`\n**Date:** <t:{int(warn['timestamp'].timestamp())}:R>",
+            inline=False
+        )
+
+    await ctx.reply(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
