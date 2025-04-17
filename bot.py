@@ -6472,7 +6472,10 @@ async def send_dm(member, action, reason, duration=None):
     except discord.Forbidden:
         print(f"Impossible d'envoyer un DM à {member.display_name}.")
 
-@bot.command()
+@bot.hybrid_command(
+    name="ban",
+    description="Bannit un membre du serveur avec une raison optionnelle."
+)
 async def ban(ctx, member: discord.Member = None, *, reason="Aucune raison spécifiée"):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre ou fournir un ID pour bannir.")
@@ -6504,7 +6507,10 @@ async def ban(ctx, member: discord.Member = None, *, reason="Aucune raison spéc
         # Enregistrement de la sanction
         add_sanction(ctx.guild.id, member.id, "Ban", reason)
 
-@bot.command()
+@bot.hybrid_command(
+    name="unban",
+    description="Débannit un utilisateur du serveur à partir de son ID."
+)
 async def unban(ctx, user_id: int = None):
     if user_id is None:
         return await ctx.send("❌ Il manque un argument : vous devez spécifier l'ID d'un utilisateur à débannir.")
@@ -6523,7 +6529,10 @@ async def unban(ctx, user_id: int = None):
             return await ctx.send("❌ Je n'ai pas les permissions nécessaires pour débannir cet utilisateur.")
 
 
-@bot.command()
+@bot.hybrid_command(
+    name="kick",
+    description="Expulse un membre du serveur avec une raison optionnelle."
+)
 async def kick(ctx, member: discord.Member = None, *, reason="Aucune raison spécifiée"):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à expulser.")
@@ -6539,7 +6548,10 @@ async def kick(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         await send_log(ctx, member, "Kick", reason)
         await send_dm(member, "Kick", reason)
 
-@bot.command()
+@bot.hybrid_command(
+    name="mute",
+    description="Mute temporairement un membre (timeout) avec une durée spécifiée."
+)
 async def mute(ctx, member: discord.Member = None, duration_with_unit: str = None, *, reason="Aucune raison spécifiée"):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à mute.")
@@ -6601,7 +6613,10 @@ async def mute(ctx, member: discord.Member = None, duration_with_unit: str = Non
     except Exception as e:
         await ctx.send(f"❌ Une erreur inattendue s'est produite : {str(e)}")
 
-@bot.command()
+@bot.hybrid_command(
+    name="unmute",
+    description="Retire le mute d'un membre (timeout)."
+)
 async def unmute(ctx, member: discord.Member = None):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à démuter.")
@@ -6649,7 +6664,10 @@ async def send_dm(member, action, reason):
     except discord.Forbidden:
         print(f"Impossible d'envoyer un message privé à {member.name}")
 
-@bot.command()
+@bot.hybrid_command(
+    name="warn",
+    description="Avertit un membre avec une raison optionnelle."
+)
 async def warn(ctx, member: discord.Member = None, *, reason="Aucune raison spécifiée"):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à avertir.")
@@ -6688,7 +6706,10 @@ async def warn(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         print(f"Erreur lors de l'exécution de la commande warn : {e}")
         await ctx.send(f"❌ Une erreur s'est produite lors de l'exécution de la commande. Détails : {str(e)}")
 
-@bot.command()
+@bot.hybrid_command(
+    name="warnlist",
+    description="Affiche la liste des avertissements d’un membre."
+)
 async def warnlist(ctx, member: discord.Member = None):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre.")
