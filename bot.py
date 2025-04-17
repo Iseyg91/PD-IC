@@ -6785,13 +6785,16 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
 
-# Nouvelle fonction pour récupérer le ping role et le channel id dynamiquement depuis la base de données
 def get_guild_setup_data(guild_id):
-    setup_data = load_guild_settings(guild_id)  # Charger la configuration depuis la base de données
-    ping_role_id = setup_data.get('staff_role_id')  # Récupération du rôle staff
-    sanctions_channel_id = setup_data.get('sanctions_channel_id')  # Salon des sanctions
-    alerts_channel_id = setup_data.get('reports_channel_id')  # Salon des alertes
+    setup_data = collection.find_one({"guild_id": guild_id})  # Récupère la config du serveur dans la collection
+    if not setup_data:
+        return None, None, None  # Si les données n'existent pas, retourne None
+
+    ping_role_id = setup_data.get('staff_role_id')  # ID du rôle staff
+    sanctions_channel_id = setup_data.get('sanctions_channel_id')  # ID du salon des sanctions
+    alerts_channel_id = setup_data.get('reports_channel_id')  # ID du salon des alertes
     return ping_role_id, sanctions_channel_id, alerts_channel_id
+
 
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
