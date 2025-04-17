@@ -4502,10 +4502,11 @@ async def viewpremium(interaction: discord.Interaction):
 
 @bot.tree.command(name="devenirpremium")
 async def devenirpremium(interaction: discord.Interaction):
-    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
+    if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
+
     # Charger les données de ce serveur spécifique
     data = load_guild_settings(interaction.guild.id)
     setup_premium_data = data["setup_premium"]
@@ -4522,8 +4523,8 @@ async def devenirpremium(interaction: discord.Interaction):
             inline=False
         )
         embed.set_footer(text="Merci d'utiliser nos services premium.")
-        embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
-        await interaction.response.send_message(embed=embed)
+        embed.set_thumbnail(url=interaction.guild.icon.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     else:  # Si le serveur n'est pas encore premium
         embed = discord.Embed(
@@ -4544,8 +4545,8 @@ async def devenirpremium(interaction: discord.Interaction):
             inline=False
         )
         embed.set_footer(text="Rejoignez notre programme Premium et profitez des avantages !")
-        embed.set_thumbnail(url=interaction.guild.icon.url)  # Icône du serveur
-        await interaction.response.send_message(embed=embed)
+        embed.set_thumbnail(url=interaction.guild.icon.url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 #------------------------------------------------------------------------- Commande SETUP
 class SetupView(View):
@@ -6736,15 +6737,61 @@ async def warnlist(ctx, member: discord.Member = None):
 
     await ctx.send(embed=embed)
 
+@bot.hybrid_command(
+    name="unwarn",
+    description="Supprime un avertissement d’un membre à partir de son index dans la warnlist."
+)
+async def unwarn(ctx, member: discord.Member = None, index: int = None):
+    if member is None or index is None:
+        return await ctx.send("❌ Utilisation : `/unwarn <membre> <index>`.")
+
+    if not has_permission(ctx, "moderate_members"):
+        return await ctx.send("❌ Vous n'avez pas la permission de retirer des avertissements.")
+
+    # Récupère les avertissements du membre
+    warnings = list(collection7.find({
+        "guild_id": str(ctx.guild.id),
+        "user_id": str(member.id),
+        "action": "Warn"
+    }).sort("timestamp", 1))
+
+    if len(warnings) == 0:
+        return await ctx.send(f"✅ {member.mention} n'a aucun avertissement.")
+
+    if index < 1 or index > len(warnings):
+        return await ctx.send(f"❌ Index invalide. Ce membre a {len(warnings)} avertissement(s).")
+
+    try:
+        to_delete = warnings[index - 1]
+        collection7.delete_one({"_id": to_delete["_id"]})
+
+        embed = create_embed(
+            "✅ Avertissement retiré",
+            f"L’avertissement n°{index} de {member.mention} a été supprimé.",
+            discord.Color.green(),
+            ctx,
+            member,
+            "Unwarn",
+            to_delete["reason"]
+        )
+
+        await ctx.send(embed=embed)
+        await send_log(ctx, member, "Unwarn", to_delete["reason"])
+        await send_dm(member, "Unwarn", f"Ton avertissement datant du {to_delete['timestamp'].strftime('%d/%m/%Y à %Hh%M')} a été retiré.")
+    
+    except Exception as e:
+        print(f"Erreur lors de l'exécution de la commande unwarn : {e}")
+        await ctx.send(f"❌ Une erreur s'est produite lors de la suppression de l'avertissement. Détails : {str(e)}")
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
 
 # Nouvelle fonction pour récupérer le ping role et le channel id dynamiquement depuis la base de données
 def get_guild_setup_data(guild_id):
     setup_data = load_guild_settings(guild_id)
-    ping_role_id = setup_data.get('staff_role_id')  # Assure-toi que le champ existe dans ta base de données
-    channel_id = setup_data.get('sanctions_channel_id')  # Pareil pour le channel ID
-    return ping_role_id, channel_id
+    ping_role_id = setup_data.get('staff_role_id')  # Récupération du rôle staff
+    sanctions_channel_id = setup_data.get('sanctions_channel_id')  # Salon des sanctions
+    alerts_channel_id = setup_data.get('reports_channel_id')  # Salon des alertes
+    return ping_role_id, sanctions_channel_id, alerts_channel_id
 
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
@@ -6754,13 +6801,13 @@ async def alerte(ctx, member: discord.Member, *, reason: str):
         return
 
     # Récupération des valeurs dynamiques
-    ping_role_id, channel_id = get_guild_setup_data(ctx.guild.id)
+    ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
 
     # Obtention du salon où envoyer le message
-    channel = bot.get_channel(channel_id)
+    alerts_channel = bot.get_channel(alerts_channel_id)
 
     # Mentionner le rôle et l'utilisateur qui a exécuté la commande dans le message
-    await channel.send(f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}")
+    await alerts_channel.send(f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}")
 
     # Création de l'embed
     embed = discord.Embed(
@@ -6770,7 +6817,7 @@ async def alerte(ctx, member: discord.Member, *, reason: str):
     )
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     # Envoi de l'embed dans le même salon
-    await channel.send(embed=embed)
+    await alerts_channel.send(embed=embed)
 
 sent_embed_channels = {}
 
@@ -6787,11 +6834,18 @@ async def vc(ctx):
         voice_members = sum(len(voice_channel.members) for voice_channel in guild.voice_channels)
         boosts = guild.premium_subscription_count or 0
         owner_member = guild.owner
-        server_invite = "https://discord.gg/X4dZAt3BME"
         verification_level = guild.verification_level.name
         text_channels = len(guild.text_channels)
         voice_channels = len(guild.voice_channels)
         server_created_at = guild.created_at.strftime('%d %B %Y')
+
+        # Récupérer ou créer un lien d'invitation pour le serveur
+        invites = await guild.invites()
+        if invites:
+            server_invite = invites[0].url  # Utilise le premier lien d'invitation trouvé
+        else:
+            # Crée une nouvelle invitation valide pendant 24h
+            server_invite = await guild.text_channels[0].create_invite(max_age=86400)  # 86400 secondes = 24 heures
 
         embed = discord.Embed(title=f"📊 Statistiques de {guild.name}", color=discord.Color.purple())
 
@@ -6821,7 +6875,10 @@ async def vc(ctx):
         return  # Empêche l'exécution du reste du code après une erreur
 
 
-@bot.command()
+@bot.hybrid_command(
+    name="ping",
+    description="Affiche le Ping du bot."
+)
 async def ping(ctx):
     latency = round(bot.latency * 1000)  # Latence en ms
     embed = discord.Embed(title="Pong!", description=f"Latence: {latency}ms", color=discord.Color.green())
@@ -6863,7 +6920,10 @@ async def roleinfo(interaction: discord.Interaction, role: discord.Role):
 
         await interaction.response.send_message(embed=embed)
 
-@bot.command()
+@bot.hybrid_command(
+    name="uptime",
+    description="Affiche l'uptime du bot."
+)
 async def uptime(ctx):
     uptime_seconds = round(time.time() - start_time)
     days = uptime_seconds // (24 * 3600)
