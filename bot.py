@@ -6795,13 +6795,16 @@ def get_guild_setup_data(guild_id):
 
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
+    # Récupération des valeurs dynamiques
+    ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
+    
+    # Définir access_role_id pour vérifier le rôle nécessaire
+    access_role_id = ping_role_id  # Vous pouvez ajuster cette logique selon vos besoins
+
     # Vérification si l'utilisateur a le rôle nécessaire pour exécuter la commande
     if access_role_id not in [role.id for role in ctx.author.roles]:
         await ctx.send("Vous n'avez pas les permissions nécessaires pour utiliser cette commande.")
         return
-
-    # Récupération des valeurs dynamiques
-    ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
 
     # Obtention du salon où envoyer le message
     alerts_channel = bot.get_channel(alerts_channel_id)
