@@ -7768,37 +7768,26 @@ async def snipe(ctx, index: int = 1):
 
     await ctx.send(embed=embed)
 
-    # Si le salon est configuré
-    if presentation_channel_id:
-        try:
-            # Envoi direct du modal pour remplir la présentation
-            await interaction.response.send_modal(PresentationForm())
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Une erreur s'est produite : {str(e)}", ephemeral=True)
-    else:
-        # Si aucun salon de présentation n'est configuré, avertir l'utilisateur
-        await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré. Veuillez configurer le salon via les paramètres du bot.", ephemeral=True)
-
-
 # --- Formulaire de présentation étape 1 ---
 class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
     pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
     age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
     passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
 
-async def on_submit(self, interaction: discord.Interaction):
-    # On stocke les informations de cette étape
-    interaction.client.presentation_data = {
-        'pseudo': self.pseudo.value,
-        'age': self.age.value,
-        'passion': self.passion.value,
-    }
+    async def on_submit(self, interaction: discord.Interaction):
+        # On stocke les informations de cette étape
+        interaction.client.presentation_data = {
+            'pseudo': self.pseudo.value,
+            'age': self.age.value,
+            'passion': self.passion.value,
+        }
 
-    try:
-        await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
-    except discord.errors.HTTPException as e:
-        print(f"Erreur lors de l'envoi du deuxième modal : {e}")
-        await interaction.followup.send("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
+        try:
+            await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
+        except Exception as e:
+            print("Erreur lors de l'envoi du deuxième modal :")
+            traceback.print_exc()
+            await interaction.followup.send("❌ Une erreur est survenue lors de l'envoi de la suite du formulaire.", ephemeral=True)
 
 # --- Formulaire de présentation étape 2 ---
 class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
@@ -7807,21 +7796,17 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
     reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Vérifier que l'interaction est valide
-        if not interaction.response.is_done():
-            await interaction.response.defer()
-
         # Récupérer les données de la première étape
         step1_data = getattr(interaction.client, 'presentation_data', {})
         
-        # Ajouter les informations de cette étape
+        # Ajouter les infos de cette étape
         step1_data.update({
             'bio': self.bio.value,
             'objectifs': self.objectifs.value,
             'reseaux': self.reseaux.value,
         })
 
-        # On envoie la présentation dans le salon
+        # Récupérer la config du serveur
         guild_id = interaction.guild.id
         guild_settings = load_guild_settings(guild_id)
         presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
@@ -7846,12 +7831,11 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
                 embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
                 await presentation_channel.send(embed=embed)
-
-                await interaction.response.send_message("Ta présentation a été envoyée ! 🎉", ephemeral=True)
+                await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès !", ephemeral=True)
             else:
-                await interaction.response.send_message("Le salon de présentation n'existe plus ou est invalide.", ephemeral=True)
+                await interaction.response.send_message("❌ Le salon de présentation est introuvable.", ephemeral=True)
         else:
-            await interaction.response.send_message("Le salon de présentation n'a pas été configuré pour ce serveur.", ephemeral=True)
+            await interaction.response.send_message("❌ Le salon de présentation n'est pas encore configuré.", ephemeral=True)
 
 # --- Commande Slash ---
 @bot.tree.command(name="presentation", description="Remplis un formulaire pour te présenter à la communauté !")
@@ -7862,16 +7846,16 @@ async def presentation(interaction: discord.Interaction):
 
     if presentation_channel_id:
         try:
-            await interaction.response.send_modal(PresentationFormStep1())  # Envoie le premier modal
-        except discord.errors.HTTPException as e:
-            print(f"Erreur lors de l'envoi du premier modal : {e}")
-            await interaction.response.send_message("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
+            await interaction.response.send_modal(PresentationFormStep1())
+        except Exception as e:
+            print("Erreur lors de l'envoi du premier modal :")
+            traceback.print_exc()
+            await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
     else:
         await interaction.response.send_message(
-            "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
+            "⚠️ Le salon de présentation n’a pas encore été configuré. Veuillez contacter un administrateur.",
             ephemeral=True
         )
-
 
 # Commande pour définir le salon de présentation
 @bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
