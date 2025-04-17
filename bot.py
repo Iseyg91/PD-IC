@@ -124,6 +124,7 @@ collection22 = db['absence'] #Stock les Salon Absence
 collection23 = db['back_up'] #Stock les Back-up
 collection24 = db['delta_warn'] #Stock les Warn Delta
 collection25 = db['delta_bl'] #Stock les Bl Delta
+collection26 = db['alerte'] #Stocl les Salons Alerte
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -237,7 +238,7 @@ def load_guild_settings(guild_id):
     back_up_data = collection23.find_one({"guild_id": guild_id}) or {}
     delta_warn_data = collection24.find_one({"guild_id": guild_id}) or {}
     delta_bl_data = collection25.find_one({"guild_id": guild_id}) or {}
-
+    alerte_data = collection26.find_one({"guild_id": guild_id}] or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
@@ -266,7 +267,8 @@ def load_guild_settings(guild_id):
         "absence": absence_data,
         "back_up": back_up_data,
         "delta_warn": delta_warn_data,
-        "delta_bl": delta_bl_data
+        "delta_bl": delta_bl_data,
+        "alerte": alerte_data
 
     }
 
@@ -4606,7 +4608,6 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
                 embed.add_field(name="🛡️ Rôle Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non défini'), "role"), inline=False)
                 embed.add_field(name="👥 Rôle Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non défini'), "role"), inline=False)
                 embed.add_field(name="🚨 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non défini'), "channel"), inline=False)
-                embed.add_field(name="📝 Salon Alerte :", value=format_mention(self.guild_data.get('reports_channel', 'Non défini'), "channel"), inline=False)
             except Exception as e:
                 print(f"❌ Erreur dans ajout des champs embed 'gestion' : {e}")
                 traceback.print_exc()
@@ -4737,7 +4738,6 @@ class InfoSelect(Select):
             discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
             discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
             discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-            discord.SelectOption(label="📝 Salon Alerte", value="reports_channel"),
         ]
         super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
         self.view_ctx = view
@@ -4837,7 +4837,7 @@ class InfoSelect(Select):
                 new_value = response.mentions[0].id if response.mentions else None
             elif param in ["admin_role", "staff_role"]:
                 new_value = response.role_mentions[0].id if response.role_mentions else None
-            elif param in ["sanctions_channel", "reports_channel"]:
+            elif param in ["sanctions_channel"]:
                 new_value = response.channel_mentions[0].id if response.channel_mentions else None
 
             if new_value:
@@ -6785,86 +6785,88 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
 
-def get_guild_setup_data(guild_id):
-    setup_data = collection.find_one({"guild_id": guild_id})  # Récupère la config du serveur dans la collection
-    if not setup_data:
-        return None, None, None  # Si les données n'existent pas, retourne None
+# Fonction pour récupérer les paramètres d'alerte
+def get_alert_settings(guild_id: int):
+    alerte_data = collection26.find_one({"guild_id": guild_id})  # Récupère la configuration des alertes
+    if alerte_data:
+        return alerte_data.get("alerts_channel_id"), alerte_data.get("ping_role_id")
+    return None, None
 
-    ping_role_id = setup_data.get('staff_role_id')  # ID du rôle staff
-    sanctions_channel_id = setup_data.get('sanctions_channel_id')  # ID du salon des sanctions
-    alerts_channel_id = setup_data.get('reports_channel_id')  # ID du salon des alertes
-    return ping_role_id, sanctions_channel_id, alerts_channel_id
+# Commande pour configurer les alertes
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def set_alerte(ctx, alerts_channel: discord.TextChannel, ping_role: discord.Role):
+    # Met à jour les paramètres des alertes dans la base de données
+    collection26.update_one(
+        {"guild_id": str(ctx.guild.id)},
+        {"$set": {
+            "alerts_channel_id": str(alerts_channel.id),
+            "ping_role_id": str(ping_role.id)
+        }},
+        upsert=True
+    )
+    
+    # Confirmation de la mise à jour
+    await ctx.send(f"Configuration des alertes mise à jour :\nCanal : {alerts_channel.mention}\nRôle à mentionner : {ping_role.mention}")
 
-
+# Commande d'alerte
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
-    # Récupération des valeurs dynamiques depuis la base de données
-    ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
+    # Récupération des paramètres d'alerte depuis la base de données
+    alerts_channel_id, ping_role_id = get_alert_settings(ctx.guild.id)
 
-    # Vérification que les données sont valides
-    if not ping_role_id or not alerts_channel_id:
-        await ctx.send("La configuration des rôles ou des salons est manquante dans la base de données.")
+    # Vérification de la validité des paramètres
+    if not alerts_channel_id or not ping_role_id:
+        await ctx.send("La configuration des alertes est manquante. Utilisez `/set_alerte` pour la configurer.")
         return
 
     # Récupérer les objets de rôle et de salon
-    ping_role = ctx.guild.get_role(ping_role_id)
-    alerts_channel = bot.get_channel(alerts_channel_id)
+    ping_role = ctx.guild.get_role(int(ping_role_id))
+    alerts_channel = bot.get_channel(int(alerts_channel_id))
 
-    # Vérification si le rôle existe
-    if ping_role is None:
-        await ctx.send("Le rôle staff n'est pas valide ou introuvable.")
+    # Vérification de l'existence des objets
+    if not ping_role:
+        await ctx.send("Le rôle mentionné pour les alertes est introuvable.")
         return
-
-    # Vérification si le salon d'alertes existe
-    if alerts_channel is None:
-        await ctx.send("Le salon d'alertes est introuvable ou inaccessible.")
-        return
-
-    # Vérification si le membre est valide
-    if member is None:
-        await ctx.send("Le membre mentionné n'existe pas ou n'est pas valide.")
+    if not alerts_channel:
+        await ctx.send("Le salon d'alertes est introuvable.")
         return
 
     # Message d'alerte mentionnant le rôle
     alert_message = f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}"
 
-    # Envoi de l'alerte (mentionne le rôle)
+    # Envoi de l'alerte
     try:
         await alerts_channel.send(alert_message)
     except discord.DiscordException as e:
         await ctx.send(f"Erreur lors de l'envoi de l'alerte : {e}")
         return
 
-    # Création de l'embed avec des détails sur l'alerte
+    # Création et envoi de l'embed d'alerte
     embed = discord.Embed(
         title="🚨 Alerte Émise 🚨",
         description=f"**Utilisateur:** {member.mention}\n**Raison:** {reason}",
         color=0xff0000  # Couleur rouge pour attirer l'attention
     )
-
-    # Ajouter une image d'alerte (tu peux personnaliser cette URL avec une image d'alerte ou un icône)
-    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace avec ton URL d'image
-
-    # Ajout de champs pour structurer les informations
+    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace par une image personnalisée
     embed.add_field(name="Alerte émise par", value=f"{ctx.author.mention}", inline=False)
     embed.add_field(name="Membre mentionné", value=f"{member.mention}", inline=False)
     embed.add_field(name="Raison de l'alerte", value=f"**{reason}**", inline=False)
 
-    # Gestion de l'avatar de l'auteur (si aucun avatar, utiliser un défaut)
-    avatar_url = ctx.author.avatar.url if ctx.author.avatar else "https://discord.com/assets/2c21aeda6b5d1fd8f6dcf6d1f7e0f96b.png"  # URL par défaut
+    # Ajout d'un footer avec l'avatar de l'auteur
+    avatar_url = ctx.author.avatar.url if ctx.author.avatar else "https://discord.com/assets/2c21aeda6b5d1fd8f6dcf6d1f7e0f96b.png"
+    embed.set_footer(text=f"Commandé par {ctx.author.name}", icon_url=avatar_url)
 
-    # Ajouter un footer avec le nom de l'auteur et son avatar
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=avatar_url)
-
-    # Envoi de l'embed dans le salon d'alertes
+    # Envoi de l'embed
     try:
         await alerts_channel.send(embed=embed)
     except discord.DiscordException as e:
         await ctx.send(f"Erreur lors de l'envoi de l'embed : {e}")
         return
 
-    # Confirmer l'envoi de l'alerte à l'utilisateur
+    # Confirmer l'envoi de l'alerte
     await ctx.send(f"Alerte envoyée pour {member.mention} avec la raison : {reason}")
+
 
 
 sent_embed_channels = {}
