@@ -1895,7 +1895,7 @@ async def delta_warn(ctx, member: discord.Member, *, reason: str):
         "user_id": str(member.id),
         "moderator_id": str(ctx.author.id),
         "reason": reason,
-        "timestamp": datetime.datetime.utcnow()
+        "timestamp": datetime.utcnow()
     })
 
     try:
