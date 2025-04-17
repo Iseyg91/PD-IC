@@ -6787,7 +6787,7 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
 
 # Nouvelle fonction pour récupérer le ping role et le channel id dynamiquement depuis la base de données
 def get_guild_setup_data(guild_id):
-    setup_data = load_guild_settings(guild_id)
+    setup_data = load_guild_settings(guild_id)  # Charger la configuration depuis la base de données
     ping_role_id = setup_data.get('staff_role_id')  # Récupération du rôle staff
     sanctions_channel_id = setup_data.get('sanctions_channel_id')  # Salon des sanctions
     alerts_channel_id = setup_data.get('reports_channel_id')  # Salon des alertes
@@ -6795,13 +6795,24 @@ def get_guild_setup_data(guild_id):
 
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
-    # Récupération des valeurs dynamiques
+    # Récupération des valeurs dynamiques depuis la base de données
     ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
 
-    # Obtention du salon d'alertes
+    # Vérification que les données sont valides
+    if not ping_role_id or not alerts_channel_id:
+        await ctx.send("La configuration des rôles ou des salons est manquante dans la base de données.")
+        return
+
+    # Récupérer les objets de rôle et de salon
+    ping_role = ctx.guild.get_role(ping_role_id)
     alerts_channel = bot.get_channel(alerts_channel_id)
 
-    # Vérification si le salon existe
+    # Vérification si le rôle existe
+    if ping_role is None:
+        await ctx.send("Le rôle staff n'est pas valide ou introuvable.")
+        return
+
+    # Vérification si le salon d'alertes existe
     if alerts_channel is None:
         await ctx.send("Le salon d'alertes est introuvable ou inaccessible.")
         return
@@ -6851,6 +6862,7 @@ async def alerte(ctx, member: discord.Member, *, reason: str):
 
     # Confirmer l'envoi de l'alerte à l'utilisateur
     await ctx.send(f"Alerte envoyée pour {member.mention} avec la raison : {reason}")
+
 
 sent_embed_channels = {}
 
