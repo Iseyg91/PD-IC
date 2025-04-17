@@ -100,32 +100,32 @@ client = MongoClient(mongo_uri)
 db = client['Cass-Eco2']
 
 # Collections
-collection = db['setup']  # Configuration générale
-collection2 = db['setup_premium']  # Serveurs premium
-collection3 = db['bounty']  # Primes et récompenses des joueurs
-collection4 = db['protection'] #Serveur sous secu ameliorer
-collection5 = db ['clients'] #Stock Clients
-collection6 = db ['partner'] #Stock Partner
-collection7= db ['sanction'] #Stock Sanction
-collection8 = db['idees'] #Stock Idées
-collection9 = db['stats'] #Stock Salon Stats
-collection10 = db['eco'] #Stock Les infos Eco
-collection11 = db['eco_daily'] #Stock le temps de daily
-collection12 = db['rank'] #Stock les Niveau
-collection13 = db['eco_work'] #Stock le temps de Work
-collection14 = db['eco_slut'] #Stock le temps de Slut
-collection15 = db['eco_crime'] #Stock le temps de Crime
+collection = db['setup']  # Configuration générale ✅
+collection2 = db['setup_premium']  # Serveurs premium ✅
+collection3 = db['bounty']  # Primes et récompenses des joueurs ✅
+collection4 = db['protection'] #Serveur sous secu ameliorer ✅
+collection5 = db ['clients'] #Stock Clients ✅
+collection6 = db ['partner'] #Stock Partner ❌
+collection7= db ['sanction'] #Stock Sanction ✅
+collection8 = db['idees'] #Stock Idées ✅
+collection9 = db['stats'] #Stock Salon Stats ✅
+collection10 = db['eco'] #Stock Les infos Eco ✅
+collection11 = db['eco_daily'] #Stock le temps de daily ✅
+collection12 = db['rank'] #Stock les Niveau ✅
+collection13 = db['eco_work'] #Stock le temps de Work ✅
+collection14 = db['eco_slut'] #Stock le temps de Slut ✅
+collection15 = db['eco_crime'] #Stock le temps de Crime ✅
 collection16 = db['ticket'] #Stock les Tickets
-collection17 = db['team'] #Stock les Teams
+collection17 = db['team'] #Stock les Teams ✅
 collection18 = db['logs'] #Stock les Salons Logs
-collection19 = db['wl'] #Stock les whitelist
-collection20 = db['suggestions'] #Stock les Salons Suggestion
-collection21 = db['presentation'] #Stock les Salon Presentation
-collection22 = db['absence'] #Stock les Salon Absence
+collection19 = db['wl'] #Stock les whitelist ✅
+collection20 = db['suggestions'] #Stock les Salons Suggestion ✅
+collection21 = db['presentation'] #Stock les Salon Presentation ✅
+collection22 = db['absence'] #Stock les Salon Absence ✅
 collection23 = db['back_up'] #Stock les Back-up
-collection24 = db['delta_warn'] #Stock les Warn Delta
-collection25 = db['delta_bl'] #Stock les Bl Delta
-collection26 = db['alerte'] #Stocl les Salons Alerte
+collection24 = db['delta_warn'] #Stock les Warn Delta ✅
+collection25 = db['delta_bl'] #Stock les Bl Delta ✅
+collection26 = db['alerte'] #Stock les Salons Alerte ✅
 
 # Exemple de structure de la base de données pour la collection bounty
 # {
@@ -8557,6 +8557,197 @@ async def absence(interaction: discord.Interaction):
         return await interaction.response.send_message("❌ Vous n'avez pas le rôle requis pour déclarer une absence.", ephemeral=True)
 
     await interaction.response.send_modal(AbsenceModal(interaction, channel))
+
+#------------------------------------------------------------------------ BACK UP
+
+# Fonction pour sauvegarder les rôles, salons et permissions du serveur
+def save_guild_settings(guild_id):
+    guild = bot.get_guild(int(guild_id))
+    if not guild:
+        return {}
+
+    # Sauvegarde des rôles (on exclut @everyone)
+    roles_data = []
+    for role in guild.roles:
+        if role.is_default():
+            continue
+        roles_data.append({
+            "name": role.name,
+            "color": role.color.value,
+            "hoist": role.hoist,
+            "mentionable": role.mentionable,
+            "permissions": role.permissions.value,
+            "position": role.position
+        })
+
+    # Sauvegarde des salons et catégories
+    channels_data = []
+    for channel in guild.channels:
+        overwrites = {}
+        for target, perm in channel.overwrites.items():
+            if isinstance(target, discord.Role):
+                overwrites[str(target.id)] = {
+                    "allow": perm.pair()[0].value,
+                    "deny": perm.pair()[1].value
+                }
+        channels_data.append({
+            "name": channel.name,
+            "type": str(channel.type),
+            "category": channel.category.name if channel.category else None,
+            "position": channel.position,
+            "overwrites": overwrites
+        })
+
+    return {
+        "roles": roles_data,
+        "channels": channels_data
+    }
+
+# Commande pour créer une sauvegarde
+@bot.tree.command(name="create-back-up", description="Créer une sauvegarde du serveur")
+async def create_backup(interaction: discord.Interaction, name: str):
+    if interaction.user.id != interaction.guild.owner_id and interaction.user.id != ISEY_ID:
+        return await interaction.response.send_message("❌ Seul l'owner du serveur peut créer une sauvegarde.", ephemeral=True)
+
+    # Sauvegarder la configuration du serveur
+    data = save_guild_settings(str(interaction.guild.id))
+    if not data:
+        return await interaction.response.send_message("❌ Erreur lors de la récupération des données du serveur.", ephemeral=True)
+
+    # Enregistrer la sauvegarde dans la base de données
+    collection23.insert_one({
+        "guild_id": str(interaction.guild.id),
+        "backup_name": name,
+        "created_by": str(interaction.user.id),
+        "data": data,
+        "timestamp": datetime.datetime.utcnow()
+    })
+
+    await interaction.response.send_message(f"✅ Sauvegarde `{name}` créée avec succès.", ephemeral=True)
+
+# Commande pour charger une sauvegarde
+@bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
+async def load_backup(interaction: discord.Interaction, name: str):
+    backup = collection23.find_one({"guild_id": str(interaction.guild.id), "backup_name": name})
+    if not backup:
+        return await interaction.response.send_message("❌ Aucune sauvegarde trouvée avec ce nom.", ephemeral=True)
+    if backup["created_by"] != str(interaction.user.id) and interaction.user.id != ISEY_ID:
+        return await interaction.response.send_message("❌ Tu ne peux charger que tes propres sauvegardes.", ephemeral=True)
+
+    await interaction.response.send_message("⏳ Restauration en cours...", ephemeral=True)
+
+    guild = interaction.guild
+
+    # Supprimer tous les salons
+    for channel in guild.channels:
+        try:
+            await channel.delete()
+        except:
+            pass
+
+    # Supprimer tous les rôles (sauf @everyone)
+    for role in guild.roles:
+        if role.is_default():
+            continue
+        try:
+            await role.delete()
+        except:
+            pass
+
+    # Récupérer et recréer les rôles
+    data = backup["data"]
+    role_map = {}
+    roles = sorted(data["roles"], key=lambda r: r["position"])
+    for role_data in roles:
+        try:
+            role = await guild.create_role(
+                name=role_data["name"],
+                color=discord.Color(role_data["color"]),
+                hoist=role_data["hoist"],
+                mentionable=role_data["mentionable"],
+                permissions=discord.Permissions(role_data["permissions"])
+            )
+            role_map[role.name] = role
+        except:
+            continue
+
+    # Créer les salons et catégories
+    category_map = {}
+    for channel_data in sorted(data["channels"], key=lambda c: c["position"]):
+        overwrites = {}
+        for role_id, perms in channel_data["overwrites"].items():
+            role = guild.get_role(int(role_id)) or role_map.get(role_id)
+            if role:
+                overwrites[role] = discord.PermissionOverwrite.from_pair(
+                    discord.Permissions(perms["allow"]),
+                    discord.Permissions(perms["deny"])
+                )
+
+        if channel_data["type"] == "category":
+            try:
+                category = await guild.create_category(
+                    name=channel_data["name"],
+                    overwrites=overwrites,
+                    position=channel_data["position"]
+                )
+                category_map[channel_data["name"]] = category
+            except:
+                pass
+
+    for channel_data in sorted(data["channels"], key=lambda c: c["position"]):
+        if channel_data["type"] in ["text", "voice", "forum"]:
+            cat = category_map.get(channel_data["category"])
+            try:
+                if channel_data["type"] == "text":
+                    await guild.create_text_channel(
+                        name=channel_data["name"],
+                        overwrites=overwrites,
+                        category=cat,
+                        position=channel_data["position"]
+                    )
+                elif channel_data["type"] == "voice":
+                    await guild.create_voice_channel(
+                        name=channel_data["name"],
+                        overwrites=overwrites,
+                        category=cat,
+                        position=channel_data["position"]
+                    )
+                elif channel_data["type"] == "forum":
+                    await guild.create_forum_channel(
+                        name=channel_data["name"],
+                        overwrites=overwrites,
+                        category=cat,
+                        position=channel_data["position"]
+                    )
+            except:
+                continue
+
+    await interaction.followup.send(f"✅ Sauvegarde `{name}` restaurée avec succès.", ephemeral=True)
+
+# Commande pour lister les sauvegardes
+@bot.tree.command(name="list-back-up", description="Lister les sauvegardes du serveur")
+async def list_backup(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        return await interaction.response.send_message("❌ Tu n'as pas la permission de lister les sauvegardes.", ephemeral=True)
+
+    backups = collection23.find({"guild_id": str(interaction.guild.id)})
+    if not backups:
+        return await interaction.response.send_message("❌ Aucun backup trouvé pour ce serveur.", ephemeral=True)
+
+    backup_names = [backup["backup_name"] for backup in backups]
+    await interaction.response.send_message(f"📜 Sauvegardes disponibles :\n" + "\n".join(backup_names), ephemeral=True)
+
+@bot.tree.command(name="delete-back-up", description="Supprimer une sauvegarde")
+async def delete_backup(interaction: discord.Interaction, name: str):
+    backup = collection23.find_one({"guild_id": str(interaction.guild.id), "backup_name": name})
+    if not backup:
+        return await interaction.response.send_message("❌ Aucune sauvegarde trouvée avec ce nom.", ephemeral=True)
+    if backup["created_by"] != str(interaction.user.id) and interaction.user.id != ISEY_ID:
+        return await interaction.response.send_message("❌ Tu ne peux supprimer que tes propres sauvegardes.", ephemeral=True)
+
+    collection23.delete_one({"guild_id": str(interaction.guild.id), "backup_name": name})
+    await interaction.response.send_message(f"🗑️ Sauvegarde `{name}` supprimée.", ephemeral=True)
+
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
