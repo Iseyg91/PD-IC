@@ -1871,28 +1871,17 @@ def is_staff(ctx):
     description="Avertir un utilisateur qui abuse ou dérange via le bot"
 )
 async def delta_warn(ctx, member: discord.Member, *, reason: str):
-    """
-    Cette commande est réservée au staff du bot.
-    Elle permet de signaler un utilisateur qui abuse du bot ou qui perturbe son bon fonctionnement.
-    Un avertissement est enregistré dans la base de données avec les informations du membre, du staff et la raison.
-    """
-
-    # Vérifie si l'utilisateur qui exécute la commande fait partie du staff
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
     
-    # Insère un avertissement dans la base de données
     collection24.insert_one({
-        "guild_id": str(ctx.guild.id),
         "user_id": str(member.id),
         "moderator_id": str(ctx.author.id),
         "reason": reason,
         "timestamp": datetime.datetime.utcnow()
     })
     
-    # Confirme l'avertissement dans le salon
     await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
-
 
 @bot.hybrid_command(name="delta-unwarn")
 async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
@@ -1900,7 +1889,6 @@ async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
     warn = collection24.find_one_and_delete({
-        "guild_id": str(ctx.guild.id),
         "user_id": str(member.id)
     })
     if warn:
@@ -1914,7 +1902,7 @@ async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
     collection25.update_one(
-        {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
+        {"user_id": str(member.id)},
         {"$set": {
             "reason": reason,
             "timestamp": datetime.datetime.utcnow()
@@ -1929,7 +1917,6 @@ async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
     result = collection25.delete_one({
-        "guild_id": str(ctx.guild.id),
         "user_id": str(member.id)
     })
     if result.deleted_count:
@@ -1943,7 +1930,6 @@ async def delta_list_warn(ctx, member: discord.Member):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
     
     warns = collection24.find({
-        "guild_id": str(ctx.guild.id),
         "user_id": str(member.id)
     })
 
@@ -1967,7 +1953,7 @@ async def delta_list_blacklist(ctx):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
-    blacklisted = list(collection25.find({"guild_id": str(ctx.guild.id)}))
+    blacklisted = list(collection25.find({}))
 
     if not blacklisted:
         return await ctx.reply("Aucun membre n'est blacklist.")
