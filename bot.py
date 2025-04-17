@@ -6797,30 +6797,60 @@ def get_guild_setup_data(guild_id):
 async def alerte(ctx, member: discord.Member, *, reason: str):
     # Récupération des valeurs dynamiques
     ping_role_id, sanctions_channel_id, alerts_channel_id = get_guild_setup_data(ctx.guild.id)
-    
-    # Définir access_role_id pour vérifier le rôle nécessaire
-    access_role_id = ping_role_id  # Vous pouvez ajuster cette logique selon vos besoins
 
-    # Vérification si l'utilisateur a le rôle nécessaire pour exécuter la commande
-    if access_role_id not in [role.id for role in ctx.author.roles]:
-        await ctx.send("Vous n'avez pas les permissions nécessaires pour utiliser cette commande.")
-        return
-
-    # Obtention du salon où envoyer le message
+    # Obtention du salon d'alertes
     alerts_channel = bot.get_channel(alerts_channel_id)
 
-    # Mentionner le rôle et l'utilisateur qui a exécuté la commande dans le message
-    await alerts_channel.send(f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}")
+    # Vérification si le salon existe
+    if alerts_channel is None:
+        await ctx.send("Le salon d'alertes est introuvable ou inaccessible.")
+        return
 
-    # Création de l'embed
+    # Vérification si le membre est valide
+    if member is None:
+        await ctx.send("Le membre mentionné n'existe pas ou n'est pas valide.")
+        return
+
+    # Message d'alerte mentionnant le rôle
+    alert_message = f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}"
+
+    # Envoi de l'alerte (mentionne le rôle)
+    try:
+        await alerts_channel.send(alert_message)
+    except discord.DiscordException as e:
+        await ctx.send(f"Erreur lors de l'envoi de l'alerte : {e}")
+        return
+
+    # Création de l'embed avec des détails sur l'alerte
     embed = discord.Embed(
-        title="Alerte Émise",
+        title="🚨 Alerte Émise 🚨",
         description=f"**Utilisateur:** {member.mention}\n**Raison:** {reason}",
-        color=0xff0000  # Couleur rouge
+        color=0xff0000  # Couleur rouge pour attirer l'attention
     )
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    # Envoi de l'embed dans le même salon
-    await alerts_channel.send(embed=embed)
+
+    # Ajouter une image d'alerte (tu peux personnaliser cette URL avec une image d'alerte ou un icône)
+    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace avec ton URL d'image
+
+    # Ajout de champs pour structurer les informations
+    embed.add_field(name="Alerte émise par", value=f"{ctx.author.mention}", inline=False)
+    embed.add_field(name="Membre mentionné", value=f"{member.mention}", inline=False)
+    embed.add_field(name="Raison de l'alerte", value=f"**{reason}**", inline=False)
+
+    # Gestion de l'avatar de l'auteur (si aucun avatar, utiliser un défaut)
+    avatar_url = ctx.author.avatar.url if ctx.author.avatar else "https://discord.com/assets/2c21aeda6b5d1fd8f6dcf6d1f7e0f96b.png"  # URL par défaut
+
+    # Ajouter un footer avec le nom de l'auteur et son avatar
+    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=avatar_url)
+
+    # Envoi de l'embed dans le salon d'alertes
+    try:
+        await alerts_channel.send(embed=embed)
+    except discord.DiscordException as e:
+        await ctx.send(f"Erreur lors de l'envoi de l'embed : {e}")
+        return
+
+    # Confirmer l'envoi de l'alerte à l'utilisateur
+    await ctx.send(f"Alerte envoyée pour {member.mention} avec la raison : {reason}")
 
 sent_embed_channels = {}
 
