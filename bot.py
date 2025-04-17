@@ -7790,9 +7790,13 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
         }
 
         try:
-            # Envoie la deuxième étape
+            # Déférer la réponse pour éviter l'erreur
             await interaction.response.defer()  # Déférer la réponse avant d'envoyer le modal
+
+            # Réponse suivie avec un message pour indiquer la suite
             await interaction.followup.send("Passons à l'étape suivante !", ephemeral=True)  # Envoyer un message de confirmation
+
+            # Envoie le deuxième modal (et cette fois-ci, ne renvoie plus une réponse à l'interaction initiale)
             await interaction.response.send_modal(PresentationFormStep2())  # Envoie le deuxième modal
         except discord.errors.HTTPException as e:
             print(f"Erreur lors de l'envoi du deuxième modal : {e}")
