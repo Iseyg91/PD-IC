@@ -1843,11 +1843,26 @@ async def is_admin(interaction: discord.Interaction):
 def is_staff(ctx):
     return STAFF_DELTA in [role.id for role in ctx.author.roles]
 
-@bot.hybrid_command(name="delta-warn")
+import datetime
+import discord
+from discord.ext import commands
+
+@bot.hybrid_command(
+    name="delta-warn",
+    description="Avertir un utilisateur qui abuse ou dérange via le bot"
+)
 async def delta_warn(ctx, member: discord.Member, *, reason: str):
+    """
+    Cette commande est réservée au staff du bot.
+    Elle permet de signaler un utilisateur qui abuse du bot ou qui perturbe son bon fonctionnement.
+    Un avertissement est enregistré dans la base de données avec les informations du membre, du staff et la raison.
+    """
+
+    # Vérifie si l'utilisateur qui exécute la commande fait partie du staff
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
     
+    # Insère un avertissement dans la base de données
     collection24.insert_one({
         "guild_id": str(ctx.guild.id),
         "user_id": str(member.id),
@@ -1855,7 +1870,10 @@ async def delta_warn(ctx, member: discord.Member, *, reason: str):
         "reason": reason,
         "timestamp": datetime.datetime.utcnow()
     })
+    
+    # Confirme l'avertissement dans le salon
     await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
+
 
 @bot.hybrid_command(name="delta-unwarn")
 async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
