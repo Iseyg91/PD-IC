@@ -481,7 +481,7 @@ sensitive_words = [
     "swat", "swatting", "harass", "threaten", "kill yourself", "kys", "suicide", "death threat", "pedo", "grooming", "cp",
 
     # Arnaques et fraudes
-    "free nitro", "discord nitro hack", "gift scam", "fake nitro", "steam scam", "nitro generator", "robux generator", "bitcoin giveaway", "crypto scam", "wallet", "metamask"
+    "free nitro", "discord nitro hack", "gift scam", "fake nitro", "steam scam", "nitro generator", "robux generator", "bitcoin giveaway", "crypto scam", "metamask"
 ]
 
 user_messages = {}
