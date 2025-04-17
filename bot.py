@@ -7775,53 +7775,22 @@ async def snipe(ctx, index: int = 1):
     await ctx.send(embed=embed)
 
 
-# --- Formulaire de présentation étape 1 ---
-class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
+class PresentationForm(discord.ui.Modal, title="📝 Faisons connaissance"):
     pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
     age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
     passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        # On stocke les informations de cette étape
-        interaction.client.presentation_data = {
-            'pseudo': self.pseudo.value,
-            'age': self.age.value,
-            'passion': self.passion.value,
-        }
-
-        try:
-            # Déférer la réponse pour éviter l'erreur
-            await interaction.response.defer()  # Déférer la réponse avant d'envoyer le modal
-
-            # Réponse suivie avec un message pour indiquer la suite
-            await interaction.followup.send("Passons à l'étape suivante !", ephemeral=True)  # Envoyer un message de confirmation
-
-            # Envoie le deuxième modal (et cette fois-ci, ne renvoie plus une réponse à l'interaction initiale)
-            await interaction.response.send_modal(PresentationFormStep2())  # Envoie le deuxième modal
-        except discord.errors.HTTPException as e:
-            print(f"Erreur lors de l'envoi du deuxième modal : {e}")
-            await interaction.followup.send("❌ Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
-
-# --- Formulaire de présentation étape 2 ---
-class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
     bio = TextInput(label="Une courte bio", placeholder="Parle un peu de toi...", style=discord.TextStyle.paragraph, required=True, max_length=300)
-    objectifs = TextInput(label="Pourquoi as-tu rejoint ce serveur ?", placeholder="Ex: Trouver une équipe, apprendre à coder...", required=True, max_length=150)
     reseaux = TextInput(label="Tes réseaux sociaux préférés", placeholder="Ex: Twitter, TikTok, Discord...", required=False, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Vérifier que l'interaction est valide
-        if not interaction.response.is_done():
-            await interaction.response.defer()
-
-        # Récupérer les données de la première étape
-        step1_data = getattr(interaction.client, 'presentation_data', {})
-        
-        # Ajouter les informations de cette étape
-        step1_data.update({
+        # Récupérer les données du formulaire
+        presentation_data = {
+            'pseudo': self.pseudo.value,
+            'age': self.age.value,
+            'passion': self.passion.value,
             'bio': self.bio.value,
-            'objectifs': self.objectifs.value,
             'reseaux': self.reseaux.value,
-        })
+        }
 
         # On envoie la présentation dans le salon
         guild_id = interaction.guild.id
@@ -7838,13 +7807,12 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
                     color=discord.Color.blurple()
                 )
                 embed.set_thumbnail(url=interaction.user.display_avatar.url)
-                embed.add_field(name="👤 Pseudo", value=step1_data['pseudo'], inline=True)
-                embed.add_field(name="🎂 Âge", value=step1_data['age'], inline=True)
-                embed.add_field(name="🎨 Passion", value=step1_data['passion'], inline=False)
-                embed.add_field(name="🎯 Objectif", value=step1_data['objectifs'], inline=False)
-                if step1_data['reseaux']:
-                    embed.add_field(name="🌐 Réseaux sociaux", value=step1_data['reseaux'], inline=False)
-                embed.add_field(name="📝 Bio", value=step1_data['bio'], inline=False)
+                embed.add_field(name="👤 Pseudo", value=presentation_data['pseudo'], inline=True)
+                embed.add_field(name="🎂 Âge", value=presentation_data['age'], inline=True)
+                embed.add_field(name="🎨 Passion", value=presentation_data['passion'], inline=False)
+                if presentation_data['reseaux']:
+                    embed.add_field(name="🌐 Réseaux sociaux", value=presentation_data['reseaux'], inline=False)
+                embed.add_field(name="📝 Bio", value=presentation_data['bio'], inline=False)
                 embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
                 await presentation_channel.send(embed=embed)
@@ -7864,9 +7832,9 @@ async def presentation(interaction: discord.Interaction):
 
     if presentation_channel_id:
         try:
-            await interaction.response.send_modal(PresentationFormStep1())  # Envoie le premier modal
+            await interaction.response.send_modal(PresentationForm())  # Envoie un seul modal
         except discord.errors.HTTPException as e:
-            print(f"Erreur lors de l'envoi du premier modal : {e}")
+            print(f"Erreur lors de l'envoi du modal : {e}")
             await interaction.response.send_message("❌ Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
     else:
         await interaction.response.send_message(
