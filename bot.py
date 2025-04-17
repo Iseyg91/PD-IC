@@ -1846,13 +1846,12 @@ async def is_admin(interaction: discord.Interaction):
 
 #---------------------------------------------------------------------------- Staff Project : Delta:
 
-# Fonction pour vérifier si l'utilisateur est STAFF
+# Fonction pour vérifier si l'utilisateur est STAFF ou ISEY
 def is_staff(ctx):
-    return STAFF_DELTA in [role.id for role in ctx.author.roles]
-
-import datetime
-import discord
-from discord.ext import commands
+    return (
+        STAFF_DELTA in [role.id for role in ctx.author.roles]
+        or ctx.author.id == ISEY_ID
+    )
 
 @bot.hybrid_command(
     name="delta-warn",
