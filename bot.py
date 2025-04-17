@@ -6792,22 +6792,26 @@ def get_alert_settings(guild_id: int):
         return alerte_data.get("alerts_channel_id"), alerte_data.get("ping_role_id")
     return None, None
 
-# Commande pour configurer les alertes
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def set_alerte(ctx, alerts_channel: discord.TextChannel, ping_role: discord.Role):
+@bot.tree.command(name="set_alerte", description="Configure les alertes pour ce serveur.")
+@app_commands.describe(alerts_channel="Le canal où les alertes seront envoyées.", ping_role="Le rôle à mentionner lors des alertes.")
+async def set_alerte(interaction: discord.Interaction, alerts_channel: discord.TextChannel, ping_role: discord.Role):
+    # Vérifie si l'utilisateur a les permissions nécessaires
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message("Vous n'avez pas les permissions nécessaires pour configurer les alertes.", ephemeral=True)
+        return
+
     # Met à jour les paramètres des alertes dans la base de données
     collection26.update_one(
-        {"guild_id": str(ctx.guild.id)},
+        {"guild_id": str(interaction.guild.id)},
         {"$set": {
             "alerts_channel_id": str(alerts_channel.id),
             "ping_role_id": str(ping_role.id)
         }},
         upsert=True
     )
-    
+
     # Confirmation de la mise à jour
-    await ctx.send(f"Configuration des alertes mise à jour :\nCanal : {alerts_channel.mention}\nRôle à mentionner : {ping_role.mention}")
+    await interaction.response.send_message(f"Configuration des alertes mise à jour :\nCanal : {alerts_channel.mention}\nRôle à mentionner : {ping_role.mention}")
 
 # Commande d'alerte
 @bot.command()
