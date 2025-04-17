@@ -1883,7 +1883,10 @@ async def delta_warn(ctx, member: discord.Member, *, reason: str):
     
     await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
 
-@bot.hybrid_command(name="delta-unwarn")
+@bot.hybrid_command(
+    name="delta-unwarn",
+    description="Retirer un avertissement d'un utilisateur si nécessaire"
+)
 async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
@@ -1896,7 +1899,10 @@ async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
     else:
         await ctx.reply(f"{member.mention} n'a pas de warn.")
 
-@bot.hybrid_command(name="delta-blacklist")
+@bot.hybrid_command(
+    name="delta-blacklist",
+    description="Empêcher un utilisateur d'interagir avec le bot"
+)
 async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
@@ -1911,7 +1917,10 @@ async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
     )
     await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
 
-@bot.hybrid_command(name="delta-unblacklist")
+@bot.hybrid_command(
+    name="delta-unblacklist",
+    description="Retirer un utilisateur de la blacklist du bot"
+)
 async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
@@ -1924,7 +1933,10 @@ async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
     else:
         await ctx.reply(f"{member.mention} n'était pas blacklist.")
 
-@bot.hybrid_command(name="delta-list-warn")
+@bot.hybrid_command(
+    name="delta-list-warn",
+    description="Afficher la liste des avertissements d'un utilisateur"
+)
 async def delta_list_warn(ctx, member: discord.Member):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
@@ -1948,7 +1960,10 @@ async def delta_list_warn(ctx, member: discord.Member):
 
     await ctx.reply(embed=embed)
 
-@bot.hybrid_command(name="delta-list-blacklist")
+@bot.hybrid_command(
+    name="delta-list-blacklist",
+    description="Afficher la liste des utilisateurs blacklist du bot"
+)
 async def delta_list_blacklist(ctx):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
@@ -1972,7 +1987,6 @@ async def delta_list_blacklist(ctx):
         )
 
     await ctx.reply(embed=embed)
-
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
