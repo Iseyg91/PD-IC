@@ -7791,7 +7791,9 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
 
         try:
             # Envoie la deuxième étape
-            await interaction.response.send_modal(PresentationFormStep2())
+            await interaction.response.defer()  # Déférer la réponse avant d'envoyer le modal
+            await interaction.followup.send("Passons à l'étape suivante !", ephemeral=True)  # Envoyer un message de confirmation
+            await interaction.response.send_modal(PresentationFormStep2())  # Envoie le deuxième modal
         except discord.errors.HTTPException as e:
             print(f"Erreur lors de l'envoi du deuxième modal : {e}")
             await interaction.followup.send("❌ Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
