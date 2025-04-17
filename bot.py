@@ -7786,22 +7786,19 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
     age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
     passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
 
-    async def on_submit(self, interaction: discord.Interaction):
-        # Vérifier que l'interaction est valide
-        if not interaction.response.is_done():
-            await interaction.response.defer()
+async def on_submit(self, interaction: discord.Interaction):
+    # On stocke les informations de cette étape
+    interaction.client.presentation_data = {
+        'pseudo': self.pseudo.value,
+        'age': self.age.value,
+        'passion': self.passion.value,
+    }
 
-        # On stocke les informations de cette étape
-        interaction.client.presentation_data = {
-            'pseudo': self.pseudo.value,
-            'age': self.age.value,
-            'passion': self.passion.value,
-        }
-        try:
-            await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
-        except discord.errors.HTTPException as e:
-            print(f"Erreur lors de l'envoi du deuxième modal : {e}")
-            await interaction.followup.send("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
+    try:
+        await interaction.response.send_modal(PresentationFormStep2())  # Envoie la deuxième étape
+    except discord.errors.HTTPException as e:
+        print(f"Erreur lors de l'envoi du deuxième modal : {e}")
+        await interaction.followup.send("Une erreur est survenue lors de l'envoi du formulaire. Veuillez réessayer.", ephemeral=True)
 
 # --- Formulaire de présentation étape 2 ---
 class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
