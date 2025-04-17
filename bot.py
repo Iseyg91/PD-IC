@@ -1864,7 +1864,7 @@ async def is_admin(interaction: discord.Interaction):
 
 # Vérifie si l'utilisateur est staff sur PROJECT_DELTA
 def is_staff(ctx):
-    guild = bot.get_guild(PROJECT_DELTA_ID)
+    guild = bot.get_guild(PROJECT_DELTA)
     if not guild:
         return False
     member = guild.get_member(ctx.author.id)
@@ -1874,7 +1874,7 @@ def is_staff(ctx):
 
 # Vérifie si la cible est un admin sur PROJECT_DELTA
 async def is_target_protected(user_id: int):
-    guild = bot.get_guild(PROJECT_DELTA_ID)
+    guild = bot.get_guild(PROJECT_DELTA)
     if not guild:
         return False
     member = guild.get_member(user_id)
