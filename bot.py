@@ -4,6 +4,7 @@ from discord import app_commands, Embed, ButtonStyle, ui
 from discord.ui import Button, View, Select, Modal, TextInput, button
 from discord.ui import Modal, TextInput, Button, View
 from discord.utils import get
+from discord import TextStyle
 from functools import wraps
 import os
 import io
@@ -7768,22 +7769,27 @@ async def snipe(ctx, index: int = 1):
 
     await ctx.send(embed=embed)
 
+
+# Fonction fictive pour charger les paramètres du serveur
+def load_guild_settings(guild_id):
+    # Remplace ça par ton vrai système de chargement
+    return {
+        "presentation": {
+            "presentation_channel": 1359963854892957893  # ID d'exemple
+        }
+    }
+
 # --- Formulaire de présentation étape 1 ---
 class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance - Étape 1"):
-    def __init__(self):
-        super().__init__()
-
-        self.pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
-        self.age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
-        self.passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
-
-        self.add_item(self.pseudo)
-        self.add_item(self.age)
-        self.add_item(self.passion)
+    pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
+    age = TextInput(label="Ton âge", placeholder="Ex: 18", required=True, max_length=3)
+    passion = TextInput(label="Ta passion principale", placeholder="Ex: Gaming, Musique...", required=True, max_length=100)
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Stockage temporaire des données
-        interaction.client.presentation_data = {
+        # Stockage temporaire dans l'objet interaction.client
+        if not hasattr(interaction.client, 'presentation_data'):
+            interaction.client.presentation_data = {}
+        interaction.client.presentation_data[interaction.user.id] = {
             'pseudo': self.pseudo.value,
             'age': self.age.value,
             'passion': self.passion.value,
@@ -7793,52 +7799,40 @@ class PresentationFormStep1(discord.ui.Modal, title="📝 Faisons connaissance -
             await interaction.response.send_modal(PresentationFormStep2())
         except discord.errors.HTTPException as e:
             print(f"Erreur lors de l'envoi du deuxième modal : {e}")
-            if not interaction.response.is_done():
-                await interaction.response.defer(ephemeral=True)
             await interaction.followup.send("❌ Une erreur est survenue lors de l'envoi de la suite du formulaire.", ephemeral=True)
-
 
 # --- Formulaire de présentation étape 2 ---
 class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance - Étape 2"):
-    def __init__(self):
-        super().__init__()
-
-        self.bio = TextInput(
-            label="Une courte bio",
-            placeholder="Parle un peu de toi...",
-            style=TextStyle.paragraph,
-            required=True,
-            max_length=300
-        )
-        self.objectifs = TextInput(
-            label="Pourquoi as-tu rejoint ce serveur ?",
-            placeholder="Ex: Trouver une équipe, apprendre à coder...",
-            required=True,
-            max_length=150
-        )
-        self.reseaux = TextInput(
-            label="Tes réseaux sociaux préférés",
-            placeholder="Ex: Twitter, TikTok, Discord...",
-            required=False,
-            max_length=100
-        )
-
-        self.add_item(self.bio)
-        self.add_item(self.objectifs)
-        self.add_item(self.reseaux)
+    bio = TextInput(
+        label="Une courte bio",
+        placeholder="Parle un peu de toi...",
+        style=discord.TextStyle.paragraph,
+        required=True,
+        max_length=300
+    )
+    objectifs = TextInput(
+        label="Pourquoi as-tu rejoint ce serveur ?",
+        placeholder="Ex: Trouver une équipe, apprendre à coder...",
+        required=True,
+        max_length=150
+    )
+    reseaux = TextInput(
+        label="Tes réseaux sociaux préférés",
+        placeholder="Ex: Twitter, TikTok, Discord...",
+        required=False,
+        max_length=100
+    )
 
     async def on_submit(self, interaction: discord.Interaction):
-        # Récupération des données de la première étape
-        step1_data = getattr(interaction.client, 'presentation_data', {})
+        # Récupérer les données de la première étape
+        step1_data = getattr(interaction.client, 'presentation_data', {}).get(interaction.user.id, {})
 
-        # Fusion avec les données de cette étape
         step1_data.update({
             'bio': self.bio.value,
             'objectifs': self.objectifs.value,
             'reseaux': self.reseaux.value,
         })
 
-        # Chargement de la config serveur
         guild_id = interaction.guild.id
         guild_settings = load_guild_settings(guild_id)
         presentation_channel_id = guild_settings.get('presentation', {}).get('presentation_channel')
@@ -7857,20 +7851,21 @@ class PresentationFormStep2(discord.ui.Modal, title="📝 Faisons connaissance -
                 embed.add_field(name="🎂 Âge", value=step1_data['age'], inline=True)
                 embed.add_field(name="🎨 Passion", value=step1_data['passion'], inline=False)
                 embed.add_field(name="🎯 Objectif", value=step1_data['objectifs'], inline=False)
-                if step1_data['reseaux']:
+                if step1_data.get('reseaux'):
                     embed.add_field(name="🌐 Réseaux sociaux", value=step1_data['reseaux'], inline=False)
                 embed.add_field(name="📝 Bio", value=step1_data['bio'], inline=False)
                 embed.set_footer(text=f"Utilisateur ID: {interaction.user.id}", icon_url=interaction.user.display_avatar.url)
 
                 await presentation_channel.send(embed=embed)
-                await interaction.response.send_message("✅ Ta présentation a été envoyée avec succès ! 🎉", ephemeral=True)
+                await interaction.response.send_message("✅ Ta présentation a bien été envoyée !", ephemeral=True)
             else:
                 await interaction.response.send_message("❌ Le salon de présentation n'existe plus ou est invalide.", ephemeral=True)
         else:
-            await interaction.response.send_message("❌ Le salon de présentation n'est pas configuré.", ephemeral=True)
-
+            await interaction.response.send_message("❌ Le salon de présentation n'a pas été configuré pour ce serveur.", ephemeral=True)
 
 # --- Commande Slash ---
+bot = commands.Bot(command_prefix="+", intents=discord.Intents.all())
+
 @bot.tree.command(name="presentation", description="Remplis un formulaire pour te présenter à la communauté !")
 async def presentation(interaction: discord.Interaction):
     guild_id = interaction.guild.id
@@ -7888,6 +7883,8 @@ async def presentation(interaction: discord.Interaction):
             "⚠️ Le salon de présentation n’a pas été configuré sur ce serveur. Veuillez contacter un administrateur.",
             ephemeral=True
         )
+
+
 # Commande pour définir le salon de présentation
 @bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
 @app_commands.checks.has_permissions(administrator=True)
