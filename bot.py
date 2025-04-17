@@ -1862,53 +1862,73 @@ async def is_admin(interaction: discord.Interaction):
 
 #---------------------------------------------------------------------------- Staff Project : Delta:
 
-# Fonction pour vérifier si l'utilisateur est STAFF ou ISEY
+# Vérifie si l'utilisateur est staff sur PROJECT_DELTA
 def is_staff(ctx):
-    return (
-        STAFF_DELTA in [role.id for role in ctx.author.roles]
-        or ctx.author.id == ISEY_ID
-    )
+    guild = bot.get_guild(PROJECT_DELTA_ID)
+    if not guild:
+        return False
+    member = guild.get_member(ctx.author.id)
+    if not member:
+        return False
+    return any(role.id == STAFF_DELTA_ROLE_ID for role in member.roles)
 
-@bot.hybrid_command(
-    name="delta-warn",
-    description="Avertir un utilisateur qui abuse ou dérange via le bot"
-)
+# Vérifie si la cible est un admin sur PROJECT_DELTA
+async def is_target_protected(user_id: int):
+    guild = bot.get_guild(PROJECT_DELTA_ID)
+    if not guild:
+        return False
+    member = guild.get_member(user_id)
+    if not member:
+        return False
+    return any(role.permissions.administrator for role in member.roles)
+
+# AVERTISSEMENT
+@bot.hybrid_command(name="delta-warn", description="Avertir un utilisateur")
 async def delta_warn(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
     
+    if await is_target_protected(member.id):
+        return await ctx.reply("Tu ne peux pas warn cet utilisateur.")
+
     collection24.insert_one({
         "user_id": str(member.id),
         "moderator_id": str(ctx.author.id),
         "reason": reason,
         "timestamp": datetime.datetime.utcnow()
     })
-    
+
+    try:
+        await member.send(f"🚨 Tu as reçu un **avertissement** sur **Project : Delta**.\n**Raison :** `{reason}`")
+    except:
+        pass
+
     await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
 
-@bot.hybrid_command(
-    name="delta-unwarn",
-    description="Retirer un avertissement d'un utilisateur si nécessaire"
-)
+# RETRAIT AVERTISSEMENT
+@bot.hybrid_command(name="delta-unwarn", description="Retirer un avertissement")
 async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
-    warn = collection24.find_one_and_delete({
-        "user_id": str(member.id)
-    })
+    warn = collection24.find_one_and_delete({"user_id": str(member.id)})
     if warn:
+        try:
+            await member.send(f"✅ Ton **avertissement** sur **Project : Delta** a été retiré.\n**Raison :** `{reason}`")
+        except:
+            pass
         await ctx.reply(f"Warn de {member.mention} supprimé pour : `{reason}`")
     else:
         await ctx.reply(f"{member.mention} n'a pas de warn.")
 
-@bot.hybrid_command(
-    name="delta-blacklist",
-    description="Empêcher un utilisateur d'interagir avec le bot"
-)
+# BLACKLIST
+@bot.hybrid_command(name="delta-blacklist", description="Blacklist un utilisateur")
 async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+
+    if await is_target_protected(member.id):
+        return await ctx.reply("Tu ne peux pas blacklist cet utilisateur.")
 
     collection25.update_one(
         {"user_id": str(member.id)},
@@ -1918,77 +1938,71 @@ async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
         }},
         upsert=True
     )
+
+    try:
+        await member.send(f"⛔ Tu as été **blacklist** du bot **Project : Delta**.\n**Raison :** `{reason}`")
+    except:
+        pass
+
     await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
 
-@bot.hybrid_command(
-    name="delta-unblacklist",
-    description="Retirer un utilisateur de la blacklist du bot"
-)
+# UNBLACKLIST
+@bot.hybrid_command(name="delta-unblacklist", description="Retirer un utilisateur de la blacklist")
 async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
-    result = collection25.delete_one({
-        "user_id": str(member.id)
-    })
+    result = collection25.delete_one({"user_id": str(member.id)})
     if result.deleted_count:
+        try:
+            await member.send(f"✅ Tu as été **retiré de la blacklist** du bot **Project : Delta**.\n**Raison :** `{reason}`")
+        except:
+            pass
         await ctx.reply(f"{member.mention} a été retiré de la **blacklist** pour : `{reason}`")
     else:
         await ctx.reply(f"{member.mention} n'était pas blacklist.")
 
-@bot.hybrid_command(
-    name="delta-list-warn",
-    description="Afficher la liste des avertissements d'un utilisateur"
-)
+# LISTE DES WARNS
+@bot.hybrid_command(name="delta-list-warn", description="Lister les warns d’un utilisateur")
 async def delta_list_warn(ctx, member: discord.Member):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
     
-    warns = collection24.find({
-        "user_id": str(member.id)
-    })
-
-    warn_list = list(warns)
-    if not warn_list:
+    warns = list(collection24.find({"user_id": str(member.id)}))
+    if not warns:
         return await ctx.reply(f"Aucun warn trouvé pour {member.mention}.")
 
-    embed = discord.Embed(title=f"Warns de {member.display_name}", color=discord.Color.orange())
-    for i, warn in enumerate(warn_list, start=1):
+    embed = discord.Embed(title=f"⚠️ Warns de {member.display_name}", color=discord.Color.orange())
+    for i, warn in enumerate(warns, start=1):
         mod = await bot.fetch_user(int(warn['moderator_id']))
         embed.add_field(
-            name=f"⚠️ Warn #{i}",
+            name=f"Warn #{i}",
             value=f"**Par:** {mod.mention}\n**Raison:** `{warn['reason']}`\n**Date:** <t:{int(warn['timestamp'].timestamp())}:R>",
             inline=False
         )
-
     await ctx.reply(embed=embed)
 
-@bot.hybrid_command(
-    name="delta-list-blacklist",
-    description="Afficher la liste des utilisateurs blacklist du bot"
-)
+# LISTE DES BLACKLIST
+@bot.hybrid_command(name="delta-list-blacklist", description="Lister les utilisateurs blacklist")
 async def delta_list_blacklist(ctx):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
     blacklisted = list(collection25.find({}))
-
     if not blacklisted:
         return await ctx.reply("Aucun membre n'est blacklist.")
 
-    embed = discord.Embed(
-        title="Liste des membres blacklist",
-        color=discord.Color.red()
-    )
-
+    embed = discord.Embed(title="🚫 Membres blacklist", color=discord.Color.red())
     for i, bl in enumerate(blacklisted, start=1):
-        user = await bot.fetch_user(int(bl['user_id']))
-        embed.add_field(
-            name=f"🚫 Blacklist #{i}",
-            value=f"**Membre :** {user.mention}\n**Raison :** `{bl['reason']}`\n**Date :** <t:{int(bl['timestamp'].timestamp())}:R>",
-            inline=False
-        )
-
+        try:
+            user = await bot.fetch_user(int(bl['user_id']))
+            embed.add_field(
+                name=f"Blacklist #{i}",
+                value=f"**Membre :** {user.mention}\n**Raison :** `{bl['reason']}`\n**Date :** <t:{int(bl['timestamp'].timestamp())}:R>",
+                inline=False
+            )
+        except:
+            pass
     await ctx.reply(embed=embed)
 #---------------------------------------------------------------------------- Ticket:
 
