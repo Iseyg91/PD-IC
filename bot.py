@@ -7,6 +7,7 @@ from discord.utils import get
 from discord import TextStyle
 from functools import wraps
 import os
+from discord import app_commands, Interaction, TextChannel, Role
 import io
 import random
 import asyncio
@@ -8491,6 +8492,71 @@ async def listwl(ctx):
     else:
         whitelist_users = [f"<@{user_id}>" for user_id in wl_data["whitelist"]]
         await ctx.send("Utilisateurs dans la whitelist :\n" + "\n".join(whitelist_users))
+
+# ===============================
+# ┃ COMMANDE /set_absence
+# ===============================
+@bot.tree.command(name="set_absence", description="Configurer le salon des absences et le rôle autorisé")
+@discord.app_commands.describe(channel="Salon de destination", role="Rôle autorisé à envoyer des absences")
+async def set_absence(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("❌ Vous devez être administrateur pour utiliser cette commande.", ephemeral=True)
+
+    collection22.update_one(
+        {"guild_id": str(interaction.guild.id)},
+        {"$set": {
+            "channel_id": channel.id,
+            "role_id": role.id
+        }},
+        upsert=True
+    )
+    await interaction.response.send_message(f"✅ Salon d'absence défini sur {channel.mention}, rôle autorisé : {role.mention}", ephemeral=True)
+
+# ===============================
+# ┃ MODAL pour /absence
+# ===============================
+class AbsenceModal(discord.ui.Modal, title="Déclaration d'absence"):
+
+    pseudo = discord.ui.TextInput(label="Pseudo", placeholder="Ton pseudo IG ou Discord", max_length=100)
+    date = discord.ui.TextInput(label="Date(s)", placeholder="Ex: du 20 au 25 avril", max_length=100)
+    raison = discord.ui.TextInput(label="Raison", style=discord.TextStyle.paragraph, max_length=500)
+
+    def __init__(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        super().__init__()
+        self.interaction = interaction
+        self.channel = channel
+
+    async def on_submit(self, interaction: discord.Interaction):
+        embed = discord.Embed(title="📋 Nouvelle absence déclarée", color=0xffd700)
+        embed.set_author(name=interaction.user.name, icon_url=interaction.user.display_avatar.url)
+        embed.add_field(name="👤 Pseudo", value=self.pseudo.value, inline=False)
+        embed.add_field(name="📅 Date", value=self.date.value, inline=False)
+        embed.add_field(name="📝 Raison", value=self.raison.value, inline=False)
+        embed.set_footer(text=f"ID: {interaction.user.id}")
+        await self.channel.send(embed=embed)
+        await interaction.response.send_message("✅ Ton absence a bien été enregistrée !", ephemeral=True)
+
+# ===============================
+# ┃ COMMANDE /absence
+# ===============================
+@bot.tree.command(name="absence", description="Déclarer une absence")
+async def absence(interaction: discord.Interaction):
+    data = collection22.find_one({"guild_id": str(interaction.guild.id)})
+
+    if not data:
+        return await interaction.response.send_message("❌ Le système d'absence n'est pas configuré.", ephemeral=True)
+
+    role_id = data.get("role_id")
+    channel_id = data.get("channel_id")
+    channel = interaction.guild.get_channel(channel_id)
+
+    if not channel:
+        return await interaction.response.send_message("❌ Le salon d'absence n'a pas été trouvé.", ephemeral=True)
+
+    if not role_id or role_id not in [role.id for role in interaction.user.roles]:
+        return await interaction.response.send_message("❌ Vous n'avez pas le rôle requis pour déclarer une absence.", ephemeral=True)
+
+    await interaction.response.send_modal(AbsenceModal(interaction, channel))
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
