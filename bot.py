@@ -1925,91 +1925,31 @@ async def delta_list_warn(ctx, member: discord.Member):
 
     await ctx.reply(embed=embed)
 
-# Fonction pour vérifier si l'utilisateur est STAFF
-def is_staff(ctx):
-    return STAFF_DELTA in [role.id for role in ctx.author.roles]
-
-@bot.hybrid_command(name="delta-warn")
-async def delta_warn(ctx, member: discord.Member, *, reason: str):
-    if not is_staff(ctx):
-        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
-    
-    collection24.insert_one({
-        "guild_id": str(ctx.guild.id),
-        "user_id": str(member.id),
-        "moderator_id": str(ctx.author.id),
-        "reason": reason,
-        "timestamp": datetime.datetime.utcnow()
-    })
-    await ctx.reply(f"{member.mention} a été **warn** pour : `{reason}`")
-
-@bot.hybrid_command(name="delta-unwarn")
-async def delta_unwarn(ctx, member: discord.Member, *, reason: str):
+@bot.hybrid_command(name="delta-list-blacklist")
+async def delta_list_blacklist(ctx):
     if not is_staff(ctx):
         return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
 
-    warn = collection24.find_one_and_delete({
-        "guild_id": str(ctx.guild.id),
-        "user_id": str(member.id)
-    })
-    if warn:
-        await ctx.reply(f"Warn de {member.mention} supprimé pour : `{reason}`")
-    else:
-        await ctx.reply(f"{member.mention} n'a pas de warn.")
+    blacklisted = list(collection25.find({"guild_id": str(ctx.guild.id)}))
 
-@bot.hybrid_command(name="delta-blacklist")
-async def delta_blacklist(ctx, member: discord.Member, *, reason: str):
-    if not is_staff(ctx):
-        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
+    if not blacklisted:
+        return await ctx.reply("Aucun membre n'est blacklist.")
 
-    collection25.update_one(
-        {"guild_id": str(ctx.guild.id), "user_id": str(member.id)},
-        {"$set": {
-            "reason": reason,
-            "timestamp": datetime.datetime.utcnow()
-        }},
-        upsert=True
+    embed = discord.Embed(
+        title="Liste des membres blacklist",
+        color=discord.Color.red()
     )
-    await ctx.reply(f"{member.mention} a été **blacklist** pour : `{reason}`")
 
-@bot.hybrid_command(name="delta-unblacklist")
-async def delta_unblacklist(ctx, member: discord.Member, *, reason: str):
-    if not is_staff(ctx):
-        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
-
-    result = collection25.delete_one({
-        "guild_id": str(ctx.guild.id),
-        "user_id": str(member.id)
-    })
-    if result.deleted_count:
-        await ctx.reply(f"{member.mention} a été retiré de la **blacklist** pour : `{reason}`")
-    else:
-        await ctx.reply(f"{member.mention} n'était pas blacklist.")
-
-@bot.hybrid_command(name="delta-list-warn")
-async def delta_list_warn(ctx, member: discord.Member):
-    if not is_staff(ctx):
-        return await ctx.reply("Tu n'as pas la permission d'utiliser cette commande.")
-    
-    warns = collection24.find({
-        "guild_id": str(ctx.guild.id),
-        "user_id": str(member.id)
-    })
-
-    warn_list = list(warns)
-    if not warn_list:
-        return await ctx.reply(f"Aucun warn trouvé pour {member.mention}.")
-
-    embed = discord.Embed(title=f"Warns de {member.display_name}", color=discord.Color.orange())
-    for i, warn in enumerate(warn_list, start=1):
-        mod = await bot.fetch_user(int(warn['moderator_id']))
+    for i, bl in enumerate(blacklisted, start=1):
+        user = await bot.fetch_user(int(bl['user_id']))
         embed.add_field(
-            name=f"⚠️ Warn #{i}",
-            value=f"**Par:** {mod.mention}\n**Raison:** `{warn['reason']}`\n**Date:** <t:{int(warn['timestamp'].timestamp())}:R>",
+            name=f"🚫 Blacklist #{i}",
+            value=f"**Membre :** {user.mention}\n**Raison :** `{bl['reason']}`\n**Date :** <t:{int(bl['timestamp'].timestamp())}:R>",
             inline=False
         )
 
     await ctx.reply(embed=embed)
+
 #---------------------------------------------------------------------------- Ticket:
 
 # --- MODAL POUR FERMETURE ---
