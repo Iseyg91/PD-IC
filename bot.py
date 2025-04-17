@@ -6787,90 +6787,77 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
 
 # Fonction pour récupérer les paramètres d'alerte
 def get_alert_settings(guild_id: int):
-    alerte_data = collection26.find_one({"guild_id": guild_id})  # Récupère la configuration des alertes
+    alerte_data = collection26.find_one({"guild_id": guild_id})  # Utilisation de int pour la cohérence
     if alerte_data:
         return alerte_data.get("alerts_channel_id"), alerte_data.get("ping_role_id")
     return None, None
 
+# Commande slash pour configurer les alertes
 @bot.tree.command(name="set_alerte", description="Configure les alertes pour ce serveur.")
 @app_commands.describe(alerts_channel="Le canal où les alertes seront envoyées.", ping_role="Le rôle à mentionner lors des alertes.")
 async def set_alerte(interaction: discord.Interaction, alerts_channel: discord.TextChannel, ping_role: discord.Role):
-    # Vérifie si l'utilisateur a les permissions nécessaires
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message("Vous n'avez pas les permissions nécessaires pour configurer les alertes.", ephemeral=True)
         return
 
-    # Met à jour les paramètres des alertes dans la base de données
     collection26.update_one(
-        {"guild_id": str(interaction.guild.id)},
+        {"guild_id": interaction.guild.id},  # Stocké en int
         {"$set": {
-            "alerts_channel_id": str(alerts_channel.id),
-            "ping_role_id": str(ping_role.id)
+            "alerts_channel_id": alerts_channel.id,
+            "ping_role_id": ping_role.id
         }},
         upsert=True
     )
 
-    # Confirmation de la mise à jour
-    await interaction.response.send_message(f"Configuration des alertes mise à jour :\nCanal : {alerts_channel.mention}\nRôle à mentionner : {ping_role.mention}")
+    await interaction.response.send_message(f"✅ Configuration des alertes mise à jour :\n📢 Canal : {alerts_channel.mention}\n📌 Rôle : {ping_role.mention}")
 
-# Commande d'alerte
+# Commande prefix pour envoyer une alerte
 @bot.command()
 async def alerte(ctx, member: discord.Member, *, reason: str):
-    # Récupération des paramètres d'alerte depuis la base de données
     alerts_channel_id, ping_role_id = get_alert_settings(ctx.guild.id)
 
-    # Vérification de la validité des paramètres
     if not alerts_channel_id or not ping_role_id:
-        await ctx.send("La configuration des alertes est manquante. Utilisez `/set_alerte` pour la configurer.")
+        await ctx.send("⚠️ La configuration des alertes est manquante. Utilisez `/set_alerte` pour la configurer.")
         return
 
-    # Récupérer les objets de rôle et de salon
     ping_role = ctx.guild.get_role(int(ping_role_id))
     alerts_channel = bot.get_channel(int(alerts_channel_id))
 
-    # Vérification de l'existence des objets
     if not ping_role:
-        await ctx.send("Le rôle mentionné pour les alertes est introuvable.")
+        await ctx.send("⚠️ Le rôle mentionné pour les alertes est introuvable.")
         return
     if not alerts_channel:
-        await ctx.send("Le salon d'alertes est introuvable.")
+        await ctx.send("⚠️ Le salon d'alertes est introuvable.")
         return
 
-    # Message d'alerte mentionnant le rôle
     alert_message = f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}"
 
-    # Envoi de l'alerte
     try:
         await alerts_channel.send(alert_message)
     except discord.DiscordException as e:
-        await ctx.send(f"Erreur lors de l'envoi de l'alerte : {e}")
+        await ctx.send(f"❌ Erreur lors de l'envoi de l'alerte : {e}")
         return
 
-    # Création et envoi de l'embed d'alerte
     embed = discord.Embed(
         title="🚨 Alerte Émise 🚨",
         description=f"**Utilisateur:** {member.mention}\n**Raison:** {reason}",
-        color=0xff0000  # Couleur rouge pour attirer l'attention
+        color=0xff0000
     )
-    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace par une image personnalisée
-    embed.add_field(name="Alerte émise par", value=f"{ctx.author.mention}", inline=False)
-    embed.add_field(name="Membre mentionné", value=f"{member.mention}", inline=False)
+    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace cette URL si tu veux une autre icône
+    embed.add_field(name="Alerte émise par", value=ctx.author.mention, inline=False)
+    embed.add_field(name="Membre mentionné", value=member.mention, inline=False)
     embed.add_field(name="Raison de l'alerte", value=f"**{reason}**", inline=False)
 
-    # Ajout d'un footer avec l'avatar de l'auteur
     avatar_url = ctx.author.avatar.url if ctx.author.avatar else "https://discord.com/assets/2c21aeda6b5d1fd8f6dcf6d1f7e0f96b.png"
     embed.set_footer(text=f"Commandé par {ctx.author.name}", icon_url=avatar_url)
 
-    # Envoi de l'embed
     try:
         await alerts_channel.send(embed=embed)
     except discord.DiscordException as e:
-        await ctx.send(f"Erreur lors de l'envoi de l'embed : {e}")
+        await ctx.send(f"❌ Erreur lors de l'envoi de l'embed : {e}")
         return
 
-    # Confirmer l'envoi de l'alerte
-    await ctx.send(f"Alerte envoyée pour {member.mention} avec la raison : {reason}")
-
+    await ctx.send(f"✅ Alerte envoyée pour {member.mention} avec la raison : {reason}")
 
 
 sent_embed_channels = {}
