@@ -3857,10 +3857,12 @@ async def reset_stats(interaction: discord.Interaction):
     service_name="Nom du service acheté (ex: Project Delta)"
 )
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
+    # ⬇️ defer le plus tôt possible
     await interaction.response.defer(thinking=True)
 
+    # ⬇️ Ensuite seulement : vérification de contexte serveur
     if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
-        return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
+        return await interaction.followup.send("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
     if interaction.user.id not in STAFF_PROJECT:
         return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
