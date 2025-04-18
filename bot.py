@@ -681,12 +681,16 @@ class UrgencyClaimView(View):
 
 async def send_alert_to_admin(message, detected_word):
     try:
+        print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
+
         guild = bot.get_guild(PROJECT_DELTA)
+        print(f"📡 Récupération du serveur PROJECT_DELTA ({PROJECT_DELTA}) : {guild}")
         if not guild:
             print("⚠️ PROJECT_DELTA introuvable.")
             return
 
         channel = guild.get_channel(ALERT_CHANNEL_ID)
+        print(f"📢 Récupération du salon ALERT_CHANNEL_ID ({ALERT_CHANNEL_ID}) : {channel}")
         if not channel:
             print("⚠️ Salon d'alerte introuvable.")
             return
@@ -720,11 +724,12 @@ async def send_alert_to_admin(message, detected_word):
         view = UrgencyClaimView(message, detected_word)
         view.message_embed = embed
 
+        print(f"📨 Envoi de l'embed d'alerte avec mot : {detected_word}")
         await channel.send(embed=embed, view=view)
 
     except Exception as e:
         print(f"⚠️ Erreur envoi alerte : {e}")
-
+        traceback.print_exc()
 
 #-------------------------------------------------------------------------- Bot Event:
 
