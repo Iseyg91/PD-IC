@@ -51,7 +51,7 @@ UNBLACKLIST_LOG_CHANNEL = 1362435888826814586
 # --- ID Gestion Delta ---
 SUPPORT_ROLE_ID = 1359963854422933876
 SALON_REPORT_ID = 1361362788672344290
-ROLE_REPORT_ID = 1361306900981092548
+ROLE_REPORT_ID = 1362339195380568085
 TRANSCRIPT_CHANNEL_ID = 1361669998665535499
 
 # --- ID Gestion Clients Delta ---
@@ -639,54 +639,102 @@ async def on_message(message):
         print("❌ Erreur dans on_message :")
         traceback.print_exc()
 
-# 🔔 Fonction d'envoi d'alerte dans le salon spécifique
+class UrgencyClaimView(View):
+    def __init__(self, message, detected_word):
+        super().__init__(timeout=None)
+        self.message = message
+        self.detected_word = detected_word
+        self.claimed_by = None
+        self.message_embed = None
+
+        claim_btn = Button(
+            label="🚨 Claim Urgence",
+            style=discord.ButtonStyle.danger,
+            custom_id="claim_urgence"
+        )
+        claim_btn.callback = self.claim_urgence
+        self.add_item(claim_btn)
+
+    async def claim_urgence(self, interaction: discord.Interaction):
+        if STAFF_ROLE_ID not in [role.id for role in interaction.user.roles]:
+            await interaction.response.send_message("Tu n'as pas la permission de claim cette alerte.", ephemeral=True)
+            return
+
+        self.claimed_by = interaction.user
+        self.clear_items()
+
+        self.message_embed.add_field(name="🛡️ Claimed par", value=self.claimed_by.mention, inline=False)
+
+        prevenir_button = Button(
+            label="📨 PRÉVENIR ISEY",
+            style=discord.ButtonStyle.primary,
+            custom_id="prevenir_isey"
+        )
+        prevenir_button.callback = self.prevenir_isey
+        self.add_item(prevenir_button)
+
+        await interaction.response.edit_message(embed=self.message_embed, view=self)
+
+    async def prevenir_isey(self, interaction: discord.Interaction):
+        isey = interaction.client.get_user(ISEY_ID)
+        if isey:
+            try:
+                await isey.send(
+                    f"🚨 **Alerte sensible claimée par {self.claimed_by.mention}**\n"
+                    f"Serveur : **{self.message.guild.name}**\n"
+                    f"Lien du message : {self.message.jump_url}"
+                )
+            except Exception as e:
+                print(f"❌ Erreur d'envoi de MP à Isey : {e}")
+
+        await interaction.response.send_message(f"<@{ISEY_ID}> a été prévenu !", ephemeral=True)
+
+
+# 🔔 Fonction principale d'alerte
 async def send_alert_to_admin(message, detected_word):
     try:
-        # Essayer d'abord de récupérer le salon dans le serveur où le message a été envoyé
-        channel = message.guild.get_channel(1361329246236053586)
-        
+        guild = bot.get_guild(PROJECT_DELTA)
+        if not guild:
+            print("⚠️ Le serveur PROJECT_DELTA est introuvable.")
+            return
+
+        channel = guild.get_channel(ALERT_CHANNEL_ID)
         if not channel:
-            # Si le salon n'existe pas dans ce serveur, on va chercher dans un autre serveur
-            guild = bot.get_guild(1359963854200639498)
-            if guild:
-                channel = guild.get_channel(1361329246236053586)
+            print("⚠️ Le salon d'alerte est introuvable dans PROJECT_DELTA.")
+            return
 
-        if channel:
-            # Mentionner le rôle avant l'embed
-            role_mention = "<@&1361306900981092548>"
-            await channel.send(f"{role_mention} 🚨 Un mot sensible a été détecté ! Veuillez vérifier immédiatement.")
+        role_mention = "<@&1361306900981092548>"
+        await channel.send(f"{role_mention} 🚨 Un mot sensible a été détecté !")
 
-            # Création de l'embed
-            embed = discord.Embed(
-                title="🚨 Alerte : Mot sensible détecté !",
-                description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
-                color=discord.Color.red(),
-                timestamp=datetime.utcnow()
-            )
+        embed = discord.Embed(
+            title="🚨 Alerte : Mot sensible détecté !",
+            description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
+        )
 
-            embed.add_field(name="📍 Salon", value=message.channel.mention, inline=True)
-            embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
-            embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
+        embed.add_field(name="📍 Salon", value=message.channel.mention, inline=True)
+        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
+        embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
 
-            msg_content = message.content
-            if len(msg_content) > 900:
-                msg_content = msg_content[:900] + "..."
+        msg_content = message.content
+        if len(msg_content) > 900:
+            msg_content = msg_content[:900] + "..."
+        embed.add_field(name="💬 Message", value=f"```{msg_content}```", inline=False)
 
-            embed.add_field(name="💬 Message", value=f"```{msg_content}```", inline=False)
+        if hasattr(message, "jump_url"):
+            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
 
-            # S'assurer que jump_url est disponible
-            if hasattr(message, "jump_url"):
-                embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+        embed.add_field(name="🌐 Serveur", value=f"[{message.guild.name}](https://discord.com/channels/{message.guild.id})", inline=False)
 
-            avatar_url = bot.user.avatar.url if bot.user.avatar else None
-            if avatar_url:
-                embed.set_footer(text="Système de détection automatique", icon_url=avatar_url)
-            else:
-                embed.set_footer(text="Système de détection automatique")
+        avatar_url = bot.user.avatar.url if bot.user.avatar else None
+        embed.set_footer(text="Système de détection automatique", icon_url=avatar_url)
 
-            await channel.send(embed=embed)
-        else:
-            print("⚠️ Le salon n’a pas pu être trouvé dans le serveur cible.")
+        # Créer la vue avec le bouton Claim
+        view = UrgencyClaimView(message, detected_word)
+        view.message_embed = embed  # pour la modifier dans le claim
+
+        await channel.send(embed=embed, view=view)
 
     except Exception as e:
         print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
