@@ -496,15 +496,11 @@ sensitive_words = [
 user_messages = {}
 cooldowns = {}
 
+
 @bot.event
 async def on_message(message):
     try:
-        # Ignore les messages de bots
-        if message.author.bot:
-            return
-
-        # Ignore les messages privés (DM)
-        if message.guild is None:
+        if message.author.bot or message.guild is None:
             return
 
         user_id = str(message.author.id)
@@ -517,7 +513,7 @@ async def on_message(message):
                     print(f"🚨 Mot sensible détecté (blacklisté) dans le message de {message.author}: {word}")
                     asyncio.create_task(send_alert_to_admin(message, word))
                     break
-            return  # Empêche toute autre action pour les blacklistés
+            return
 
         # 💬 1. Vérifie les mots sensibles
         for word in sensitive_words:
@@ -532,17 +528,19 @@ async def on_message(message):
 
             embed = discord.Embed(
                 title="👋 Besoin d’aide ?",
-                description=(f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
-                             "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
-                             "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
-                             "✨ **Profite bien du serveur et amuse-toi !**"),
+                description=(
+                    f"Salut {message.author.mention} ! Moi, c’est **{bot.user.name}**, ton assistant sur ce serveur. 🤖\n\n"
+                    "🔹 **Pour voir toutes mes commandes :** Appuie sur le bouton ci-dessous ou tape `+help`\n"
+                    "🔹 **Une question ? Un souci ?** Contacte le staff !\n\n"
+                    "✨ **Profite bien du serveur et amuse-toi !**"
+                ),
                 color=discord.Color.blue()
             )
             embed.set_thumbnail(url=avatar_url)
             embed.set_footer(text="Réponse automatique • Disponible 24/7", icon_url=avatar_url)
 
             view = View()
-            button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary, custom_id="help_button")
+            button = Button(label="📜 Voir les commandes", style=discord.ButtonStyle.primary)
 
             async def button_callback(interaction: discord.Interaction):
                 ctx = await bot.get_context(interaction.message)
@@ -555,9 +553,8 @@ async def on_message(message):
             await message.channel.send(embed=embed, view=view)
             return
 
-        # 📦 3. Gestion des partenariats dans un salon spécifique
+        # 📦 3. Gestion des partenariats
         if message.channel.id == partnership_channel_id:
-            user_id = str(message.author.id)
             rank, partnerships = get_user_partner_info(user_id)
 
             await message.channel.send("<@&1355157749994098860>")
@@ -574,10 +571,9 @@ async def on_message(message):
             embed.set_image(
                 url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2025-02-15_231405.png?raw=true"
             )
-
             await message.channel.send(embed=embed)
 
-        # ⚙️ 4. Configuration du serveur pour sécurité
+        # ⚙️ 4. Configuration sécurité
         guild_data = collection.find_one({"guild_id": str(message.guild.id)})
         if not guild_data:
             await bot.process_commands(message)
@@ -591,23 +587,20 @@ async def on_message(message):
                 return
 
         # 💣 6. Anti-spam
-        if guild_data.get("anti_spam_limit", False):
+        if guild_data.get("anti_spam_limit"):
             now = time.time()
-            user_id = message.author.id
+            uid = message.author.id
+            user_messages.setdefault(uid, []).append(now)
 
-            if user_id not in user_messages:
-                user_messages[user_id] = []
-            user_messages[user_id].append(now)
+            recent = [t for t in user_messages[uid] if t > now - 5]
+            user_messages[uid] = recent
 
-            recent_messages = [t for t in user_messages[user_id] if t > now - 5]
-            user_messages[user_id] = recent_messages
-
-            if len(recent_messages) > 10:
+            if len(recent) > 10:
                 await message.guild.ban(message.author, reason="Spam excessif")
                 return
 
-            spam_messages = [t for t in user_messages[user_id] if t > now - 60]
-            if len(spam_messages) > guild_data["anti_spam_limit"]:
+            per_minute = [t for t in recent if t > now - 60]
+            if len(per_minute) > guild_data["anti_spam_limit"]:
                 await message.delete()
                 await message.author.send("⚠️ Vous envoyez trop de messages trop rapidement. Réduisez votre spam.")
                 return
@@ -619,25 +612,24 @@ async def on_message(message):
                 await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
                 return
 
-        # 🎉 8. Ajouter des Coins pour chaque message
+        # 🎉 8. Coins pour chaque message
         if message.guild.id == 1359963854200639498:
             coins_to_add = random.randint(3, 5)
-            add_coins(message.guild.id, str(message.author.id), coins_to_add)
+            add_coins(message.guild.id, user_id, coins_to_add)
 
-        # 🔄 9. Cooldown et mise à jour des XP
+        # 🔄 9. Cooldown XP
         now = datetime.utcnow()
-        guild_id = str(message.guild.id)
-
         if user_id not in cooldowns or now > cooldowns[user_id]:
-            update_user_xp(guild_id, user_id, xp_rate["message"])
+            update_user_xp(str(message.guild.id), user_id, xp_rate["message"])
             cooldowns[user_id] = now + timedelta(seconds=60)
 
-        # ✅ 10. Exécution normale des commandes
+        # ✅ 10. Traitement normal
         await bot.process_commands(message)
 
     except Exception:
         print("❌ Erreur dans on_message :")
         traceback.print_exc()
+
 
 class UrgencyClaimView(View):
     def __init__(self, message, detected_word):
@@ -647,16 +639,12 @@ class UrgencyClaimView(View):
         self.claimed_by = None
         self.message_embed = None
 
-        claim_btn = Button(
-            label="🚨 Claim Urgence",
-            style=discord.ButtonStyle.danger,
-            custom_id="claim_urgence"
-        )
+        claim_btn = Button(label="🚨 Claim Urgence", style=discord.ButtonStyle.danger)
         claim_btn.callback = self.claim_urgence
         self.add_item(claim_btn)
 
     async def claim_urgence(self, interaction: discord.Interaction):
-        if STAFF_ROLE_ID not in [role.id for role in interaction.user.roles]:
+        if STAFF_ROLE_ID not in [r.id for r in interaction.user.roles]:
             await interaction.response.send_message("Tu n'as pas la permission de claim cette alerte.", ephemeral=True)
             return
 
@@ -665,13 +653,9 @@ class UrgencyClaimView(View):
 
         self.message_embed.add_field(name="🛡️ Claimed par", value=self.claimed_by.mention, inline=False)
 
-        prevenir_button = Button(
-            label="📨 PRÉVENIR ISEY",
-            style=discord.ButtonStyle.primary,
-            custom_id="prevenir_isey"
-        )
-        prevenir_button.callback = self.prevenir_isey
-        self.add_item(prevenir_button)
+        prevenir_btn = Button(label="📨 PRÉVENIR ISEY", style=discord.ButtonStyle.primary)
+        prevenir_btn.callback = self.prevenir_isey
+        self.add_item(prevenir_btn)
 
         await interaction.response.edit_message(embed=self.message_embed, view=self)
 
@@ -680,35 +664,33 @@ class UrgencyClaimView(View):
         if isey:
             try:
                 await isey.send(
-                    f"🚨 **Alerte sensible claimée par {self.claimed_by.mention}**\n"
+                    f"🚨 **Alerte claimée par {self.claimed_by.mention}**\n"
                     f"Serveur : **{self.message.guild.name}**\n"
                     f"Lien du message : {self.message.jump_url}"
                 )
             except Exception as e:
-                print(f"❌ Erreur d'envoi de MP à Isey : {e}")
+                print(f"❌ Erreur MP Isey : {e}")
 
         await interaction.response.send_message(f"<@{ISEY_ID}> a été prévenu !", ephemeral=True)
 
 
-# 🔔 Fonction principale d'alerte
 async def send_alert_to_admin(message, detected_word):
     try:
         guild = bot.get_guild(PROJECT_DELTA)
         if not guild:
-            print("⚠️ Le serveur PROJECT_DELTA est introuvable.")
+            print("⚠️ PROJECT_DELTA introuvable.")
             return
 
         channel = guild.get_channel(ALERT_CHANNEL_ID)
         if not channel:
-            print("⚠️ Le salon d'alerte est introuvable dans PROJECT_DELTA.")
+            print("⚠️ Salon d'alerte introuvable.")
             return
 
-        role_mention = "<@&1361306900981092548>"
-        await channel.send(f"{role_mention} 🚨 Un mot sensible a été détecté !")
+        await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
 
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
-            description=f"Un message contenant un mot interdit a été détecté sur le serveur **{message.guild.name}**.",
+            description=f"Un message contenant un mot interdit a été détecté sur **{message.guild.name}**.",
             color=discord.Color.red(),
             timestamp=datetime.utcnow()
         )
@@ -717,27 +699,27 @@ async def send_alert_to_admin(message, detected_word):
         embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
         embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
 
-        msg_content = message.content
-        if len(msg_content) > 900:
-            msg_content = msg_content[:900] + "..."
-        embed.add_field(name="💬 Message", value=f"```{msg_content}```", inline=False)
+        content = message.content
+        if len(content) > 900:
+            content = content[:900] + "..."
+        embed.add_field(name="💬 Message", value=f"```{content}```", inline=False)
 
         if hasattr(message, "jump_url"):
-            embed.add_field(name="🔗 Lien vers le message", value=f"[Clique ici]({message.jump_url})", inline=False)
+            embed.add_field(name="🔗 Lien", value=f"[Clique ici]({message.jump_url})", inline=False)
 
         embed.add_field(name="🌐 Serveur", value=f"[{message.guild.name}](https://discord.com/channels/{message.guild.id})", inline=False)
 
-        avatar_url = bot.user.avatar.url if bot.user.avatar else None
-        embed.set_footer(text="Système de détection automatique", icon_url=avatar_url)
+        avatar = bot.user.avatar.url if bot.user.avatar else None
+        embed.set_footer(text="Système de détection automatique", icon_url=avatar)
 
-        # Créer la vue avec le bouton Claim
         view = UrgencyClaimView(message, detected_word)
-        view.message_embed = embed  # pour la modifier dans le claim
+        view.message_embed = embed
 
         await channel.send(embed=embed, view=view)
 
     except Exception as e:
-        print(f"⚠️ Erreur lors de l'envoi de l'alerte : {e}")
+        print(f"⚠️ Erreur envoi alerte : {e}")
+
 
 #-------------------------------------------------------------------------- Bot Event:
 
