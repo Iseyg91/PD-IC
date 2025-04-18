@@ -496,6 +496,11 @@ sensitive_words = [
 user_messages = {}
 cooldowns = {}
 
+# Fonction pour générer une regex flexible
+def make_flexible_pattern(word):
+    # Autorise espaces, tirets, underscores ou points entre les mots
+    parts = word.split()
+    return r"[\s\-_\.]*".join(re.escape(part) for part in parts)
 
 @bot.event
 async def on_message(message):
