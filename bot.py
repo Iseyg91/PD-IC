@@ -3899,25 +3899,31 @@ async def reset_stats(interaction: discord.Interaction):
     service_name="Nom du service acheté (ex: Project Delta)"
 )
 async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
-    # ⬇️ defer le plus tôt possible
-    await interaction.response.defer(thinking=True)
-
-    # ⬇️ Ensuite seulement : vérification de contexte serveur
-    if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
-        return await interaction.followup.send("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
-
-    if interaction.user.id not in STAFF_PROJECT:
-        return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-
     try:
+        # ⬇️ Déferer la réponse uniquement si ce n'est pas déjà fait
+        if not interaction.response.is_done():
+            await interaction.response.defer(thinking=True)
+
+        # ⬇️ Vérification du contexte serveur
+        if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
+            return await interaction.followup.send("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
+
+        # Vérification des permissions de l'utilisateur
+        if interaction.user.id != STAFF_PROJECT:
+            return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+
+        # Log de la commande lancée
         print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id}) pour {user} ({user.id})")
 
+        # Récupérer les données existantes
         existing_data = collection5.find_one({"guild_id": interaction.guild.id}) or {}
         existing_clients = existing_data.get("clients", [])
 
+        # Vérifier si le client existe déjà
         if any(client.get("user_id") == user.id for client in existing_clients):
             return await interaction.followup.send(f"⚠️ {user.mention} est déjà enregistré comme client !", ephemeral=True)
 
+        # Préparer les données du client
         purchase_date = datetime.utcnow().strftime("%d/%m/%Y à %H:%M:%S")
         client_data = {
             "user_id": user.id,
@@ -3931,6 +3937,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
             }
         }
 
+        # Mise à jour ou insertion des données
         if existing_data:
             collection5.update_one(
                 {"guild_id": interaction.guild.id},
@@ -3942,7 +3949,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
                 "clients": [client_data]
             })
 
-        # Rôle client
+        # Ajouter le rôle client
         role = discord.utils.get(interaction.guild.roles, id=1359963854389379241)
         if role:
             await user.add_roles(role)
@@ -3963,6 +3970,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         confirmation_embed.set_footer(text=f"Ajouté par {interaction.user}", icon_url=interaction.user.display_avatar.url)
         confirmation_embed.set_thumbnail(url=user.display_avatar.url)
 
+        # Envoi de la confirmation publique
         await interaction.followup.send(embed=confirmation_embed)
 
         # Embed de log privé
