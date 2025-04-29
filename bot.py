@@ -4153,10 +4153,11 @@ async def isey(ctx):
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
-    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
+    if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
-        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
+
     await interaction.response.defer(thinking=True)
 
     try:
