@@ -4154,43 +4154,108 @@ async def isey(ctx):
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
     if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
+        print("Utilisateur non autorisé.")
         await interaction.response.send_message("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
     await interaction.response.defer(thinking=True)
-    
-    code = code.strip().upper()
-    print(f"Code reçu : '{code}'")  # Pour debug
 
     try:
+        # Charger les données du serveur
         data = load_guild_settings(interaction.guild.id)
         premium_data = data.get("setup_premium", {})
 
+        # Initialiser la liste des codes utilisés si elle n'existe pas
         if "used_codes" not in premium_data:
             premium_data["used_codes"] = []
 
+        # Liste des codes valides
         valid_codes = [
-            "PROJECT-P3U9-DELTA","PROJECT-N2I0-DELTA","PROJECT-N9R9-DELTA","PROJECT-R7F8-DELTA","PROJECT-Y6Z9-DELTA","PROJECT-M6I5-DELTA","PROJECT-B6G5-DELTA","PROJECT-X3S8-DELTA","PROJECT-Q6A3-DELTA","PROJECT-O8Y0-DELTA","PROJECT-G1N8-DELTA","PROJECT-K3S8-DELTA","PROJECT-J2V1-DELTA","PROJECT-I7U8-DELTA","PROJECT-T8P5-DELTA","PROJECT-U1V6-DELTA","PROJECT-F3K9-DELTA","PROJECT-W5A4-DELTA","PROJECT-Q4W5-DELTA","PROJECT-U3R8-DELTA","PROJECT-N8K1-DELTA","PROJECT-T4Z3-DELTA","PROJECT-X2L4-DELTA","PROJECT-J2D6-DELTA","PROJECT-Z4W2-DELTA","PROJECT-U1M2-DELTA","PROJECT-T8U9-DELTA","PROJECT-H2X1-DELTA","PROJECT-O1P6-DELTA","PROJECT-O4D2-DELTA","PROJECT-E0L0-DELTA","PROJECT-A6D1-DELTA","PROJECT-G2G1-DELTA","PROJECT-O1S1-DELTA","PROJECT-L4H6-DELTA","PROJECT-S7A2-DELTA","PROJECT-W2I2-DELTA","PROJECT-O8P3-DELTA","PROJECT-G4Y4-DELTA","PROJECT-B2S6-DELTA","PROJECT-O5V6-DELTA","PROJECT-H9R7-DELTA","PROJECT-E4B9-DELTA","PROJECT-G4C6-DELTA","PROJECT-Z0G6-DELTA","PROJECT-P3J0-DELTA","PROJECT-M5M8-DELTA","PROJECT-O4U6-DELTA","PROJECT-B5E2-DELTA","PROJECT-P3B3-DELTA","PROJECT-A2N4-DELTA","PROJECT-K3H1-DELTA","PROJECT-I4I4-DELTA","PROJECT-E7C2-DELTA","PROJECT-Z1G2-DELTA","PROJECT-C1S1-DELTA","PROJECT-H2A0-DELTA","PROJECT-Y7F3-DELTA","PROJECT-N3J1-DELTA","PROJECT-M9L9-DELTA","PROJECT-H4Y8-DELTA","PROJECT-T2K8-DELTA","PROJECT-U0T7-DELTA","PROJECT-W1Z9-DELTA","PROJECT-Y4E6-DELTA","PROJECT-W8Q4-DELTA","PROJECT-N2N9-DELTA","PROJECT-E5A9-DELTA","PROJECT-X2D4-DELTA","PROJECT-L4W1-DELTA","PROJECT-F5X6-DELTA","PROJECT-Z1J6-DELTA","PROJECT-Q2Y4-DELTA","PROJECT-T4M5-DELTA","PROJECT-N9X8-DELTA","PROJECT-C2P5-DELTA","PROJECT-D8Y2-DELTA","PROJECT-E5Y2-DELTA","PROJECT-Z0I8-DELTA","PROJECT-J8D6-DELTA","PROJECT-G8T8-DELTA","PROJECT-I0L4-DELTA","PROJECT-X8Z0-DELTA","PROJECT-E6G8-DELTA","PROJECT-Q8W5-DELTA","PROJECT-T2R7-DELTA","PROJECT-Y6C5-DELTA","PROJECT-Y7E9-DELTA","PROJECT-O0K8-DELTA","PROJECT-H3B5-DELTA","PROJECT-B7W8-DELTA","PROJECT-W6N9-DELTA","PROJECT-D4C6-DELTA","PROJECT-G7S1-DELTA","PROJECT-Z5Y3-DELTA","PROJECT-N3H4-DELTA","PROJECT-F3A1-DELTA","PROJECT-G4M3-DELTA","PROJECT-U6M8-DELTA","PROJECT-K5J7-DELTA","PROJECT-E7P0-DELTA","PROJECT-T7T3-DELTA","PROJECT-Q2Z3-DELTA","PROJECT-L3C6-DELTA","PROJECT-W7D0-DELTA","PROJECT-T6Q0-DELTA","PROJECT-V4R2-DELTA","PROJECT-B0Z4-DELTA","PROJECT-N0O9-DELTA","PROJECT-G4F9-DELTA","PROJECT-P7H5-DELTA","PROJECT-M8P3-DELTA","PROJECT-N2Y2-DELTA","PROJECT-L7X0-DELTA","PROJECT-D9O4-DELTA","PROJECT-W8Z4-DELTA","PROJECT-U6E7-DELTA","PROJECT-J6X6-DELTA","PROJECT-J3I7-DELTA","PROJECT-G7S2-DELTA","PROJECT-C3H8-DELTA","PROJECT-W6P7-DELTA","PROJECT-B7K2-DELTA","PROJECT-U4E6-DELTA","PROJECT-H1Y6-DELTA","PROJECT-V6D5-DELTA","PROJECT-B5S4-DELTA","PROJECT-V0V4-DELTA","PROJECT-O1O5-DELTA","PROJECT-S9G4-DELTA","PROJECT-H0V6-DELTA","PROJECT-R4E5-DELTA","PROJECT-R3Q3-DELTA","PROJECT-D1Z2-DELTA","PROJECT-E9D5-DELTA","PROJECT-D4K4-DELTA","PROJECT-S6P1-DELTA","PROJECT-P2L9-DELTA","PROJECT-H9S2-DELTA","PROJECT-I5F0-DELTA","PROJECT-I7I8-DELTA","PROJECT-C5R8-DELTA","PROJECT-M0C7-DELTA","PROJECT-H8Z7-DELTA","PROJECT-J9K6-DELTA","PROJECT-O5E8-DELTA","PROJECT-E0K1-DELTA","PROJECT-I6X5-DELTA","PROJECT-Z8G3-DELTA","PROJECT-G1W0-DELTA","PROJECT-I5A7-DELTA","PROJECT-N4V5-DELTA","PROJECT-F2W6-DELTA","PROJECT-Q5G5-DELTA","PROJECT-U8J9-DELTA","PROJECT-O0K3-DELTA","PROJECT-T7Z5-DELTA","PROJECT-K0L4-DELTA","PROJECT-H4S1-DELTA","PROJECT-E9R5-DELTA","PROJECT-H3C7-DELTA","PROJECT-W0L6-DELTA","PROJECT-Y7T9-DELTA","PROJECT-K6V5-DELTA","PROJECT-A6H3-DELTA","PROJECT-V1K7-DELTA","PROJECT-H8O6-DELTA","PROJECT-G5R4-DELTA","PROJECT-V3K5-DELTA","PROJECT-G4U9-DELTA","PROJECT-E6K2-DELTA","PROJECT-H9M1-DELTA","PROJECT-Z2N3-DELTA","PROJECT-H8P2-DELTA","PROJECT-F4N8-DELTA","PROJECT-I9O5-DELTA","PROJECT-M5S7-DELTA","PROJECT-R2F5-DELTA","PROJECT-E6P3-DELTA","PROJECT-F2I7-DELTA","PROJECT-X9T1-DELTA","PROJECT-S2W9-DELTA","PROJECT-E1M6-DELTA","PROJECT-U6A9-DELTA","PROJECT-Z3L7-DELTA","PROJECT-N6W5-DELTA","PROJECT-B6G7-DELTA","PROJECT-B1B1-DELTA","PROJECT-W4B9-DELTA","PROJECT-S1L6-DELTA","PROJECT-S7B9-DELTA","PROJECT-D2T9-DELTA","PROJECT-Z2X4-DELTA","PROJECT-Q3X4-DELTA","PROJECT-J3W3-DELTA","PROJECT-Q8W4-DELTA","PROJECT-J3O7-DELTA","PROJECT-J1B9-DELTA","PROJECT-H5C3-DELTA","PROJECT-P2F6-DELTA","PROJECT-U0I2-DELTA","PROJECT-E6B2-DELTA","PROJECT-D3A3-DELTA","PROJECT-C3G8-DELTA","PROJECT-M3E6-DELTA","PROJECT-W9S2-DELTA","PROJECT-O0K5-DELTA","PROJECT-N4B3-DELTA","PROJECT-J2E9-DELTA","PROJECT-N3Q4-DELTA","PROJECT-W4R8-DELTA","PROJECT-V3Q7-DELTA","PROJECT-C9B3-DELTA","PROJECT-G0G3-DELTA","PROJECT-I4V9-DELTA","PROJECT-V4Y8-DELTA","PROJECT-X5M1-DELTA","PROJECT-P5J0-DELTA","PROJECT-D3X0-DELTA","PROJECT-A3X8-DELTA","PROJECT-C2X4-DELTA","PROJECT-E7G8-DELTA","PROJECT-H9F3-DELTA","PROJECT-G9I8-DELTA","PROJECT-T2D0-DELTA","PROJECT-I5T5-DELTA","PROJECT-M0M4-DELTA","PROJECT-R1R3-DELTA","PROJECT-X6L8-DELTA","PROJECT-C3U0-DELTA","PROJECT-R4L3-DELTA","PROJECT-W6D2-DELTA","PROJECT-R7D9-DELTA","PROJECT-C0S6-DELTA","PROJECT-V9N7-DELTA","PROJECT-Z3P8-DELTA","PROJECT-N5V2-DELTA","PROJECT-F7V6-DELTA","PROJECT-W8H1-DELTA","PROJECT-C3G6-DELTA","PROJECT-C7D4-DELTA","PROJECT-J0C4-DELTA","PROJECT-C9N7-DELTA","PROJECT-L6N9-DELTA","PROJECT-R3W2-DELTA","PROJECT-L9I5-DELTA","PROJECT-C3T8-DELTA","PROJECT-S4T3-DELTA","PROJECT-X9K0-DELTA","PROJECT-W5O2-DELTA","PROJECT-K0W1-DELTA","PROJECT-K7C2-DELTA","PROJECT-J9Y2-DELTA","PROJECT-E7I8-DELTA","PROJECT-E8S6-DELTA","PROJECT-Z1H4-DELTA","PROJECT-K9Z9-DELTA","PROJECT-B0H8-DELTA","PROJECT-W1V1-DELTA","PROJECT-V2G5-DELTA","PROJECT-P5Q3-DELTA","PROJECT-J3N9-DELTA","PROJECT-R8P3-DELTA","PROJECT-N8U8-DELTA","PROJECT-S1J8-DELTA","PROJECT-L7S3-DELTA","PROJECT-Q5L1-DELTA","PROJECT-R8C2-DELTA","PROJECT-A7Y9-DELTA","PROJECT-L3J9-DELTA","PROJECT-I7G9-DELTA","PROJECT-I8K2-DELTA","PROJECT-W0J7-DELTA","PROJECT-K3B9-DELTA","PROJECT-W3M4-DELTA","PROJECT-Z1M6-DELTA","PROJECT-O0C7-DELTA","PROJECT-C0G1-DELTA","PROJECT-Z2O4-DELTA","PROJECT-X8L1-DELTA","PROJECT-S7G5-DELTA","PROJECT-L7E3-DELTA","PROJECT-Q5L3-DELTA","PROJECT-I1K6-DELTA","PROJECT-T6P2-DELTA","PROJECT-R6G0-DELTA","PROJECT-T4V7-DELTA","PROJECT-R6J5-DELTA","PROJECT-B4I1-DELTA","PROJECT-O4K1-DELTA","PROJECT-Y7L9-DELTA","PROJECT-G8X2-DELTA","PROJECT-Q8S5-DELTA","PROJECT-G5M7-DELTA","PROJECT-A7L0-DELTA","PROJECT-P9E7-DELTA","PROJECT-H9B3-DELTA","PROJECT-S0S0-DELTA","PROJECT-W5B1-DELTA","PROJECT-U7D7-DELTA",
+            "PROJECT-P3U9-DELTA","PROJECT-N2I0-DELTA","PROJECT-N9R9-DELTA","PROJECT-R7F8-DELTA","PROJECT-Y6Z9-DELTA","PROJECT-M6I5-DELTA","PROJECT-B6G5-DELTA","PROJECT-X3S8-DELTA","PROJECT-Q6A3-DELTA","PROJECT-O8Y0-DELTA","PROJECT-G1N8-DELTA","PROJECT-K3S8-DELTA","PROJECT-J2V1-DELTA","PROJECT-I7U8-DELTA","PROJECT-T8P5-DELTA","PROJECT-U1V6-DELTA","PROJECT-F3K9-DELTA","PROJECT-W5A4-DELTA","PROJECT-Q4W5-DELTA","PROJECT-U3R8-DELTA",
         ]
 
-        if code not in valid_codes:
-            await interaction.followup.send("❌ Code invalide.", ephemeral=True)
-            return
+        # Vérifier si le code est valide
+        if code in valid_codes:
+            if code in premium_data["used_codes"]:
+                embed = discord.Embed(
+                    title="❌ Code déjà utilisé",
+                    description="Ce code premium a déjà été utilisé. Vous ne pouvez pas l'utiliser à nouveau.",
+                    color=discord.Color.red()
+                )
+                await interaction.followup.send(embed=embed)
+                return
 
-        if code in premium_data["used_codes"]:
-            await interaction.followup.send("❌ Ce code a déjà été utilisé.", ephemeral=True)
-            return
+            if data.get("is_premium", False):
+                embed = discord.Embed(
+                    title="⚠️ Serveur déjà Premium",
+                    description=f"Le serveur **{interaction.guild.name}** est déjà un serveur premium. 🎉",
+                    color=discord.Color.yellow()
+                )
+                embed.add_field(
+                    name="Pas de double activation",
+                    value="Ce serveur a déjà activé le code premium. Aucun changement nécessaire.",
+                    inline=False
+                )
+                embed.set_footer(text="Merci d'utiliser nos services premium.")
+                embed.set_thumbnail(url=interaction.guild.icon.url)
+                await interaction.followup.send(embed=embed)
+                return
 
-        # Marquer le code comme utilisé
-        premium_data["used_codes"].append(code)
-        data["setup_premium"] = premium_data
-        save_guild_settings(interaction.guild.id, data)
+            # Activer le premium
+            data["is_premium"] = True
+            premium_data["used_codes"].append(code)
+            data["setup_premium"] = premium_data
 
-        await interaction.followup.send("✅ Code premium activé avec succès !", ephemeral=True)
+            # ✅ ICI : indentation correcte
+            collection2.update_one(
+                {"guild_id": interaction.guild.id},
+                {
+                    "$set": {
+                        "guild_name": interaction.guild.name,
+                        "is_premium": True,
+                        "used_codes": premium_data["used_codes"]
+                    }
+                },
+                upsert=True
+            )
+
+            embed = discord.Embed(
+                title="✅ Serveur Premium Activé",
+                description=f"Le serveur **{interaction.guild.name}** est maintenant premium ! 🎉",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="Avantages Premium",
+                value="Profitez des fonctionnalités exclusives réservées aux serveurs premium. 🎁",
+                inline=False
+            )
+            embed.set_footer(text="Merci d'utiliser nos services premium.")
+            embed.set_thumbnail(url=interaction.guild.icon.url)
+            await interaction.followup.send(embed=embed)
+
+        else:
+            embed = discord.Embed(
+                title="❌ Code Invalide",
+                description="Le code que vous avez entré est invalide. Veuillez vérifier votre code ou contactez le support.",
+                color=discord.Color.red()
+            )
+            embed.add_field(
+                name="Suggestions",
+                value="1. Assurez-vous d'avoir saisi le code exactement comme il est fourni.\n"
+                      "2. Le code est sensible à la casse.\n"
+                      "3. Si vous avez des doutes, contactez le support.",
+                inline=False
+            )
+            embed.add_field(
+                name="Code Expiré ?",
+                value="Si vous pensez que votre code devrait être valide mais ne l'est pas, il est possible qu'il ait expiré.",
+                inline=False
+            )
+            await interaction.followup.send(embed=embed)
 
     except Exception as e:
-        print(f"Erreur lors du traitement du code premium : {e}")
-        await interaction.followup.send("❌ Une erreur est survenue.", ephemeral=True)
+        await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
+
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
