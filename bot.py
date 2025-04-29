@@ -7350,10 +7350,10 @@ PROTECTIONS = [
     "anti_deletechannel",
     "anti_createrole",
     "anti_deleterole",
-    "whitelist",
-    "anti_everyone",  # Protection Anti-Everyone
-    "anti_spam",      # Protection Anti-Spam
-    "anti_links"      # Protection Anti-Liens
+    "anti_everyone",
+    "anti_spam",
+    "anti_links",
+    "whitelist"
 ]
 
 PROTECTION_DETAILS = {
@@ -7364,10 +7364,10 @@ PROTECTION_DETAILS = {
     "anti_deletechannel": ("📥 Anti-Suppression de salon", "Empêche la suppression non autorisée de salons."),
     "anti_createrole": ("➕ Anti-Création de rôle", "Empêche la création non autorisée de rôles."),
     "anti_deleterole": ("➖ Anti-Suppression de rôle", "Empêche la suppression non autorisée de rôles."),
-    "whitelist": ("✅ Liste blanche", "Utilisateurs exemptés des protections."),
-    "anti_everyone": ("🚫 Anti-Everyone", "Empêche les mentions de @everyone."),
-    "anti_spam": ("🚫 Anti-Spam", "Empêche l'envoi de messages trop rapides ou répétés."),
-    "anti_links": ("🚫 Anti-Liens", "Empêche l'envoi de liens externes.")
+    "anti_everyone": ("📣 Anti-Everyone", "Empêche l'utilisation abusive de @everyone ou @here."),
+    "anti_spam": ("💬 Anti-Spam", "Empêche le spam excessif de messages."),
+    "anti_links": ("🔗 Anti-Liens", "Empêche l'envoi de liens non autorisés."),
+    "whitelist": ("✅ Liste blanche", "Utilisateurs exemptés des protections.")
 }
 
 def is_admin_or_isey():
@@ -7398,7 +7398,6 @@ def format_protection_field(prot, data, guild, bot):
     date_info = f"\n{formatted_date}" if formatted_date else ""
 
     value = f"> {desc}\n> **Statut :** {status}\n> **Sécurité :** {get_status_bar(enabled)}{mod_info}{date_info}"
-
     return name, value
 
 async def notify_owner_of_protection_change(guild, prot, new_value, interaction):
@@ -7410,38 +7409,29 @@ async def notify_owner_of_protection_change(guild, prot, new_value, interaction)
                             f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
                 color=discord.Color.green() if new_value else discord.Color.red()
             )
-
             embed.add_field(
                 name="👤 Modifiée par :",
                 value=f"{interaction.user.mention} (`{interaction.user}`)",
                 inline=False
             )
-            embed.add_field(
-                name="🏠 Serveur :",
-                value=guild.name,
-                inline=False
-            )
+            embed.add_field(name="🏠 Serveur :", value=guild.name, inline=False)
             embed.add_field(
                 name="🕓 Date de modification :",
-                value=f"<t:{int(datetime.utcnow().timestamp())}:f>",  # Formatage de date automatique dans Discord
+                value=f"<t:{int(datetime.utcnow().timestamp())}:f>",
                 inline=False
             )
-
             embed.add_field(
                 name="ℹ️ Infos supplémentaires :",
                 value="Vous pouvez reconfigurer vos protections à tout moment avec la commande `/protection`.",
                 inline=False
             )
 
-            # Envoi du message à l'owner
-            try:
-                await guild.owner.send(embed=embed)
-            except discord.Forbidden:
-                print("Impossible d’envoyer un DM à l’owner.")
+            await guild.owner.send(embed=embed)
+        except discord.Forbidden:
+            print("Impossible d’envoyer un DM à l’owner.")
         except Exception as e:
-            print(f"Erreur lors de la création de l'embed: {e}")
+            print(f"Erreur lors de l'envoi du DM : {e}")
 
-# Ajout des protections Anti-Everyone, Anti-Spam et Anti-Liens dans la gestion
 class ProtectionMenu(Select):
     def __init__(self, guild_id, protection_data, bot):
         self.guild_id = guild_id
@@ -7470,7 +7460,6 @@ class ProtectionMenu(Select):
         current = self.protection_data.get(prot, False)
         new_value = not current
 
-        # Mise à jour dans MongoDB
         collection4.update_one(
             {"guild_id": str(self.guild_id)},
             {"$set": {
@@ -7485,12 +7474,10 @@ class ProtectionMenu(Select):
         self.protection_data[f"{prot}_updated_by"] = interaction.user.id
         self.protection_data[f"{prot}_updated_at"] = datetime.utcnow()
 
-        # Notification à l'owner
         guild = interaction.guild
         if guild and guild.owner:
             await notify_owner_of_protection_change(guild, prot, new_value, interaction)
 
-        # Rafraîchissement de l'embed
         embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
         for p in PROTECTIONS:
             if p == "whitelist":
@@ -7512,6 +7499,38 @@ class ProtectionMenu(Select):
         view = View()
         view.add_item(ProtectionMenu(self.guild_id, self.protection_data, self.bot))
         await interaction.response.edit_message(embed=embed, view=view)
+
+class ProtectionView(View):
+    def __init__(self, guild_id, protection_data, bot):
+        super().__init__(timeout=None)
+        self.add_item(ProtectionMenu(guild_id, protection_data, bot))
+
+@bot.hybrid_command(name="protection", description="Configurer les protections du serveur")
+@is_admin_or_isey()
+async def protection(ctx: commands.Context):
+    guild_id = str(ctx.guild.id)
+    protection_data = collection4.find_one({"guild_id": guild_id}) or {}
+
+    embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
+    for prot in PROTECTIONS:
+        if prot == "whitelist":
+            whitelist_data = collection19.find_one({"guild_id": guild_id}) or {}
+            wl_users = whitelist_data.get("whitelist", [])
+            if not wl_users:
+                embed.add_field(name=PROTECTION_DETAILS[prot][0], value="Aucun utilisateur whitelisté.", inline=False)
+            else:
+                members = []
+                for uid in wl_users:
+                    user = ctx.guild.get_member(int(uid)) or await ctx.bot.fetch_user(int(uid))
+                    members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
+                embed.add_field(name=PROTECTION_DETAILS[prot][0], value="\n".join(members), inline=False)
+        else:
+            name, value = format_protection_field(prot, protection_data, ctx.guild, ctx.bot)
+            embed.add_field(name=name, value=value, inline=False)
+
+    embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer la sécurité du serveur.")
+    view = ProtectionView(guild_id, protection_data, ctx.bot)
+    await ctx.send(embed=embed, view=view)
 
 # Ajout des protections Anti-Everyone, Anti-Spam, Anti-Liens dans la commande
 @bot.hybrid_command(name="protection", description="Configurer les protections du serveur")
