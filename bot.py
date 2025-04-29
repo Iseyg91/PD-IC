@@ -7532,34 +7532,6 @@ async def protection(ctx: commands.Context):
     view = ProtectionView(guild_id, protection_data, ctx.bot)
     await ctx.send(embed=embed, view=view)
 
-# Ajout des protections Anti-Everyone, Anti-Spam, Anti-Liens dans la commande
-@bot.hybrid_command(name="protection", description="Configurer les protections du serveur")
-@is_admin_or_isey()
-async def protection(ctx: commands.Context):
-    guild_id = str(ctx.guild.id)
-    protection_data = collection4.find_one({"guild_id": guild_id}) or {}
-
-    embed = discord.Embed(title="🛡️ Système de Protection", color=discord.Color.blurple())
-    for prot in PROTECTIONS:
-        if prot == "whitelist":
-            whitelist_data = collection19.find_one({"guild_id": guild_id}) or {}
-            wl_users = whitelist_data.get("whitelist", [])
-            if not wl_users:
-                embed.add_field(name=PROTECTION_DETAILS[prot][0], value="Aucun utilisateur whitelisté.", inline=False)
-            else:
-                members = []
-                for uid in wl_users:
-                    user = ctx.guild.get_member(int(uid)) or await ctx.bot.fetch_user(int(uid))
-                    members.append(f"- {user.mention if isinstance(user, discord.Member) else user.name}")
-                embed.add_field(name=PROTECTION_DETAILS[prot][0], value="\n".join(members), inline=False)
-        else:
-            name, value = format_protection_field(prot, protection_data, ctx.guild, ctx.bot)
-            embed.add_field(name=name, value=value, inline=False)
-
-    embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer la sécurité du serveur.")
-    view = ProtectionView(guild_id, protection_data, ctx.bot)
-    await ctx.send(embed=embed, view=view)
-
 # Fonction pour ajouter un utilisateur à la whitelist
 @bot.command()
 async def addwl(ctx, user: discord.User):
