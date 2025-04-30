@@ -5055,10 +5055,10 @@ async def sucre(ctx, member: discord.Member = None):
 async def rat(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
     guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
@@ -5081,10 +5081,10 @@ async def rat(ctx, member: discord.Member = None):
 async def con(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
     guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
@@ -5107,10 +5107,10 @@ async def con(ctx, member: discord.Member = None):
 async def libido(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
     guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
@@ -5133,10 +5133,10 @@ async def libido(ctx, member: discord.Member = None):
 async def zizi(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
     guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
@@ -5162,10 +5162,10 @@ async def zizi(ctx, member: discord.Member = None):
 async def fou(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
     guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
@@ -5186,12 +5186,10 @@ async def fou(ctx, member: discord.Member = None):
 
 @bot.command()
 async def testo(ctx, member: discord.Member = None):
-    # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
-    guild_troll_data = collection27.find_one({"guild_id": guild_id})
-    
-    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
-        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
         return
     
     if member is None:
