@@ -5505,7 +5505,7 @@ async def love(ctx, member: discord.Member = None):
     embed.set_footer(text=f"Commandé par {ctx.author.name} | ♥️by Iseyg", icon_url=ctx.author.avatar.url)
     
     # Image en grand
-    embed.set_image(url="https://img.freepik.com/photos-gratuite/silhouette-mains-coeur-contre-lumieres-ville-nuit_23-2150984259.jpg?ga=GA1.1.719997987.1741155829&semt=ais_hybrid")
+    embed.set_image(url="https://media.istockphoto.com/id/636379014/fr/photo/mains-formant-une-forme-de-c%C5%93ur-avec-sa-silhouette-au-coucher-du-soleil.jpg?s=612x612&w=0&k=20&c=x9tv_eEIyf5eBbNKJ4L8Nte2LE-UUh6YXVtr29ubwRk=")
 
     await ctx.send(embed=embed)
 
