@@ -652,27 +652,21 @@ class UrgencyClaimView(View):
 
 async def send_alert_to_admin(message, detected_word):
     try:
-        print(f"[DEBUG] 🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
+        print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
 
-        data = load_guild_settings(message.guild.id)
-        print(f"[DEBUG] Données serveur chargées : {data}")
-
-        is_premium = data.get("is_premium", False)
-        print(f"[DEBUG] Statut premium : {is_premium}")
-
-        alert_channel_id = ALERT_CHANNEL_ID if is_premium else ALERT_NON_PREM_ID
-        print(f"[DEBUG] ID du salon d'alerte utilisé : {alert_channel_id}")
-
-        channel = message.guild.get_channel(alert_channel_id)
-        print(f"[DEBUG] Salon trouvé : {channel}")
-
-        if not channel:
-            print(f"[ERROR] Salon d'alerte introuvable avec l'ID : {alert_channel_id}")
+        guild = bot.get_guild(PROJECT_DELTA)
+        print(f"📡 Récupération du serveur PROJECT_DELTA ({PROJECT_DELTA}) : {guild}")
+        if not guild:
+            print("⚠️ PROJECT_DELTA introuvable.")
             return
 
-        if is_premium:
-            print(f"[DEBUG] Envoi du ping au rôle admin.")
-            await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
+        channel = guild.get_channel(ALERT_CHANNEL_ID)
+        print(f"📢 Récupération du salon ALERT_CHANNEL_ID ({ALERT_CHANNEL_ID}) : {channel}")
+        if not channel:
+            print("⚠️ Salon d'alerte introuvable.")
+            return
+
+        await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
 
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
@@ -682,13 +676,15 @@ async def send_alert_to_admin(message, detected_word):
         )
 
         embed.add_field(name="📍 Salon", value=message.channel.mention, inline=True)
-        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} (`{message.author.id}`)", inline=True)
-        embed.add_field(name="⚠️ Mot détecté", value=f"`{detected_word}`", inline=True)
+        embed.add_field(name="👤 Auteur", value=f"{message.author.mention} ({message.author.id})", inline=True)
+        embed.add_field(name="⚠️ Mot détecté", value=f"{detected_word}", inline=True)
 
         content = message.content
         if len(content) > 900:
             content = content[:900] + "..."
-        embed.add_field(name="💬 Message", value=f"```{content}```", inline=False)
+        embed.add_field(name="💬 Message", value=f"
+{content}
+", inline=False)
 
         if hasattr(message, "jump_url"):
             embed.add_field(name="🔗 Lien", value=f"[Clique ici]({message.jump_url})", inline=False)
@@ -701,12 +697,11 @@ async def send_alert_to_admin(message, detected_word):
         view = UrgencyClaimView(message, detected_word)
         view.message_embed = embed
 
-        print(f"[DEBUG] Envoi de l'embed avec bouton...")
+        print(f"📨 Envoi de l'embed d'alerte avec mot : {detected_word}")
         await channel.send(embed=embed, view=view)
-        print(f"[DEBUG] ✅ Embed envoyé avec succès.")
 
     except Exception as e:
-        print(f"[ERROR] ❌ Erreur lors de l'envoi de l'alerte : {e}")
+        print(f"⚠️ Erreur envoi alerte : {e}")
         traceback.print_exc()
 #-------------------------------------------------------------------------- Bot Event:
 
