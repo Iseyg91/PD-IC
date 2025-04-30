@@ -652,19 +652,26 @@ class UrgencyClaimView(View):
 
 async def send_alert_to_admin(message, detected_word):
     try:
-        print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
+        print(f"[DEBUG] 🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
 
         data = load_guild_settings(message.guild.id)
+        print(f"[DEBUG] Données serveur chargées : {data}")
+
         is_premium = data.get("is_premium", False)
+        print(f"[DEBUG] Statut premium : {is_premium}")
 
         alert_channel_id = ALERT_CHANNEL_ID if is_premium else ALERT_NON_PREM_ID
+        print(f"[DEBUG] ID du salon d'alerte utilisé : {alert_channel_id}")
+
         channel = message.guild.get_channel(alert_channel_id)
+        print(f"[DEBUG] Salon trouvé : {channel}")
 
         if not channel:
-            print(f"⚠️ Salon d'alerte introuvable pour ID: {alert_channel_id}")
+            print(f"[ERROR] Salon d'alerte introuvable avec l'ID : {alert_channel_id}")
             return
 
         if is_premium:
+            print(f"[DEBUG] Envoi du ping au rôle admin.")
             await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
 
         embed = discord.Embed(
@@ -694,12 +701,13 @@ async def send_alert_to_admin(message, detected_word):
         view = UrgencyClaimView(message, detected_word)
         view.message_embed = embed
 
+        print(f"[DEBUG] Envoi de l'embed avec bouton...")
         await channel.send(embed=embed, view=view)
+        print(f"[DEBUG] ✅ Embed envoyé avec succès.")
 
     except Exception as e:
-        print(f"⚠️ Erreur envoi alerte : {e}")
+        print(f"[ERROR] ❌ Erreur lors de l'envoi de l'alerte : {e}")
         traceback.print_exc()
-
 #-------------------------------------------------------------------------- Bot Event:
 
 @bot.event
