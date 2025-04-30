@@ -7375,8 +7375,17 @@ def is_admin_or_isey():
         return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
     return commands.check(predicate)
 
-def get_status_bar(enabled: bool) -> str:
-    return "🟩🟩🟩🟩🟩" if enabled else "⬛⬛⬛⬛⬛"
+def generate_global_status_bar(data: dict) -> str:
+    protections = [prot for prot in PROTECTIONS if prot != "whitelist"]
+    total = len(protections)
+    enabled_count = sum(1 for prot in protections if data.get(prot, False))
+    ratio = enabled_count / total
+
+    bar_length = 10
+    filled_length = round(bar_length * ratio)
+    bar = "🟩" * filled_length + "⬛" * (bar_length - filled_length)
+    return f"**Sécurité Globale :** `{enabled_count}/{total}`\n{bar}"
+
 
 def format_protection_field(prot, data, guild, bot):
     name, desc = PROTECTION_DETAILS[prot]
@@ -7397,7 +7406,7 @@ def format_protection_field(prot, data, guild, bot):
     mod_info = f"\n👤 Modifié par : {modifier.mention if isinstance(modifier, discord.Member) else modifier}" if modifier else ""
     date_info = f"\n{formatted_date}" if formatted_date else ""
 
-    value = f"> {desc}\n> **Statut :** {status}\n> **Sécurité :** {get_status_bar(enabled)}{mod_info}{date_info}"
+    value = f"> {desc}\n> **Statut :** {status}{mod_info}{date_info}"
     return name, value
 
 async def notify_owner_of_protection_change(guild, prot, new_value, interaction):
@@ -7495,6 +7504,13 @@ class ProtectionMenu(Select):
                 name, value = format_protection_field(p, self.protection_data, guild, self.bot)
                 embed.add_field(name=name, value=value, inline=False)
 
+        # ➕ Ajoute ce résumé en bas :
+        embed.add_field(
+            name="🔒 Résumé des protections",
+            value=generate_global_status_bar(self.protection_data),
+            inline=False
+        )
+
         embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer la sécurité du serveur.")
         view = View()
         view.add_item(ProtectionMenu(self.guild_id, self.protection_data, self.bot))
@@ -7528,6 +7544,12 @@ async def protection(ctx: commands.Context):
             name, value = format_protection_field(prot, protection_data, ctx.guild, ctx.bot)
             embed.add_field(name=name, value=value, inline=False)
 
+    # ➕ Ajoute le résumé ici aussi :
+    embed.add_field(
+        name="🔒 Résumé des protections",
+        value=generate_global_status_bar(protection_data),
+        inline=False
+    )
     embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer la sécurité du serveur.")
     view = ProtectionView(guild_id, protection_data, ctx.bot)
     await ctx.send(embed=embed, view=view)
