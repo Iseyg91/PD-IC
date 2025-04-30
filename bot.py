@@ -5054,7 +5054,8 @@ async def sucre(ctx, member: discord.Member = None):
 @bot.command()
 async def rat(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
@@ -5080,7 +5081,8 @@ async def rat(ctx, member: discord.Member = None):
 @bot.command()
 async def con(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
@@ -5106,7 +5108,8 @@ async def con(ctx, member: discord.Member = None):
 @bot.command()
 async def libido(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
@@ -5132,7 +5135,8 @@ async def libido(ctx, member: discord.Member = None):
 @bot.command()
 async def zizi(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
@@ -5161,7 +5165,8 @@ async def zizi(ctx, member: discord.Member = None):
 @bot.command()
 async def fou(ctx, member: discord.Member = None):
     # Vérification si la commande troll est activée
-    guild_id = str(ctx.guild.id)
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
@@ -5186,6 +5191,8 @@ async def fou(ctx, member: discord.Member = None):
 
 @bot.command()
 async def testo(ctx, member: discord.Member = None):
+    guild_id = ctx.guild.id
+
     # Vérifie si le troll est activé pour ce serveur
     troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
     if not troll_data:
