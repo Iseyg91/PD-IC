@@ -127,14 +127,7 @@ collection23 = db['back_up'] #Stock les Back-up
 collection24 = db['delta_warn'] #Stock les Warn Delta ✅
 collection25 = db['delta_bl'] #Stock les Bl Delta ✅
 collection26 = db['alerte'] #Stock les Salons Alerte ✅
-
-# Exemple de structure de la base de données pour la collection bounty
-# {
-#   "guild_id": str,  # ID du serveur
-#   "user_id": str,   # ID du joueur
-#   "prize": int,     # Prime actuelle
-#   "reward": int     # Récompenses accumulées
-# }
+collection27 = db['guild_troll'] #Stock les serveur ou les commandes troll sont actif ou inactif
 
 # Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
@@ -241,6 +234,7 @@ def load_guild_settings(guild_id):
     delta_warn_data = collection24.find_one({"guild_id": guild_id}) or {}
     delta_bl_data = collection25.find_one({"guild_id": guild_id}) or {}
     alerte_data = collection26.find_one({"guild_id": guild_id}) or {}
+    guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
@@ -270,7 +264,8 @@ def load_guild_settings(guild_id):
         "back_up": back_up_data,
         "delta_warn": delta_warn_data,
         "delta_bl": delta_bl_data,
-        "alerte": alerte_data
+        "alerte": alerte_data,
+        "guild_troll": guild_troll_data
 
     }
 
@@ -4947,98 +4942,125 @@ async def help(ctx):
     
     await ctx.send(embed=embed, view=view)
 #------------------------------------------------------------------------- Commandes Fun : Flemme de tout lister
+
+# Commande troll vérifiant si le serveur a troll activé
 @bot.command()
 async def gay(ctx, member: discord.Member = None):
+    guild_id = ctx.guild.id
+
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
+        return
+
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
-    
+
     percentage = random.randint(0, 100)
-    
+
     embed = discord.Embed(
-        title=f"Analyse de gayitude 🌈", 
-        description=f"{member.mention} est gay à **{percentage}%** !\n\n*Le pourcentage varie en fonction des pulsions du membre.*", 
+        title="Analyse de gayitude 🌈",
+        description=f"{member.mention} est gay à **{percentage}%** !\n\n*Le pourcentage varie en fonction des pulsions du membre.*",
         color=discord.Color.purple()
     )
     embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} ♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    
+
     await ctx.send(embed=embed)
 
+# Commande troll vérifiant si le serveur a troll activé
 @bot.command()
 async def singe(ctx, member: discord.Member = None):
+    guild_id = ctx.guild.id
+
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
+        return
+
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
-    
+
     percentage = random.randint(0, 100)
-    
+
     embed = discord.Embed(
-        title=f"Analyse de singe 🐒", 
-        description=f"{member.mention} est un singe à **{percentage}%** !\n\n*Le pourcentage varie en fonction de l'énergie primate du membre.*", 
+        title="Analyse de singe 🐒",
+        description=f"{member.mention} est un singe à **{percentage}%** !\n\n*Le pourcentage varie en fonction de l'énergie primate du membre.*",
         color=discord.Color.green()
     )
     embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} 🐵 by Isey", icon_url=ctx.author.avatar.url)
-    
+
     await ctx.send(embed=embed)
 
+# Commande troll vérifiant si le serveur a troll activé
 @bot.command()
 async def racist(ctx, member: discord.Member = None):
+    guild_id = ctx.guild.id
+
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
+        return
+
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
-    
+
     percentage = random.randint(0, 100)
-    
+
     embed = discord.Embed(
-        title=f"Analyse de racisme 🪄", 
-        description=f"{member.mention} est raciste à **{percentage}%** !\n\n*Le pourcentage varie en fonction des pulsions du membre.*", 
+        title="Analyse de racisme 🪄",
+        description=f"{member.mention} est raciste à **{percentage}%** !\n\n*Le pourcentage varie en fonction des pulsions du membre.*",
         color=discord.Color.purple()
     )
     embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    
+
     await ctx.send(embed=embed)
 
+# Commande troll vérifiant si le serveur a troll activé
 @bot.command()
 async def sucre(ctx, member: discord.Member = None):
+    guild_id = ctx.guild.id
+
+    # Vérifie si le troll est activé pour ce serveur
+    troll_data = collection27.find_one({"guild_id": guild_id, "troll_active": True})
+    if not troll_data:
+        await ctx.send("❌ Les commandes troll ne sont **pas activées** sur ce serveur. Utilisez `/activate-troll` pour les activer.")
+        return
+
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
-    
+
     percentage = random.randint(0, 100)
-    
+
     embed = discord.Embed(
-        title=f"Analyse de l'indice glycémique 🍬", 
-        description=f"L'indice glycémique de {member.mention} est de **{percentage}%** !\n\n*Le pourcentage varie en fonction des habitudes alimentaires de la personne.*", 
+        title="Analyse de l'indice glycémique 🍬",
+        description=f"L'indice glycémique de {member.mention} est de **{percentage}%** !\n\n*Le pourcentage varie en fonction des habitudes alimentaires de la personne.*",
         color=discord.Color.green()
     )
     embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} 🍏by Iseyg", icon_url=ctx.author.avatar.url)
-    
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def love(ctx, member: discord.Member = None):
-    if not member:
-        await ctx.send("Tu n'as pas mentionné de membre ! Utilise +love @membre.")
-        return
-    
-    love_percentage = random.randint(0, 100)
-    
-    embed = discord.Embed(
-        title="L'Amour Etheryen",
-        description=f"L'amour entre {ctx.author.mention} et {member.mention} est de **{love_percentage}%** !",
-        color=discord.Color.red() if love_percentage > 50 else discord.Color.blue()
-    )
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    embed.set_thumbnail(url="https://img.freepik.com/photos-gratuite/silhouette-mains-coeur-contre-lumieres-ville-nuit_23-2150984259.jpg?ga=GA1.1.719997987.1741155829&semt=ais_hybrid")
 
     await ctx.send(embed=embed)
 
 @bot.command()
 async def rat(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
@@ -5057,6 +5079,14 @@ async def rat(ctx, member: discord.Member = None):
 
 @bot.command()
 async def con(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
@@ -5075,6 +5105,14 @@ async def con(ctx, member: discord.Member = None):
 
 @bot.command()
 async def libido(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
@@ -5090,60 +5128,22 @@ async def libido(ctx, member: discord.Member = None):
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     
     await ctx.send(embed=embed)
-
-# Définir la commande +roll
-@bot.command()
-async def roll(ctx, x: str = None):
-    # Vérifier si x est bien précisé
-    if x is None:
-        embed = discord.Embed(
-            title="Erreur",
-            description="Vous n'avez pas précisé de chiffre entre 1 et 500.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
-    
-    try:
-        # Convertir x en entier
-        x = int(x)
-    except ValueError:
-        embed = discord.Embed(
-            title="Erreur",
-            description="Le chiffre doit être un nombre entier.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
-    
-    # Vérifier si x est dans les bonnes limites
-    if x < 1 or x > 500:
-        embed = discord.Embed(
-            title="Erreur",
-            description="Le chiffre doit être compris entre 1 et 500.",
-            color=discord.Color.red()
-        )
-        await ctx.send(embed=embed)
-        return
-    
-    # Générer un nombre aléatoire entre 1 et x
-    result = random.randint(1, x)
-
-    # Créer l'embed de la réponse
-    embed = discord.Embed(
-        title="🎲 Résultat du tirage",
-        description=f"Le nombre tiré au hasard entre 1 et {x} est : **{result}**",
-        color=discord.Color.green()
-    )
-    await ctx.send(embed=embed)
     
 @bot.command()
 async def zizi(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
     
-    # Générer une valeur aléatoire entre 0 et 28 cm
+    # Générer une valeur aléatoire entre 0 et 50 cm
     value = random.randint(0, 50)
 
     # Créer l'embed
@@ -5160,6 +5160,14 @@ async def zizi(ctx, member: discord.Member = None):
 
 @bot.command()
 async def fou(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
@@ -5178,6 +5186,14 @@ async def fou(ctx, member: discord.Member = None):
 
 @bot.command()
 async def testo(ctx, member: discord.Member = None):
+    # Vérification si la commande troll est activée
+    guild_id = str(ctx.guild.id)
+    guild_troll_data = collection27.find_one({"guild_id": guild_id})
+    
+    if not guild_troll_data or not guild_troll_data.get("troll_enabled", False):
+        await ctx.send("Les commandes troll ne sont pas activées sur ce serveur.")
+        return
+    
     if member is None:
         await ctx.send("Vous n'avez ciblé personne !")
         return
@@ -5468,6 +5484,25 @@ async def kill(ctx, member: discord.Member = None):
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
 
+@bot.command()
+async def love(ctx, member: discord.Member = None):
+    if not member:
+        await ctx.send("Tu n'as pas mentionné de membre ! Utilise +love @membre.")
+        return
+    
+    love_percentage = random.randint(0, 100)
+    
+    embed = discord.Embed(
+        title="L'Amour Etheryen",
+        description=f"L'amour entre {ctx.author.mention} et {member.mention} est de **{love_percentage}%** !",
+        color=discord.Color.red() if love_percentage > 50 else discord.Color.blue()
+    )
+    embed.set_footer(text=f"Commandé par {ctx.author.name} | ♥️by Iseyg", icon_url=ctx.author.avatar.url)
+    
+    # Image en grand
+    embed.set_image(url="https://img.freepik.com/photos-gratuite/silhouette-mains-coeur-contre-lumieres-ville-nuit_23-2150984259.jpg?ga=GA1.1.719997987.1741155829&semt=ais_hybrid")
+
+    await ctx.send(embed=embed)
 
 @bot.command()
 async def reverse(ctx, *, text: str = None):
@@ -5497,11 +5532,10 @@ async def note(ctx, member: discord.Member = None):
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
 
-
 @bot.command()
 async def say(ctx, *, text: str = None):
-    # Vérifie si l'utilisateur a les permissions d'admin
-    if not ctx.author.guild_permissions.administrator:
+    # Vérifie si l'utilisateur a les permissions d'admin ou si son ID correspond à ISEY_ID
+    if not ctx.author.guild_permissions.administrator and str(ctx.author.id) != "792755123587645461":
         await ctx.send("Tu n'as pas les permissions nécessaires pour utiliser cette commande.")
         return
     
@@ -5514,8 +5548,6 @@ async def say(ctx, *, text: str = None):
 
     # Envoie le texte spécifié
     await ctx.send(text)
-
-
 
 @bot.command()
 async def coinflip(ctx):
@@ -5549,6 +5581,52 @@ async def fight(ctx, member: discord.Member = None):
     )
     embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
+    await ctx.send(embed=embed)
+
+# Définir la commande +roll
+@bot.command()
+async def roll(ctx, x: str = None):
+    # Vérifier si x est bien précisé
+    if x is None:
+        embed = discord.Embed(
+            title="Erreur",
+            description="Vous n'avez pas précisé de chiffre entre 1 et 500.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
+    try:
+        # Convertir x en entier
+        x = int(x)
+    except ValueError:
+        embed = discord.Embed(
+            title="Erreur",
+            description="Le chiffre doit être un nombre entier.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
+    # Vérifier si x est dans les bonnes limites
+    if x < 1 or x > 500:
+        embed = discord.Embed(
+            title="Erreur",
+            description="Le chiffre doit être compris entre 1 et 500.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        return
+    
+    # Générer un nombre aléatoire entre 1 et x
+    result = random.randint(1, x)
+
+    # Créer l'embed de la réponse
+    embed = discord.Embed(
+        title="🎲 Résultat du tirage",
+        description=f"Le nombre tiré au hasard entre 1 et {x} est : **{result}**",
+        color=discord.Color.green()
+    )
     await ctx.send(embed=embed)
 
 @bot.command()
@@ -7905,6 +7983,32 @@ async def raid(ctx):
     
     await ctx.guild.create_text_channel('Chat-Tempo', overwrites=overwrites)
     await ctx.send("Tous les salons ont été supprimés et 'Chat-Tempo' a été créé.")
+
+@bot.tree.command(name="activate-troll", description="Active les commandes troll pour ce serveur")
+@app_commands.checks.has_permissions(administrator=True)
+async def activate_troll(interaction: discord.Interaction):
+    guild_id = interaction.guild.id
+    guild_name = interaction.guild.name
+
+    # Mettre à jour ou insérer l'activation dans MongoDB
+    collection27.update_one(
+        {"guild_id": guild_id},
+        {"$set": {"guild_name": guild_name, "troll_active": True}},
+        upsert=True
+    )
+
+    await interaction.response.send_message(
+        f"✅ Les commandes troll ont été **activées** sur ce serveur !", ephemeral=True
+    )
+
+# Gestion des erreurs si l'utilisateur n'a pas les permissions
+@activate_troll.error
+async def activate_troll_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.MissingPermissions):
+        await interaction.response.send_message("🚫 Vous devez être **administrateur** pour utiliser cette commande.", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
+
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
