@@ -8014,6 +8014,30 @@ async def activate_troll_error(interaction: discord.Interaction, error):
     else:
         await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
 
+@bot.tree.command(name="deactivate-troll", description="Désactive les commandes troll pour ce serveur")
+@app_commands.checks.has_permissions(administrator=True)
+async def deactivate_troll(interaction: discord.Interaction):
+    guild_id = interaction.guild.id
+    guild_name = interaction.guild.name
+
+    # Mettre à jour ou insérer la désactivation dans MongoDB
+    collection27.update_one(
+        {"guild_id": guild_id},
+        {"$set": {"guild_name": guild_name, "troll_active": False}},
+        upsert=True
+    )
+
+    await interaction.response.send_message(
+        f"⛔ Les commandes troll ont été **désactivées** sur ce serveur !", ephemeral=True
+    )
+
+# Gestion des erreurs si l'utilisateur n'a pas les permissions
+@deactivate_troll.error
+async def deactivate_troll_error(interaction: discord.Interaction, error):
+    if isinstance(error, app_commands.errors.MissingPermissions):
+        await interaction.response.send_message("🚫 Vous devez être **administrateur** pour utiliser cette commande.", ephemeral=True)
+    else:
+        await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
