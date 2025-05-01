@@ -7941,7 +7941,7 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
-@app_commands.autocomplete(name=lambda interaction, current: autocomplete_backup_names(current))
+@app_commands.autocomplete(name="name")  # Associer l'autocomplétion à l'argument 'name'
 async def load_backup(interaction: discord.Interaction, name: str):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
@@ -8030,10 +8030,13 @@ async def restore_channels(guild, backup):
             # Si le salon existe, on peut juste mettre à jour des permissions ou autres paramètres si nécessaire
             await existing_channel.edit(sync_permissions=True)  # Par exemple, synchroniser les permissions si nécessaire
 
-# Fonction d'autocomplétion pour les noms de sauvegarde
-def autocomplete_backup_names(current: str):
+# Fonction d'autocomplétion pour les noms de sauvegarde (version asynchrone)
+async def autocomplete_backup_names(interaction: discord.Interaction, current: str):
     backups = collection23.find({"backup_name": {"$regex": f"^{current}", "$options": "i"}})
-    return [app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"]) for backup in backups]
+    return [
+        app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"]) 
+        for backup in backups
+    ]
 
 @bot.tree.command(name="list-back-up", description="Lister vos sauvegardes")
 async def list_backup(interaction: discord.Interaction):
