@@ -7941,7 +7941,6 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
-@app_commands.autocomplete(name="name")  # Associe l'autocomplétion à l'argument 'name'
 async def load_backup(interaction: discord.Interaction, name: str):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
@@ -7998,39 +7997,8 @@ async def load_backup(interaction: discord.Interaction, name: str):
         )
         await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Fonction pour restaurer les rôles sans recréer ceux qui existent déjà
-async def restore_roles(guild, backup):
-    for role_data in backup["roles"]:
-        role_name = role_data["name"]
-        # Chercher le rôle existant
-        existing_role = discord.utils.get(guild.roles, name=role_name)
-        
-        if not existing_role:
-            # Créer un nouveau rôle seulement s'il n'existe pas
-            new_role = await guild.create_role(name=role_name, permissions=discord.Permissions(role_data["permissions"]))
-            # Appliquer d'autres données comme la couleur, position, etc.
-            await new_role.edit(color=discord.Color(role_data["color"]))
-        else:
-            # Si le rôle existe, on peut juste appliquer des permissions ou des changements nécessaires
-            await existing_role.edit(permissions=discord.Permissions(role_data["permissions"]))
-
-# Fonction pour restaurer les salons sans les recréer
-async def restore_channels(guild, backup):
-    for channel_data in backup["channels"]:
-        channel_name = channel_data["name"]
-        existing_channel = discord.utils.get(guild.channels, name=channel_name)
-        
-        if not existing_channel:
-            # Créer un nouveau salon seulement s'il n'existe pas
-            if channel_data["type"] == "text":
-                await guild.create_text_channel(channel_name, category=discord.utils.get(guild.categories, id=channel_data["category_id"]))
-            elif channel_data["type"] == "voice":
-                await guild.create_voice_channel(channel_name, category=discord.utils.get(guild.categories, id=channel_data["category_id"]))
-        else:
-            # Si le salon existe, on peut juste mettre à jour des permissions ou autres paramètres si nécessaire
-            await existing_channel.edit(sync_permissions=True)  # Par exemple, synchroniser les permissions si nécessaire
-
-# Fonction d'autocomplétion pour les noms de sauvegarde (version asynchrone)
+# Fonction d'autocomplétion pour les noms de sauvegarde
+@app_commands.autocomplete(name="name")
 async def autocomplete_backup_names(interaction: discord.Interaction, current: str):
     backups = collection23.find({"backup_name": {"$regex": f"^{current}", "$options": "i"}})
     return [
