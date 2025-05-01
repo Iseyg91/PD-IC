@@ -7941,7 +7941,11 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
-async def load_backup(interaction: discord.Interaction, name: str):
+async def load_backup(interaction: discord.Interaction, name: str = discord.Option(
+    str,
+    description="Le nom de la sauvegarde à charger",
+    autocomplete=True
+)):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
     if not backup:
@@ -7997,13 +8001,20 @@ async def load_backup(interaction: discord.Interaction, name: str):
         )
         await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Fonction d'autocomplétion pour les noms de sauvegarde
-@app_commands.autocomplete(name="name")
-async def autocomplete_backup_names(interaction: discord.Interaction, current: str):
-    backups = collection23.find({"backup_name": {"$regex": f"^{current}", "$options": "i"}})
+# Fonction d'autocomplétion pour le paramètre 'name'
+@load_backup.autocomplete("name")
+async def load_backup_autocomplete(interaction: discord.Interaction, current: str):
+    # Si l'utilisateur est ISEY_ID, on charge toutes les sauvegardes
+    if interaction.user.id == ISEY_ID:
+        backups = list(collection23.find())
+    else:
+        # Sinon, on charge uniquement les sauvegardes de l'utilisateur
+        backups = list(collection23.find({"created_by": str(interaction.user.id)}))
+
+    # Filtrer les sauvegardes qui contiennent le texte 'current' dans leur nom
     return [
-        app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"]) 
-        for backup in backups
+        discord.Choice(name=backup["backup_name"], value=backup["backup_name"])
+        for backup in backups if current.lower() in backup["backup_name"].lower()
     ]
 
 @bot.tree.command(name="list-back-up", description="Lister vos sauvegardes")
