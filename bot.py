@@ -7952,7 +7952,9 @@ async def restore_roles(guild, backup):
             # Optionnel: Assignation de la couleur, description, etc.
             await role.edit(color=role_data["color"], hoist=role_data["hoist"])
         except Exception as e:
-            print(f"Erreur lors de la restauration du rôle {role_data['name']}: {e}")
+            print(f"Erreur lors de la restauration du rôle {role_data.get('name', 'Inconnu')}: {e}")
+            # Vous pouvez également ajouter plus d'informations pour déboguer
+            print(f"Data du rôle : {role_data}")
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
 @app_commands.describe(name="Le nom de la sauvegarde à charger")
