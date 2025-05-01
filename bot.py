@@ -678,30 +678,34 @@ async def send_alert_to_admin(message, detected_word):
     try:
         print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
 
-        guild = bot.get_guild(PROJECT_DELTA)
-        print(f"📡 Récupération du serveur PROJECT_DELTA ({PROJECT_DELTA}) : {guild}")
-        if not guild:
-            print("⚠️ PROJECT_DELTA introuvable.")
-            return
+        # Charger les paramètres du serveur pour vérifier s'il est premium
+        data = load_guild_settings(message.guild.id)
+        is_premium = data.get("is_premium", False)
 
-        channel = guild.get_channel(ALERT_CHANNEL_ID)
-        print(f"📢 Récupération du salon ALERT_CHANNEL_ID ({ALERT_CHANNEL_ID}) : {channel}")
+        # Déterminer le bon salon selon le statut premium
+        target_channel_id = ALERT_CHANNEL_ID if is_premium else ALERT_NON_PREM_ID
+        channel = message.guild.get_channel(target_channel_id)
+
+        # Si le salon n'existe pas sur le serveur de l'alerte, chercher dans le serveur de secours
         if not channel:
-            print("⚠️ Salon d'alerte introuvable.")
-            return
+            print("⚠️ Salon d'alerte introuvable sur ce serveur, recherche dans le serveur principal.")
+            fallback_guild = bot.get_guild(1359963854200639498)
+            if fallback_guild:
+                channel = fallback_guild.get_channel(target_channel_id)
+            if not channel:
+                print("❌ Aucun salon d'alerte trouvé même dans le fallback.")
+                return
 
-        await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
-
+        # Créer l'embed d'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
             description=f"Un message contenant un mot interdit a été détecté sur **{message.guild.name}**.",
             color=discord.Color.red(),
             timestamp=datetime.utcnow()
         )
-
         embed.add_field(name="📍 Salon", value=message.channel.mention, inline=True)
         embed.add_field(name="👤 Auteur", value=f"{message.author.mention} ({message.author.id})", inline=True)
-        embed.add_field(name="⚠️ Mot détecté", value=f"{detected_word}", inline=True)
+        embed.add_field(name="⚠️ Mot détecté", value=detected_word, inline=True)
 
         content = message.content
         if len(content) > 900:
@@ -719,7 +723,9 @@ async def send_alert_to_admin(message, detected_word):
         view = UrgencyClaimView(message, detected_word)
         view.message_embed = embed
 
-        print(f"📨 Envoi de l'embed d'alerte avec mot : {detected_word}")
+        # Envoi de l'alerte (avec mention pour les premium)
+        if is_premium:
+            await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
         await channel.send(embed=embed, view=view)
 
     except Exception as e:
