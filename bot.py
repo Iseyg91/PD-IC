@@ -358,6 +358,7 @@ async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
     bot.uptime = time.time()
+    bot.tree.add_command(load_backup)
 
     # Démarrer les tâches de fond
     update_stats.start()
@@ -7941,41 +7942,40 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
-async def load_backup(interaction: discord.Interaction, name: str = discord.Option(
-    str,
-    description="Le nom de la sauvegarde à charger",
-    autocomplete=True
-)):
+@app_commands.describe(name="Le nom de la sauvegarde à charger")
+@app_commands.autocomplete(name=get_backup_autocomplete)
+async def load_backup(interaction: Interaction, name: str):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
+    
     if not backup:
-        embed = discord.Embed(
+        embed = Embed(
             title="❌ Introuvable",
             description="Aucune sauvegarde trouvée avec ce nom.",
-            color=discord.Color.red()
+            color=Color.red()
         )
         return await interaction.response.send_message(embed=embed, ephemeral=True)
 
     if backup["created_by"] != str(interaction.user.id) and interaction.user.id != ISEY_ID:
-        embed = discord.Embed(
+        embed = Embed(
             title="🚫 Accès refusé",
             description="Tu ne peux charger que tes propres sauvegardes.",
-            color=discord.Color.red()
+            color=Color.red()
         )
         return await interaction.response.send_message(embed=embed, ephemeral=True)
 
     if not interaction.user.guild_permissions.administrator:
-        embed = discord.Embed(
+        embed = Embed(
             title="🔒 Permissions manquantes",
             description="Tu dois avoir les permissions administrateur pour charger une sauvegarde.",
-            color=discord.Color.red()
+            color=Color.red()
         )
         return await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    loading_embed = discord.Embed(
+    loading_embed = Embed(
         title="⏳ Chargement en cours",
         description=f"La sauvegarde **`{name}`** est en cours de restauration...",
-        color=discord.Color.blurple()
+        color=Color.blurple()
     )
     await interaction.response.send_message(embed=loading_embed, ephemeral=True)
 
@@ -7986,31 +7986,23 @@ async def load_backup(interaction: discord.Interaction, name: str = discord.Opti
         # Restaurer les salons si nécessaire
         await restore_channels(interaction.guild, backup)
 
-        done_embed = discord.Embed(
+        done_embed = Embed(
             title="✅ Sauvegarde restaurée",
             description=f"La sauvegarde **`{name}`** a été restaurée avec succès !",
-            color=discord.Color.green()
+            color=Color.green()
         )
         await interaction.followup.send(embed=done_embed, ephemeral=True)
 
     except Exception as e:
-        error_embed = discord.Embed(
+        error_embed = Embed(
             title="❌ Erreur",
             description=f"Une erreur est survenue lors de la restauration : {str(e)}",
-            color=discord.Color.red()
+            color=Color.red()
         )
         await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-@app_commands.command(name="load-back-up", description="Charger une sauvegarde existante")
-@app_commands.describe(name="Le nom de la sauvegarde à charger")
-@app_commands.autocomplete(name=lambda interaction, current: get_backup_autocomplete(interaction, current))
-async def load_backup(interaction: discord.Interaction, name: str):
-    # ... (code identique à celui que tu avais déjà, pas besoin de changer ici)
-    # Voir message précédent
-    pass
-
-# Fonction d'autocomplétion (à mettre en dehors de la commande)
-async def get_backup_autocomplete(interaction: discord.Interaction, current: str):
+# Fonction d'autocomplétion pour le nom de la sauvegarde
+async def get_backup_autocomplete(interaction: Interaction, current: str):
     if interaction.user.id == ISEY_ID:
         backups = list(collection23.find())
     else:
