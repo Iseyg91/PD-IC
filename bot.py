@@ -7068,18 +7068,47 @@ async def is_admin(ctx):
 @commands.check(is_admin)
 async def listban(ctx):
     bans = [ban async for ban in ctx.guild.bans()]
-    if not bans:
-        await ctx.send("📜 Aucun utilisateur banni.")
-    else:
-        banned_users = "\n".join([f"{ban_entry.user.name}#{ban_entry.user.discriminator}" for ban_entry in bans])
-        await ctx.send(f"📜 Liste des bannis :\n```\n{banned_users}\n```")
 
-# Commande pour débannir tout le monde
-@bot.command(name="unbanall")  # Changement du nom de la commande
+    if not bans:
+        embed = discord.Embed(
+            title="📜 Liste des bannis",
+            description="✅ Aucun utilisateur n'est actuellement banni du serveur.",
+            color=discord.Color.green()
+        )
+        embed.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else discord.Embed.Empty)
+        return await ctx.send(embed=embed)
+
+    pages = []
+    content = ""
+
+    for i, ban in enumerate(bans, 1):
+        user = ban.user
+        reason = ban.reason or "Aucune raison spécifiée"
+        entry = f"🔹 **{user.name}#{user.discriminator}**\n📝 *{reason}*\n\n"
+
+        if len(content + entry) > 1000:  # pour laisser de la marge avec la limite d'embed
+            pages.append(content)
+            content = ""
+        content += entry
+
+    if content:
+        pages.append(content)
+
+    for idx, page in enumerate(pages, 1):
+        embed = discord.Embed(
+            title=f"📜 Liste des bannis (Page {idx}/{len(pages)})",
+            description=page,
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=f"Total : {len(bans)} utilisateur(s) banni(s)")
+        if ctx.guild.icon:
+            embed.set_thumbnail(url=ctx.guild.icon.url)
+        await ctx.send(embed=embed)
+
+@bot.command(name="unbanall")
 @commands.check(is_admin)
-async def unbanall(ctx):  # Suppression du paramètre option
-    bans = await ctx.guild.bans()
-    for ban_entry in bans:
+async def unbanall(ctx):
+    async for ban_entry in ctx.guild.bans():
         await ctx.guild.unban(ban_entry.user)
     await ctx.send("✅ Tous les utilisateurs bannis ont été débannis !")
 
