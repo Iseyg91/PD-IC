@@ -7941,6 +7941,8 @@ async def create_backup(interaction: discord.Interaction, name: str):
     embed.set_footer(text="Utilise /list-back-up pour la voir.")
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
+from discord import Embed, Color
+
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
 @app_commands.describe(name="Le nom de la sauvegarde à charger")
 async def load_backup(interaction: Interaction, name: str):
