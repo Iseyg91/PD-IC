@@ -7943,6 +7943,17 @@ async def create_backup(interaction: discord.Interaction, name: str):
 
 from discord import Embed, Color
 
+async def restore_roles(guild, backup):
+    # Exemple de code pour restaurer les rôles dans un serveur à partir de la sauvegarde
+    for role_data in backup["roles"]:
+        try:
+            # Créer ou mettre à jour chaque rôle en fonction des données de sauvegarde
+            role = await guild.create_role(name=role_data["name"], permissions=role_data["permissions"])
+            # Optionnel: Assignation de la couleur, description, etc.
+            await role.edit(color=role_data["color"], hoist=role_data["hoist"])
+        except Exception as e:
+            print(f"Erreur lors de la restauration du rôle {role_data['name']}: {e}")
+
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
 @app_commands.describe(name="Le nom de la sauvegarde à charger")
 async def load_backup(interaction: Interaction, name: str):
