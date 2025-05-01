@@ -8001,21 +8001,25 @@ async def load_backup(interaction: discord.Interaction, name: str = discord.Opti
         )
         await interaction.followup.send(embed=error_embed, ephemeral=True)
 
-# Fonction d'autocomplétion pour le paramètre 'name'
-@load_backup.autocomplete("name")
-async def load_backup_autocomplete(interaction: discord.Interaction, current: str):
-    # Si l'utilisateur est ISEY_ID, on charge toutes les sauvegardes
+@app_commands.command(name="load-back-up", description="Charger une sauvegarde existante")
+@app_commands.describe(name="Le nom de la sauvegarde à charger")
+@app_commands.autocomplete(name=lambda interaction, current: get_backup_autocomplete(interaction, current))
+async def load_backup(interaction: discord.Interaction, name: str):
+    # ... (code identique à celui que tu avais déjà, pas besoin de changer ici)
+    # Voir message précédent
+    pass
+
+# Fonction d'autocomplétion (à mettre en dehors de la commande)
+async def get_backup_autocomplete(interaction: discord.Interaction, current: str):
     if interaction.user.id == ISEY_ID:
         backups = list(collection23.find())
     else:
-        # Sinon, on charge uniquement les sauvegardes de l'utilisateur
         backups = list(collection23.find({"created_by": str(interaction.user.id)}))
 
-    # Filtrer les sauvegardes qui contiennent le texte 'current' dans leur nom
     return [
-        discord.Choice(name=backup["backup_name"], value=backup["backup_name"])
+        app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"])
         for backup in backups if current.lower() in backup["backup_name"].lower()
-    ]
+    ][:25]  # Discord n'autorise que 25 choix max
 
 @bot.tree.command(name="list-back-up", description="Lister vos sauvegardes")
 async def list_backup(interaction: discord.Interaction):
