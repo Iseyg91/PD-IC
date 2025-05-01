@@ -6574,7 +6574,6 @@ async def ajouter_idee(interaction: discord.Interaction, idee: str):
     embed = discord.Embed(title="Idée ajoutée !", description=f"**{idee}** a été enregistrée.", color=discord.Color.green())
     await interaction.response.send_message(embed=embed)
 
-
 # Commande pour lister les idées
 @bot.command(name="listi")
 async def liste_idees(ctx):
@@ -7061,6 +7060,9 @@ async def embed_builder(interaction: discord.Interaction):
     view = EmbedBuilderView(interaction.user, interaction.channel)
     response = await interaction.followup.send(embed=view.embed, view=view, ephemeral=True)
     view.message = response
+
+async def is_admin(ctx):
+    return ctx.author.guild_permissions.administrator
 
 # Commande pour lister les utilisateurs bannis
 @bot.command()
