@@ -679,8 +679,8 @@ async def send_alert_to_admin(message, detected_word):
         print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
 
         # Charger les paramètres du serveur pour vérifier s'il est premium
-        data = load_guild_settings(message.guild.id)
-        is_premium = data.get("is_premium", False)
+        premium_data = collection2.find_one({"guild_id": message.guild.id})
+        is_premium = premium_data is not None
 
         # Déterminer le bon salon selon le statut premium
         target_channel_id = ALERT_CHANNEL_ID if is_premium else ALERT_NON_PREM_ID
