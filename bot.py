@@ -7064,11 +7064,10 @@ async def embed_builder(interaction: discord.Interaction):
 async def is_admin(ctx):
     return ctx.author.guild_permissions.administrator
 
-# Commande pour lister les utilisateurs bannis
 @bot.command()
 @commands.check(is_admin)
 async def listban(ctx):
-    bans = await ctx.guild.bans()
+    bans = [ban async for ban in ctx.guild.bans()]
     if not bans:
         await ctx.send("📜 Aucun utilisateur banni.")
     else:
