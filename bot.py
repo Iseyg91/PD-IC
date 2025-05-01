@@ -706,9 +706,7 @@ async def send_alert_to_admin(message, detected_word):
         content = message.content
         if len(content) > 900:
             content = content[:900] + "..."
-        embed.add_field(name="💬 Message", value=f"
-{content}
-", inline=False)
+        embed.add_field(name="💬 Message", value=f"\n{content}\n", inline=False)
 
         if hasattr(message, "jump_url"):
             embed.add_field(name="🔗 Lien", value=f"[Clique ici]({message.jump_url})", inline=False)
