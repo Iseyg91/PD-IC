@@ -558,12 +558,28 @@ async def on_message(message):
         # 🔗 5. Anti-lien
         if guild_data.get("anti_link", False):
             if "discord.gg" in message.content and not message.author.guild_permissions.administrator:
+                # Vérification de la whitelist
+                whitelist_data = await collection19.find_one({"guild_id": str(message.guild.id)})
+                wl_ids = whitelist_data.get("users", []) if whitelist_data else []
+
+                if str(message.author.id) in wl_ids:
+                    print(f"[Anti-link] Message de {message.author} ignoré (whitelist).")
+                    return
+
                 await message.delete()
                 await message.author.send("⚠️ Les liens Discord sont interdits sur ce serveur.")
                 return
 
         # 💣 6. Anti-spam
         if guild_data.get("anti_spam_limit"):
+            # Vérification de la whitelist
+            whitelist_data = await collection19.find_one({"guild_id": str(message.guild.id)})
+            wl_ids = whitelist_data.get("users", []) if whitelist_data else []
+
+            if str(message.author.id) in wl_ids:
+                print(f"[Anti-spam] Message de {message.author} ignoré (whitelist).")
+                return
+
             now = time.time()
             uid = message.author.id
             user_messages.setdefault(uid, []).append(now)
@@ -584,6 +600,14 @@ async def on_message(message):
         # 📣 7. Anti-everyone
         if guild_data.get("anti_everyone", False):
             if "@everyone" in message.content or "@here" in message.content:
+                # Vérification de la whitelist
+                whitelist_data = await collection19.find_one({"guild_id": str(message.guild.id)})
+                wl_ids = whitelist_data.get("users", []) if whitelist_data else []
+
+                if str(message.author.id) in wl_ids:
+                    print(f"[Anti-everyone] Message de {message.author} ignoré (whitelist).")
+                    return
+
                 await message.delete()
                 await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
                 return
