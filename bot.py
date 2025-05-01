@@ -725,7 +725,7 @@ async def send_alert_to_admin(message, detected_word):
 
         # Envoi de l'alerte (avec mention pour les premium)
         if is_premium:
-            await channel.send("<@&1361306900981092548> 🚨 Un mot sensible a été détecté !")
+            await channel.send("<@&1362339333658382488> 🚨 Un mot sensible a été détecté !")
         await channel.send(embed=embed, view=view)
 
     except Exception as e:
@@ -4326,6 +4326,28 @@ async def viewpremium(interaction: discord.Interaction):
         view.add_item(join_button)
 
         await interaction.response.send_message(embed=embed, view=view)
+
+# Autocomplétion des serveurs premium
+async def premium_autocomplete(interaction: discord.Interaction, current: str):
+    servers = collection2.find({"guild_id": {"$exists": True}})
+    return [
+        app_commands.Choice(name=server.get("guild_name", "Nom inconnu"), value=str(server["guild_id"]))
+        for server in servers if current.lower() in server.get("guild_name", "").lower()
+    ][:25]  # Discord limite à 25 suggestions
+
+@bot.tree.command(name="delete-premium", description="Supprime un serveur de la liste Premium")
+@app_commands.describe(server="Choisissez le serveur à supprimer")
+@app_commands.autocomplete(server=premium_autocomplete)
+async def delete_premium(interaction: discord.Interaction, server: str):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Vous n'avez pas la permission d'utiliser cette commande.", ephemeral=True)
+        return
+
+    result = collection2.delete_one({"guild_id": int(server)})
+    if result.deleted_count > 0:
+        await interaction.response.send_message(f"✅ Le serveur Premium avec l'ID `{server}` a bien été supprimé.", ephemeral=True)
+    else:
+        await interaction.response.send_message("⚠️ Aucun serveur trouvé avec cet ID.", ephemeral=True)
 
 @bot.tree.command(name="devenirpremium")
 async def devenirpremium(interaction: discord.Interaction):
