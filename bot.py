@@ -7941,7 +7941,7 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
-@app_commands.autocomplete(name="name")  # Associer l'autocomplétion à l'argument 'name'
+@app_commands.autocomplete(name="name")  # Associe l'autocomplétion à l'argument 'name'
 async def load_backup(interaction: discord.Interaction, name: str):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
