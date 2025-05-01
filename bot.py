@@ -7943,7 +7943,6 @@ async def create_backup(interaction: discord.Interaction, name: str):
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
 @app_commands.describe(name="Le nom de la sauvegarde à charger")
-@app_commands.autocomplete(name=get_backup_autocomplete)
 async def load_backup(interaction: Interaction, name: str):
     # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
@@ -8000,18 +7999,6 @@ async def load_backup(interaction: Interaction, name: str):
             color=Color.red()
         )
         await interaction.followup.send(embed=error_embed, ephemeral=True)
-
-# Fonction d'autocomplétion pour le nom de la sauvegarde
-async def get_backup_autocomplete(interaction: Interaction, current: str):
-    if interaction.user.id == ISEY_ID:
-        backups = list(collection23.find())
-    else:
-        backups = list(collection23.find({"created_by": str(interaction.user.id)}))
-
-    return [
-        app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"])
-        for backup in backups if current.lower() in backup["backup_name"].lower()
-    ][:25]  # Discord n'autorise que 25 choix max
 
 @bot.tree.command(name="list-back-up", description="Lister vos sauvegardes")
 async def list_backup(interaction: discord.Interaction):
