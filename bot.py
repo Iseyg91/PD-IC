@@ -467,21 +467,19 @@ sensitive_words = [
     
     # Groupes & activités criminelles
     "mafia", "cartel", "crime organisé", "milice", "mercenaire", "guérilla", "terroriste", "insurrection", 
-    "émeute", "coup d'état", "anarchie", "séparatiste",
+    "émeute", "séparatiste",
     
     # Propagande et manipulation
-    "endoctrinement", "secte", "lavage de cerveau", "désinformation", "propagande", "fake news", "manipulation",
+    "endoctrinement", "secte", "lavage de cerveau", "désinformation", "propagande",
+    
     # Attaques et menaces
-    "raid", "ddos", "dox", "doxx", "hack", "hacking", "botnet", "nuke", "nuker", "crash bot", "flood", "spam", "booter", "rat", "keylogger", "phishing", "malware", "virus", "trojan",
+    "raid", "ddos", "dox", "doxx", "hack", "hacking", "botnet", "nuke", "nuker", "crash bot", "flood", "spam", "booter", "keylogger", "phishing", "malware", "trojan",
 
     # Raids Discord
-    "mass ping", "raid bot", "join raid", "leaver bot", "spam bot", "token grabber", "auto join", "multi account", "alts", "alt token",
+    "mass ping", "raid bot", "join raid", "leaver bot", "spam bot", "token grabber", "auto join", "multi account", "alt token",
 
     # Harcèlement et haine
     "swat", "swatting", "harass", "threaten", "kill yourself", "kys", "suicide", "death threat", "pedo", "grooming", "cp",
-
-    # Arnaques et fraudes
-    "free nitro", "discord nitro hack", "gift scam", "fake nitro", "steam scam", "nitro generator", "robux generator", "bitcoin giveaway", "crypto scam", "metamask"
 ]
 
 user_messages = {}
@@ -7943,7 +7941,9 @@ async def create_backup(interaction: discord.Interaction, name: str):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 @bot.tree.command(name="load-back-up", description="Charger une sauvegarde existante")
+@app_commands.autocomplete(name=lambda interaction, current: autocomplete_backup_names(current))
 async def load_backup(interaction: discord.Interaction, name: str):
+    # Recherche la sauvegarde dans la base de données
     backup = collection23.find_one({"backup_name": name})
     if not backup:
         embed = discord.Embed(
@@ -7976,14 +7976,64 @@ async def load_backup(interaction: discord.Interaction, name: str):
     )
     await interaction.response.send_message(embed=loading_embed, ephemeral=True)
 
-    # (Restaurer les rôles et salons comme dans ton code actuel...)
+    try:
+        # Restaurer les rôles si nécessaire
+        await restore_roles(interaction.guild, backup)
 
-    done_embed = discord.Embed(
-        title="✅ Sauvegarde restaurée",
-        description=f"La sauvegarde **`{name}`** a été restaurée avec succès !",
-        color=discord.Color.green()
-    )
-    await interaction.followup.send(embed=done_embed, ephemeral=True)
+        # Restaurer les salons si nécessaire
+        await restore_channels(interaction.guild, backup)
+
+        done_embed = discord.Embed(
+            title="✅ Sauvegarde restaurée",
+            description=f"La sauvegarde **`{name}`** a été restaurée avec succès !",
+            color=discord.Color.green()
+        )
+        await interaction.followup.send(embed=done_embed, ephemeral=True)
+
+    except Exception as e:
+        error_embed = discord.Embed(
+            title="❌ Erreur",
+            description=f"Une erreur est survenue lors de la restauration : {str(e)}",
+            color=discord.Color.red()
+        )
+        await interaction.followup.send(embed=error_embed, ephemeral=True)
+
+# Fonction pour restaurer les rôles sans recréer ceux qui existent déjà
+async def restore_roles(guild, backup):
+    for role_data in backup["roles"]:
+        role_name = role_data["name"]
+        # Chercher le rôle existant
+        existing_role = discord.utils.get(guild.roles, name=role_name)
+        
+        if not existing_role:
+            # Créer un nouveau rôle seulement s'il n'existe pas
+            new_role = await guild.create_role(name=role_name, permissions=discord.Permissions(role_data["permissions"]))
+            # Appliquer d'autres données comme la couleur, position, etc.
+            await new_role.edit(color=discord.Color(role_data["color"]))
+        else:
+            # Si le rôle existe, on peut juste appliquer des permissions ou des changements nécessaires
+            await existing_role.edit(permissions=discord.Permissions(role_data["permissions"]))
+
+# Fonction pour restaurer les salons sans les recréer
+async def restore_channels(guild, backup):
+    for channel_data in backup["channels"]:
+        channel_name = channel_data["name"]
+        existing_channel = discord.utils.get(guild.channels, name=channel_name)
+        
+        if not existing_channel:
+            # Créer un nouveau salon seulement s'il n'existe pas
+            if channel_data["type"] == "text":
+                await guild.create_text_channel(channel_name, category=discord.utils.get(guild.categories, id=channel_data["category_id"]))
+            elif channel_data["type"] == "voice":
+                await guild.create_voice_channel(channel_name, category=discord.utils.get(guild.categories, id=channel_data["category_id"]))
+        else:
+            # Si le salon existe, on peut juste mettre à jour des permissions ou autres paramètres si nécessaire
+            await existing_channel.edit(sync_permissions=True)  # Par exemple, synchroniser les permissions si nécessaire
+
+# Fonction d'autocomplétion pour les noms de sauvegarde
+def autocomplete_backup_names(current: str):
+    backups = collection23.find({"backup_name": {"$regex": f"^{current}", "$options": "i"}})
+    return [app_commands.Choice(name=backup["backup_name"], value=backup["backup_name"]) for backup in backups]
 
 @bot.tree.command(name="list-back-up", description="Lister vos sauvegardes")
 async def list_backup(interaction: discord.Interaction):
@@ -8021,7 +8071,6 @@ async def list_backup(interaction: discord.Interaction):
         )
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 @bot.tree.command(name="delete-back-up", description="Supprimer une sauvegarde")
 async def delete_backup(interaction: discord.Interaction, name: str):
