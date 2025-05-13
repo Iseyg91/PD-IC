@@ -349,6 +349,20 @@ async def update_voice_xp():
                     base_xp = xp_rate["stream"]
 
                 update_user_xp(str(guild.id), str(member.id), base_xp)
+@tasks.loop(seconds=10)
+async def update_presence():
+    activity_types = [
+        discord.Activity(type=discord.ActivityType.watching, name=f"{sum(g.member_count for g in bot.guilds)} Membres"),
+        discord.Activity(type=discord.ActivityType.streaming, name=f"{len(bot.guilds)} Serveurs"),
+        discord.Activity(type=discord.ActivityType.streaming, name="Project : Delta"),
+    ]
+
+    status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
+
+    activity = random.choice(activity_types)
+    status = random.choice(status_types)
+
+    await bot.change_presence(activity=activity, status=status)
 
 # Événement quand le bot est prêt
 @bot.event
@@ -364,6 +378,7 @@ async def on_ready():
     update_stats.start()
     reward_voice.start()
     update_voice_xp.start()
+    update_presence.start()
 
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
@@ -395,15 +410,6 @@ async def on_ready():
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
-
-    while True:
-        for activity in activity_types:
-            for status in status_types:
-                await bot.change_presence(activity=activity, status=status)
-                await asyncio.sleep(10)
-
-        for guild in bot.guilds:
-            GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
 
 @bot.event
 async def on_error(event, *args, **kwargs):
