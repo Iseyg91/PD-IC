@@ -2418,7 +2418,7 @@ async def bal(ctx: commands.Context, user: discord.User = None):
     def get_or_create_user_data(guild_id: int, user_id: int):
         data = collection28.find_one({"guild_id": guild_id, "user_id": user_id})
         if not data:
-            data = {"guild_id": guild_id, "user_id": user_id, "cash": 1500, "bank": 0}
+            data = {"guild_id": guild_id, "user_id": user_id, "cash": 0, "bank": 0}
             collection28.insert_one(data)
         return data
 
