@@ -275,6 +275,22 @@ def load_guild_settings(guild_id):
     delta_bl_data = collection25.find_one({"guild_id": guild_id}) or {}
     alerte_data = collection26.find_one({"guild_id": guild_id}) or {}
     guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
+    ether_eco_data = collection28.find_one({"guild_id": guild_id}) or {}
+    ether_daily_data = collection29.find_one({"guild_id": guild_id}) or {}
+    ether_slut_data = collection30.find_one({"guild_id": guild_id}) or {}
+    ether_crime_data = collection31.find_one({"guild_id": guild_id}) or {}
+    ether_collect_data = collection32.find_one({"guild_id": guild_id}) or {}
+    ether_work_data = collection33.find_one({"guild_id": guild_id}) or {}
+    ether_inventory_data = collection34.find_one({"guild_id": guild_id}) or {}
+    info_cf_data = collection35.find_one({"guild_id": guild_id}) or {}
+    info_logs_data = collection36.find_one({"guild_id": guild_id}) or {}
+    info_bj_data = collection37.find_one({"guild_id": guild_id}) or {}
+    info_rr_data = collection38.find_one({"guild_id": guild_id}) or {}
+    info_roulette_data = collection39.find_one({"guild_id": guild_id}) or {}
+    info_sm_data = collection40.find_one({"guild_id": guild_id}) or {}
+    ether_rob_data = collection41.find_one({"guild_id": guild_id}) or {}
+    anti_rob_data = collection42.find_one({"guild_id": guild_id}) or {}
+    ether_daily_badge_data = collection43.find_one({"guild_id": guild_id}) or {}
     
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -306,8 +322,23 @@ def load_guild_settings(guild_id):
         "delta_warn": delta_warn_data,
         "delta_bl": delta_bl_data,
         "alerte": alerte_data,
-        "guild_troll": guild_troll_data
-
+        "guild_troll": guild_troll_data,
+        "ether_eco": ether_eco_data,
+        "ether_daily": ether_daily_data,
+        "ether_slut": ether_slut_data,
+        "ether_crime": ether_crime_data,
+        "ether_collect": ether_collect_data,
+        "ether_work": ether_work_data,
+        "ether_inventory": ether_inventory_data,
+        "info_cf": info_cf_data,
+        "info_logs": info_logs_data,
+        "info_bj": info_bj_data,
+        "info_rr": info_rr_data,
+        "info_roulette": info_roulette_data,
+        "info_sm": info_sm_data,
+        "ether_rob": ether_rob_data,
+        "anti_rob": anti_rob_data,
+        "daily_badge": daily_badge_data
     }
 
     return combined_data
@@ -2544,7 +2575,7 @@ async def withdraw(ctx: commands.Context, amount: str):
             return await ctx.send(embed=embed)
 
     # Mise à jour dans la base de données
-    collection.update_one(
+    collection28.update_one(
         {"guild_id": guild_id, "user_id": user_id},
         {"$inc": {"cash": withdrawn_amount, "bank": -withdrawn_amount}},
         upsert=True
