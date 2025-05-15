@@ -611,11 +611,6 @@ async def on_message(message):
                 await message.author.send("⚠️ L'utilisation de `@everyone` ou `@here` est interdite sur ce serveur.")
                 return
 
-        # 🎉 8. Coins pour chaque message
-        if message.guild.id == 1359963854200639498:
-            coins_to_add = random.randint(3, 5)
-            add_coins(message.guild.id, user_id, coins_to_add)
-
         # 🔄 9. Cooldown XP
         now = datetime.utcnow()
         if user_id not in cooldowns or now > cooldowns[user_id]:
