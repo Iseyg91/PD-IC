@@ -27,6 +27,7 @@ import psutil
 import pytz
 import platform
 from discord.ui import Select, View
+from typing import Optional
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
