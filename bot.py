@@ -2978,6 +2978,14 @@ async def slut(ctx: commands.Context):
     user_id = user.id
     now = datetime.utcnow()
 
+    # Vérification que l'utilisateur a un rôle dans ECO_ROLES_VIP
+    if not any(role.id in ECO_ROLES_VIP for role in user.roles):
+        embed = discord.Embed(
+            description=f"<:classic_x_mark:1362711858829725729> {user.mention}, cette commande est réservée aux membres VIP.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+        
     # Cooldown 30 min
     cooldown_data = collection30.find_one({"guild_id": guild_id, "user_id": user_id}) or {}
     last_slut_time = cooldown_data.get("last_slut_time")
@@ -3070,6 +3078,14 @@ async def crime(ctx: commands.Context):
     user_id = user.id
     now = datetime.utcnow()
 
+    # Vérification que l'utilisateur a un rôle dans ECO_ROLES_VIP
+    if not any(role.id in ECO_ROLES_VIP for role in user.roles):
+        embed = discord.Embed(
+            description=f"<:classic_x_mark:1362711858829725729> {user.mention}, cette commande est réservée aux membres VIP.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+        
     # Cooldown 30 minutes
     cooldown_data = collection31.find_one({"guild_id": guild_id, "user_id": user_id}) or {}
     last_crime_time = cooldown_data.get("last_crime_time")
