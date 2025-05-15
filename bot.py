@@ -1009,9 +1009,30 @@ async def on_message(message):
             update_user_xp(str(message.guild.id), user_id, xp_rate["message"])
             cooldowns[user_id] = now + timedelta(seconds=60)
 
+        # 💸 11. Gain automatique de cash à chaque message
+        try:
+            from random import randint
+
+            gain = randint(1, 5)  # Ajuste ici le gain minimal/maximal
+            user_data = collection28.find_one({"guild_id": message.guild.id, "user_id": message.author.id})
+
+            if not user_data:
+                # Crée l'entrée si elle n'existe pas
+                user_data = {"guild_id": message.guild.id, "user_id": message.author.id, "cash": gain, "bank": 0}
+                collection28.insert_one(user_data)
+            else:
+                # Met à jour le cash
+                collection28.update_one(
+                    {"guild_id": message.guild.id, "user_id": message.author.id},
+                    {"$inc": {"cash": gain}}
+                )
+        except Exception as e:
+            print(f"Erreur lors du gain de cash automatique : {e}")
+
         # ✅ 10. Traitement normal
         await bot.process_commands(message)
 
+    
     except Exception:
         print("❌ Erreur dans on_message :")
         traceback.print_exc()
