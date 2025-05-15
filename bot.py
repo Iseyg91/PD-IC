@@ -37,6 +37,7 @@ client = discord.Client(intents=intents)
 #Configuration du Bot:
 # --- ID Owner Bot ---
 ISEY_ID = 792755123587645461
+GUILD_ID = 1359963854200639498
 
 # --- ID Staff Serveur Delta ---
 PROJECT_DELTA = 1359963854200639498
