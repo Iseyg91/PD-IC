@@ -6548,22 +6548,25 @@ async def note(ctx, member: discord.Member = None):
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
 
-@bot.command()
-async def say(ctx, *, text: str = None):
+@bot.hybrid_command(name="say", description="Fais dire un message au bot.")
+@app_commands.describe(text="Le texte à dire")
+async def say(ctx: commands.Context, *, text: str = None):
     # Vérifie si l'utilisateur a les permissions d'admin ou si son ID correspond à ISEY_ID
     if not ctx.author.guild_permissions.administrator and str(ctx.author.id) != "792755123587645461":
-        await ctx.send("Tu n'as pas les permissions nécessaires pour utiliser cette commande.")
-        return
-    
-    if text is None:
-        await ctx.send("Tu n'as pas écrit de texte à dire !")
+        await ctx.send("Tu n'as pas les permissions nécessaires pour utiliser cette commande.", ephemeral=True)
         return
 
-    # Supprime le message originel
-    await ctx.message.delete()
+    if text is None:
+        await ctx.send("Tu n'as pas écrit de texte à dire !", ephemeral=True)
+        return
+
+    # Supprime le message originel si c’est une commande message
+    if ctx.prefix:
+        await ctx.message.delete()
 
     # Envoie le texte spécifié
     await ctx.send(text)
+
 
 @bot.command()
 async def coinflip(ctx):
