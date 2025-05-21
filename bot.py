@@ -5374,9 +5374,8 @@ class SetupView(View):
 Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
 📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
 
-🔽 **Sélectionnez une catégorie pour commencer !**
+🔽 **Sélectionnez la catégorie pour commencer !**
             """,
             color=discord.Color.blurple()
         )
@@ -5394,9 +5393,8 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
             Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
             📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
-            🛡️ **Sécurité & Anti-Raid** - 🚫 Activer/Désactiver les protections.  
-
-            🔽 **Sélectionnez une catégorie pour commencer !**
+            
+            🔽 **Sélectionnez la catégorie pour commencer !**
             """
             self.clear_items()
             self.add_item(MainSelect(self))
@@ -5411,17 +5409,6 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
 
             self.clear_items()
             self.add_item(InfoSelect(self))
-            self.add_item(ReturnButton(self))
-
-        elif category == "anti":
-            embed.title = "🛡️ **Sécurité & Anti-Raid**"
-            embed.description = "⚠️ **Gérez les protections du serveur contre les abus et le spam.**\n🔽 **Sélectionnez une protection à activer/désactiver. Pour des protections supplémentaires, effectuez la commande +protection !**"
-            embed.add_field(name="🔗 Anti-lien :", value=f"{'✅ Activé' if self.guild_data.get('anti_link', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="💬 Anti-Spam :", value=f"{'✅ Activé' if self.guild_data.get('anti_spam', False) else '❌ Désactivé'}", inline=True)
-            embed.add_field(name="🚫 Anti-Everyone :", value=f"{'✅ Activé' if self.guild_data.get('anti_everyone', False) else '❌ Désactivé'}", inline=True)
-
-            self.clear_items()
-            self.add_item(AntiSelect(self))
             self.add_item(ReturnButton(self))
 
         if self.embed_message:
@@ -5473,7 +5460,6 @@ class MainSelect(Select):
     def __init__(self, view):
         options = [
             discord.SelectOption(label="⚙️ Gestion du Bot", description="Modifier les rôles et salons", value="gestion"),
-            discord.SelectOption(label="🛡️ Sécurité & Anti-Raid", description="Configurer les protections", value="anti")
         ]
         super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
         self.view_ctx = view
@@ -5568,7 +5554,7 @@ async def setup(ctx):
         🔧 **Bienvenue dans le setup !**  
         Configurez votre serveur facilement en quelques clics !  
 
-        📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+        📌 **Gestion du Bot**
 
         🔽 **Sélectionnez une option pour commencer !**
         """,
