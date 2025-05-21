@@ -6546,13 +6546,15 @@ async def say(ctx: commands.Context, *, text: str = None):
         await ctx.send("Tu n'as pas écrit de texte à dire !", ephemeral=True)
         return
 
-    # Supprime le message originel si c’est une commande message
-    if ctx.prefix:
-        await ctx.message.delete()
+    # Supprime le message si la commande a été envoyée en message (et pas en slash)
+    if ctx.prefix and ctx.message:
+        try:
+            await ctx.message.delete()
+        except discord.NotFound:
+            pass  # Le message a déjà été supprimé ou n'existe pas
 
     # Envoie le texte spécifié
     await ctx.send(text)
-
 
 @bot.command()
 async def coinflip(ctx):
