@@ -514,7 +514,9 @@ async def on_error(event, *args, **kwargs):
 
 sensitive_categories = {
     "insultes_graves": ["fils de pute"],
+    
     "discours_haineux": ["nigger", "nigga", "negro", "chintok", "bougnoule", "pédé", "retardé", "mongolien", "mongolo", "sale pédé","sale arabe", "sale noir", "sale juif", "sale blanc", "race inférieure", "sale race", "enculé de ta race", "triso", "gros lard", "gros porc"],
+    
     "ideologies_haineuses": ["raciste", "homophobe", "xénophobe", "transphobe", "antisémite", "islamophobe", "suprémaciste", "fasciste", "nazi", "néonazi", "dictateur", "extrémiste", "fanatique", "radicalisé", "révisionniste", "djihadiste", "intégriste"],
     
     "violences_crimes": ["viol", "pédophilie", "inceste", "pédocriminel", "grooming", "agression", "assassin", "meurtre", "homicide", "génocide", "extermination", "décapitation", "lynchage", "massacre", "torture", "suicidaire", "prise d'otage", "terrorisme", "attentat", "bombardement", "exécution", "immolation", "traite humaine", "esclavage sexuel", "viol collectif", "kidnapping", "tueur en série", "infanticide", "parricide"],
@@ -573,7 +575,7 @@ async def on_message(message):
                 category = word_to_category[word.lower()]
         
                 # Récupère les réglages du serveur (collection `sensible`)
-                guild_settings = collection_sensible.find_one({"guild_id": str(message.guild.id)})
+                guild_settings = collection28.find_one({"guild_id": str(message.guild.id)})
                 if guild_settings and not guild_settings.get(category, True):
                     print(f"❌ Catégorie {category} désactivée, pas d'alerte.")
                     break  # ou continue si tu veux tester les autres mots
