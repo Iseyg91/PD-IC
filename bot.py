@@ -6528,7 +6528,7 @@ class SensibleMenu(Select):
             {"$set": {
                 cat: new_value,
                 f"{cat}_updated_by": str(interaction.user.id),
-                f"{cat}_updated_at": datetime.datetime.utcnow()
+                f"{cat}_updated_at": datetime.utcnow()
             }},
             upsert=True
         )
