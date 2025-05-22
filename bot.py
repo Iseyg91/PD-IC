@@ -434,11 +434,7 @@ async def on_ready():
 
     # Démarrer les tâches de fond
     update_stats.start()
-    reward_voice.start()
-    update_voice_xp.start()
-    update_top_roles.start()
-    auto_collect_loop.start()
-
+    
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
 
@@ -469,6 +465,12 @@ async def on_ready():
         print(f"✅ Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"❌ Erreur de synchronisation des commandes slash : {e}")
+
+    while True:
+        for activity in activity_types:
+            for status in status_types:
+                await bot.change_presence(activity=activity, status=status)
+                await asyncio.sleep(10)
 
         for guild in bot.guilds:
             GUILD_SETTINGS[guild.id] = load_guild_settings(guild.id)
