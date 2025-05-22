@@ -28,6 +28,9 @@ import pytz
 import platform
 from discord.ui import Select, View
 from typing import Optional
+from discord import app_commands, Interaction, Embed, SelectOption
+from discord.ui import View, Select
+
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
@@ -102,33 +105,34 @@ db = client['Cass-Eco2']
 db2 = client['DELTA-ECO']
 
 # Collections
-collection = db['setup']  # Configuration générale ✅
-collection2 = db['setup_premium']  # Serveurs premium ✅
-collection3 = db['bounty']  # Primes et récompenses des joueurs ✅
-collection4 = db['protection'] #Serveur sous secu ameliorer ✅
-collection5 = db ['clients'] #Stock Clients ✅
-collection6 = db ['partner'] #Stock Partner ❌
-collection7= db ['sanction'] #Stock Sanction ✅
-collection8 = db['idees'] #Stock Idées ✅
-collection9 = db['stats'] #Stock Salon Stats ✅
-collection10 = db['eco'] #Stock Les infos Eco ✅
-collection11 = db['eco_daily'] #Stock le temps de daily ✅
-collection12 = db['rank'] #Stock les Niveau ✅
-collection13 = db['eco_work'] #Stock le temps de Work ✅
-collection14 = db['eco_slut'] #Stock le temps de Slut ✅
-collection15 = db['eco_crime'] #Stock le temps de Crime ✅
+collection = db['setup']  # Configuration générale
+collection2 = db['setup_premium']  # Serveurs premium
+collection3 = db['bounty']  # Primes et récompenses des joueurs
+collection4 = db['protection'] #Serveur sous secu ameliorer
+collection5 = db ['clients'] #Stock Clients 
+collection6 = db ['partner'] #Stock Partner 
+collection7= db ['sanction'] #Stock Sanction 
+collection8 = db['idees'] #Stock Idées 
+collection9 = db['stats'] #Stock Salon Stats 
+collection10 = db['eco'] #Stock Les infos Eco 
+collection11 = db['eco_daily'] #Stock le temps de daily 
+collection12 = db['rank'] #Stock les Niveau 
+collection13 = db['eco_work'] #Stock le temps de Work 
+collection14 = db['eco_slut'] #Stock le temps de Slut 
+collection15 = db['eco_crime'] #Stock le temps de Crime 
 collection16 = db['ticket'] #Stock les Tickets
-collection17 = db['team'] #Stock les Teams ✅
+collection17 = db['team'] #Stock les Teams 
 collection18 = db['logs'] #Stock les Salons Logs
-collection19 = db['wl'] #Stock les whitelist ✅
-collection20 = db['suggestions'] #Stock les Salons Suggestion ✅
-collection21 = db['presentation'] #Stock les Salon Presentation ✅
-collection22 = db['absence'] #Stock les Salon Absence ✅
+collection19 = db['wl'] #Stock les whitelist 
+collection20 = db['suggestions'] #Stock les Salons Suggestion 
+collection21 = db['presentation'] #Stock les Salon Presentation 
+collection22 = db['absence'] #Stock les Salon Absence 
 collection23 = db['back_up'] #Stock les Back-up
-collection24 = db['delta_warn'] #Stock les Warn Delta ✅
-collection25 = db['delta_bl'] #Stock les Bl Delta ✅
-collection26 = db['alerte'] #Stock les Salons Alerte ✅
+collection24 = db['delta_warn'] #Stock les Warn Delta 
+collection25 = db['delta_bl'] #Stock les Bl Delta 
+collection26 = db['alerte'] #Stock les Salons Alerte
 collection27 = db['guild_troll'] #Stock les serveur ou les commandes troll sont actif ou inactif
+collection28 = db['sensible'] #Stock les mots sensibles actif des serveurs
 
 # Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
@@ -215,6 +219,7 @@ def load_guild_settings(guild_id):
     delta_bl_data = collection25.find_one({"guild_id": guild_id}) or {}
     alerte_data = collection26.find_one({"guild_id": guild_id}) or {}
     guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
+    sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
     
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -247,6 +252,7 @@ def load_guild_settings(guild_id):
         "delta_bl": delta_bl_data,
         "alerte": alerte_data,
         "guild_troll": guild_troll_data,
+        "sensible": sensible_data
     }
 
     return combined_data
@@ -6452,6 +6458,182 @@ async def deactivate_troll_error(interaction: discord.Interaction, error):
         await interaction.response.send_message("🚫 Vous devez être **administrateur** pour utiliser cette commande.", ephemeral=True)
     else:
         await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
+
+SENSIBLE_CATEGORIES = [
+    "insultes_graves",
+    "discours_haineux",
+    "ideologies_haineuses",
+    "violences_crimes",
+    "drogues_substances",
+    "contenus_sexuels",
+    "fraudes_financières",
+    "attaques_menaces",
+    "raids_discord",
+    "harcèlement_haine",
+    "personnages_problématiques"
+]
+
+SENSIBLE_DETAILS = {
+    "insultes_graves": ("🗯️ Insultes graves", "Détecte les insultes graves."),
+    "discours_haineux": ("⚠️ Discours haineux", "Détecte les propos discriminatoires."),
+    "ideologies_haineuses": ("⛔ Idéologies haineuses", "Détecte les termes liés à des idéologies haineuses."),
+    "violences_crimes": ("🔪 Violences et crimes", "Détecte les mentions de violences ou crimes graves."),
+    "drogues_substances": ("💊 Drogues & substances", "Détecte les mentions de drogues ou substances illicites."),
+    "contenus_sexuels": ("🔞 Contenus sexuels explicites", "Détecte les contenus à caractère sexuel explicite."),
+    "fraudes_financières": ("💰 Fraudes & crimes financiers", "Détecte les mentions de fraudes ou crimes financiers."),
+    "attaques_menaces": ("🛡️ Attaques et menaces", "Détecte les propos menaçants ou attaques."),
+    "raids_discord": ("🚨 Raids Discord", "Détecte les tentatives de raids sur le serveur."),
+    "harcèlement_haine": ("😡 Harcèlement et haine", "Détecte les propos haineux ou de harcèlement."),
+    "personnages_problématiques": ("👤 Personnages problématiques", "Détecte les mentions de personnages problématiques.")
+}
+
+# Vérifie si l'utilisateur est administrateur ou ISEY
+def is_admin_or_isey():
+    async def predicate(ctx):
+        return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
+    return commands.check(predicate)
+
+# Vue pour le menu de sélection des catégories sensibles
+class SensibleMenu(Select):
+    def __init__(self, guild_id, sensible_data, bot):
+        self.guild_id = guild_id
+        self.sensible_data = sensible_data
+        self.bot = bot
+
+        options = [
+            SelectOption(
+                label=SENSIBLE_DETAILS[cat][0],
+                description="Activer ou désactiver cette catégorie.",
+                emoji="🟢" if sensible_data.get(cat, True) else "🔴",
+                value=cat
+            )
+            for cat in SENSIBLE_CATEGORIES
+        ]
+
+        super().__init__(
+            placeholder="🔧 Choisissez une catégorie à modifier",
+            min_values=1,
+            max_values=1,
+            options=options
+        )
+
+    async def callback(self, interaction: Interaction):
+        cat = self.values[0]
+        current = self.sensible_data.get(cat, True)
+        new_value = not current
+
+        # Met à jour la base de données
+        collection28.update_one(
+            {"guild_id": str(self.guild_id)},
+            {"$set": {
+                cat: new_value,
+                f"{cat}_updated_by": str(interaction.user.id),
+                f"{cat}_updated_at": datetime.datetime.utcnow()
+            }},
+            upsert=True
+        )
+
+        self.sensible_data[cat] = new_value
+        self.sensible_data[f"{cat}_updated_by"] = interaction.user.id
+        self.sensible_data[f"{cat}_updated_at"] = datetime.datetime.utcnow()
+
+        guild = interaction.guild
+        if guild and guild.owner:
+            await notify_owner_of_sensible_change(guild, cat, new_value, interaction)
+
+        # Met à jour l'embed
+        embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
+        for c in SENSIBLE_CATEGORIES:
+            name, value = format_sensible_field(c, self.sensible_data, guild, self.bot)
+            embed.add_field(name=name, value=value, inline=False)
+
+        embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
+        view = View()
+        view.add_item(SensibleMenu(self.guild_id, self.sensible_data, self.bot))
+        await interaction.response.edit_message(embed=embed, view=view)
+
+# Vue principale pour la commande
+class SensibleView(View):
+    def __init__(self, guild_id, sensible_data, bot):
+        super().__init__(timeout=None)
+        self.add_item(SensibleMenu(guild_id, sensible_data, bot))
+
+# Formatage des champs de l'embed
+def format_sensible_field(cat, data, guild, bot):
+    name, desc = SENSIBLE_DETAILS[cat]
+    enabled = data.get(cat, True)
+    status = "✅ Activée" if enabled else "❌ Désactivée"
+    updated_by_id = data.get(f"{cat}_updated_by")
+    updated_at = data.get(f"{cat}_updated_at")
+
+    modifier = None
+    if updated_by_id:
+        modifier = guild.get_member(int(updated_by_id)) or updated_by_id
+
+    formatted_date = ""
+    if updated_at:
+        dt = updated_at.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Paris"))
+        formatted_date = f"🕓 {dt.strftime('%d/%m/%Y à %H:%M')}"
+
+    mod_info = f"\n👤 Modifié par : {modifier.mention if isinstance(modifier, discord.Member) else modifier}" if modifier else ""
+    date_info = f"\n{formatted_date}" if formatted_date else ""
+
+    value = f"> {desc}\n> **Statut :** {status}{mod_info}{date_info}"
+    return name, value
+
+# Notification au propriétaire du serveur
+async def notify_owner_of_sensible_change(guild, cat, new_value, interaction):
+    if guild and guild.owner:
+        try:
+            embed = Embed(
+                title="🧠 Mise à jour d'une catégorie de mots sensibles",
+                description=f"**Catégorie :** {SENSIBLE_DETAILS[cat][0]}\n"
+                            f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
+                color=discord.Color.green() if new_value else discord.Color.red()
+            )
+            embed.add_field(
+                name="👤 Modifiée par :",
+                value=f"{interaction.user.mention} ({interaction.user})",
+                inline=False
+            )
+            embed.add_field(name="🏠 Serveur :", value=guild.name, inline=False)
+            embed.add_field(
+                name="🕓 Date de modification :",
+                value=f"<t:{int(datetime.datetime.utcnow().timestamp())}:f>",
+                inline=False
+            )
+            embed.add_field(
+                name="ℹ️ Infos supplémentaires :",
+                value="Vous pouvez reconfigurer les catégories sensibles à tout moment avec la commande /set-sensible.",
+                inline=False
+            )
+
+            await guild.owner.send(embed=embed)
+        except discord.Forbidden:
+            print("Impossible d’envoyer un DM à l’owner.")
+        except Exception as e:
+            print(f"Erreur lors de l'envoi du DM : {e}")
+
+# Commande principale
+@bot.hybrid_command(name="set-sensible", description="Configurer les catégories de mots sensibles")
+@is_admin_or_isey()
+async def set_sensible(ctx: commands.Context):
+    guild_id = str(ctx.guild.id)
+    sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
+
+    # Initialise toutes les catégories à True si elles ne sont pas définies
+    for cat in SENSIBLE_CATEGORIES:
+        if cat not in sensible_data:
+            sensible_data[cat] = True
+
+    embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
+    for cat in SENSIBLE_CATEGORIES:
+        name, value = format_sensible_field(cat, sensible_data, ctx.guild, ctx.bot)
+        embed.add_field(name=name, value=value, inline=False)
+
+    embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
+    view = SensibleView(guild_id, sensible_data, ctx.bot)
+    await ctx.send(embed=embed, view=view)
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
