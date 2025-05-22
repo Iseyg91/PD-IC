@@ -6535,7 +6535,7 @@ class SensibleMenu(Select):
 
         self.sensible_data[cat] = new_value
         self.sensible_data[f"{cat}_updated_by"] = interaction.user.id
-        self.sensible_data[f"{cat}_updated_at"] = datetime.datetime.utcnow()
+        self.sensible_data[f"{cat}_updated_at"] = datetime.utcnow()
 
         guild = interaction.guild
         if guild and guild.owner:
