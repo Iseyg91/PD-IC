@@ -512,64 +512,35 @@ async def on_error(event, *args, **kwargs):
 
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
-# Liste des mots sensibles
-sensitive_words = [
-    # Insultes graves
-    "fils de pute",
-    # Discours haineux / discriminations
-    "nigger", "nigga", "negro", "chintok", "bougnoule", "pédé", "retardé", "mongolien", "mongolo", "sale pédé",
-    "sale arabe", "sale noir", "sale juif", "sale blanc", "race inférieure", "sale race", "enculé de ta race", "triso", "gros lard", "gros porc",
-
-    # Termes liés à des idéologies haineuses
-    "raciste", "homophobe", "xénophobe", "transphobe", "antisémite", "islamophobe", "suprémaciste", 
-    "fasciste", "nazi", "néonazi", "dictateur", "extrémiste", "fanatique", "radicalisé", "révisionniste", "djihadiste", "intégriste",
-
-    # Violences et crimes graves
-    "viol", "pédophilie", "inceste", "pédocriminel", "grooming", "agression", "assassin", "meurtre", "homicide", "génocide", 
-    "extermination", "décapitation", "lynchage", "massacre", "torture", "suicidaire", "prise d'otage", "terrorisme", "attentat", 
-    "bombardement", "exécution", "immolation", "traite humaine", "esclavage sexuel", "viol collectif", "kidnapping", "tueur en série", "infanticide", "parricide",
-
-    # Drogues & substances
-    "cocaïne", "héroïne", "crack", "LSD", "ecstasy", "GHB", "fentanyl", "méthamphétamine", 
-    "cannabis", "weed", "opium", "drogue", "drogue de synthèse", "trafic de drogue", "toxicomanie", "overdose", 
-    "shooté", "trip", "bad trip", "défoncé", "stoned", "sniffer", "injecter", "pilule", "shit",
-
-    # Contenus sexuels explicites
-    "pornographie", "porno", "prostitution", "escort", "masturbation", "fellation", "pipe", "sexe", "sodomie", 
-    "exhibition", "fétichisme", "orgie", "gode", "pénétration", "nu", "nudité", "camgirl", "onlyfans", "porno enfant", "sextape", "branlette", "cul", "bite", "chatte",
-
-    # Fraudes & crimes financiers
-    "scam", "arnaque", "fraude", "chantage", "extorsion", "évasion fiscale", "fraude fiscale", "détournement de fonds",
-    "blanchiment d'argent", "crypto scam", "phishing bancaire", "vol d'identité", "usurpation", "cheque volé",
-
-    # Attaques et menaces
-    "raid", "ddos", "dox", "doxx", "hack", "hacking", "botnet", "nuke", "nuker", "crash bot", "flood", "spam", 
-    "booter", "keylogger", "phishing", "malware", "trojan", "ransomware", "brute force", "cheval de troie", "keylogger", "injection SQL",
-
-    # Raids Discord
-    "mass ping", "raid bot", "join raid", "leaver bot", "spam bot", "token grabber", "auto join", "multi account", 
-    "alt token", "webhook spam", "webhook nuker", "selfbot", "auto spam", "invite spam",
-
-    # Harcèlement et haine
-    "swat", "swatting", "harass", "threaten", "kill yourself", "kys", "suicide", "death threat", "pedo", 
-    "grooming", "cp", "harcèlement", "cyberharcèlement", "intimidation", "menace de mort", "appel au suicide",
-
-    # Personnages à eviter
-    "Hitler", "Mussolini", "Staline", "Pol Pot", "Mao Zedong", "Benito Mussolini", "Joseph Staline", "Adolf Hitler", "Kim Jong-il",
-    "Kim Jong-un", "Idi Amin", "Saddam Hussein", "Bachar el-Assad", "Ben Laden", "Oussama Ben Laden", "Ayman al-Zawahiri", "Heinrich Himmler", 
-    "Joseph Goebbels", "Hermann Göring", "Adolf Eichmann", "Rudolf Hess", "Slobodan Milošević", "Radovan Karadžić", "Ratko Mladić", "Francisco Franco", 
-    "Augusto Pinochet", "Fidel Castro", "Che Guevara", "Ayatollah Khomeini", "Al-Baghdadi", "Abu Bakr al-Baghdadi", "Anders Behring Breivik", "Charles Manson", 
-    "Ted Bundy", "Jeffrey Dahmer", "Richard Ramirez", "John Wayne Gacy", "Albert Fish", "Ed Gein", "Luca Magnotta", "Peter Kürten", "David Berkowitz", "Ariel Castro", 
-    "Yitzhak Shamir", "Meir Kahane", "Nicolae Ceaușescu", "Vladimir Poutine", "Alexander Lukashenko", "Mengistu Haile Mariam", "Yahya Jammeh", "Omar el-Béchir", 
-    "Jean-Bédel Bokassa", "Robert Mugabe", "Mobutu Sese Seko", "Laurent-Désiré Kabila", "Joseph Kony", "Enver Hoxha", "Gaddafi", "Muammar Kadhafi", "Ríos Montt", 
-    "Reinhard Heydrich", "Ismail Enver", "Anton Mussert", "Ante Pavelić", "Vidkun Quisling", "Stepan Bandera", "Ramush Haradinaj", "Slobodan Praljak", "Milomir Stakić", 
-    "Theodore Kaczynski", "Eric Harris", "Dylan Klebold", "Brenton Tarrant", "Seung-Hui Cho", "Stephen Paddock", "Patrick Crusius", "Elliot Rodger", "Nikolas Cruz", 
-    "Dylann Roof", "Timothy McVeigh", "Tamerlan Tsarnaev", "Dzhokhar Tsarnaev", "Sayfullo Saipov", "Mohamed Merah", "Amedy Coulibaly", "Chérif Kouachi", "Salah Abdeslam", 
-    "Abdelhamid Abaaoud", "Mohammed Atta", "Khalid Sheikh Mohammed", "Ramzi Yousef", "Richard Reid", "Umar Farouk Abdulmutallab", "Anwar al-Awlaki"
-]
+sensitive_categories = {
+    "insultes_graves": ["fils de pute"],
+    "discours_haineux": ["nigger", "nigga", "negro", "chintok", "bougnoule", "pédé", "retardé", "mongolien", "mongolo", "sale pédé","sale arabe", "sale noir", "sale juif", "sale blanc", "race inférieure", "sale race", "enculé de ta race", "triso", "gros lard", "gros porc"],
+    "ideologies_haineuses": ["raciste", "homophobe", "xénophobe", "transphobe", "antisémite", "islamophobe", "suprémaciste", "fasciste", "nazi", "néonazi", "dictateur", "extrémiste", "fanatique", "radicalisé", "révisionniste", "djihadiste", "intégriste"],
+    
+    "violences_crimes": ["viol", "pédophilie", "inceste", "pédocriminel", "grooming", "agression", "assassin", "meurtre", "homicide", "génocide", "extermination", "décapitation", "lynchage", "massacre", "torture", "suicidaire", "prise d'otage", "terrorisme", "attentat", "bombardement", "exécution", "immolation", "traite humaine", "esclavage sexuel", "viol collectif", "kidnapping", "tueur en série", "infanticide", "parricide"],
+    
+    "drogues": ["cocaïne", "héroïne", "crack", "LSD", "ecstasy", "GHB", "fentanyl", "méthamphétamine", "cannabis", "weed", "opium", "drogue", "drogue de synthèse", "trafic de drogue", "toxicomanie", "overdose", "shooté", "trip", "bad trip", "défoncé", "stoned", "sniffer", "injecter", "pilule", "shit"],
+    
+    "contenu_sexuel": ["pornographie", "porno", "prostitution", "escort", "masturbation", "fellation", "pipe", "sexe", "sodomie", "exhibition", "fétichisme", "orgie", "gode", "pénétration", "nudité", "camgirl", "onlyfans", "porno enfant", "sextape", "branlette", "cul", "bite",],
+    
+    "fraudes": ["scam", "arnaque", "fraude", "chantage", "extorsion", "évasion fiscale", "fraude fiscale", "détournement de fonds","blanchiment d'argent", "crypto scam", "phishing bancaire", "vol d'identité", "usurpation", "cheque volé"],
+    
+    "attaques_informatiques": ["raid", "ddos", "dox", "doxx", "hack", "hacking", "botnet", "nuke", "nuker", "crash bot", "flood", "spam", "booter", "keylogger", "phishing", "malware", "trojan", "ransomware", "brute force", "cheval de troie", "keylogger", "injection SQL"],
+    
+    "raids_discord": ["mass ping", "raid bot", "join raid", "leaver bot", "spam bot", "token grabber", "auto join", "multi account", "alt token", "webhook spam", "webhook nuker", "selfbot", "auto spam", "invite spam"],
+    
+    "harcelement": ["swat", "swatting", "harass", "threaten", "kill yourself", "kys", "suicide", "death threat", "pedo", "grooming", "cp", "harcèlement", "cyberharcèlement", "intimidation", "menace de mort", "appel au suicide"],
+    
+    "personnages_interdits": ["Hitler", "Mussolini", "Staline", "Pol Pot", "Mao Zedong", "Benito Mussolini", "Joseph Staline", "Adolf Hitler", "Kim Jong-il","Kim Jong-un", "Idi Amin", "Saddam Hussein", "Bachar el-Assad", "Ben Laden", "Oussama Ben Laden", "Ayman al-Zawahiri", "Heinrich Himmler", "Joseph Goebbels", "Hermann Göring", "Adolf Eichmann", "Rudolf Hess", "Slobodan Milošević", "Radovan Karadžić", "Ratko Mladić", "Francisco Franco", "Augusto Pinochet", "Fidel Castro", "Che Guevara", "Ayatollah Khomeini", "Al-Baghdadi", "Abu Bakr al-Baghdadi", "Anders Behring Breivik", "Charles Manson", "Ted Bundy", "Jeffrey Dahmer", "Richard Ramirez", "John Wayne Gacy", "Albert Fish", "Ed Gein", "Luca Magnotta", "Peter Kürten", "David Berkowitz", "Ariel Castro", "Yitzhak Shamir", "Meir Kahane", "Nicolae Ceaușescu", "Vladimir Poutine", "Alexander Lukashenko", "Mengistu Haile Mariam", "Yahya Jammeh", "Omar el-Béchir", "Jean-Bédel Bokassa", "Robert Mugabe", "Mobutu Sese Seko", "Laurent-Désiré Kabila", "Joseph Kony", "Enver Hoxha", "Gaddafi", "Muammar Kadhafi", "Ríos Montt", "Reinhard Heydrich", "Ismail Enver", "Anton Mussert", "Ante Pavelić", "Vidkun Quisling", "Stepan Bandera", "Ramush Haradinaj", "Slobodan Praljak", "Milomir Stakić", "Theodore Kaczynski", "Eric Harris", "Dylan Klebold", "Brenton Tarrant", "Seung-Hui Cho", "Stephen Paddock", "Patrick Crusius", "Elliot Rodger", "Nikolas Cruz", "Dylann Roof", "Timothy McVeigh", "Tamerlan Tsarnaev", "Dzhokhar Tsarnaev", "Sayfullo Saipov", "Mohamed Merah", "Amedy Coulibaly", "Chérif Kouachi", "Salah Abdeslam", "Abdelhamid Abaaoud", "Mohammed Atta", "Khalid Sheikh Mohammed", "Ramzi Yousef", "Richard Reid", "Umar Farouk Abdulmutallab", "Anwar al-Awlaki"]
+}
 
 user_messages = {}
 cooldowns = {}
+
+word_to_category = {}
+for category, words in sensitive_categories.items():
+    for word in words:
+        word_to_category[word.lower()] = category
 
 # Fonction pour générer une regex flexible
 def make_flexible_pattern(word):
@@ -596,9 +567,17 @@ async def on_message(message):
             return
 
         # 💬 2. Vérifie les mots sensibles
-        for word in sensitive_words:
+        for word in word_to_category:
             if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
-                print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word}")
+                # Récupère la catégorie du mot détecté
+                category = word_to_category[word.lower()]
+        
+                # Récupère les réglages du serveur (collection `sensible`)
+                guild_settings = collection_sensible.find_one({"guild_id": str(message.guild.id)})
+                if guild_settings and not guild_settings.get(category, True):
+                    print(f"❌ Catégorie {category} désactivée, pas d'alerte.")
+                    break  # ou continue si tu veux tester les autres mots
+                print(f"🚨 Mot sensible détecté dans le message de {message.author}: {word} (catégorie: {category})")
                 asyncio.create_task(send_alert_to_admin(message, word))
                 break
 
