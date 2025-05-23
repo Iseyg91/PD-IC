@@ -6131,14 +6131,37 @@ class UrgenceView(discord.ui.View):
             view=None
         )
 
-        # Notifier l'utilisateur à l'origine de l'urgence par DM
+        # Notifier l'utilisateur à l'origine de l'urgence par DM avec un embed rassurant
         try:
             user = await interaction.client.fetch_user(self.user_id)
-            await user.send(f"✅ Ton urgence a été claim par {interaction.user.mention}. Le staff est en train de la traiter.")
+
+            embed_dm = discord.Embed(
+                title="✅ Urgence prise en charge",
+                description="Un membre de l'équipe de modération s'est occupé de ton signalement.",
+                color=discord.Color.green()
+            )
+            embed_dm.add_field(
+                name="👤 Staff en charge",
+                value=f"{interaction.user.mention} (`{interaction.user}`)",
+                inline=False
+            )
+            embed_dm.add_field(
+                name="📌 Prochaine étape",
+                value="Tu seras contacté si des informations supplémentaires sont nécessaires. Reste disponible.",
+                inline=False
+            )
+            embed_dm.set_footer(text="Merci de ta confiance. Le staff fait de son mieux pour t'aider rapidement.")
+            embed_dm.timestamp = datetime.utcnow()
+
+            await user.send(embed=embed_dm)
+
         except discord.Forbidden:
             pass  # L'utilisateur n'accepte pas les DMs
 
-        await interaction.followup.send(f"{interaction.user.mention} a claim l'urgence.")
+        await interaction.followup.send(
+            f"✅ {interaction.user.mention} a claim l'urgence. L'utilisateur a été notifié en privé.",
+            ephemeral=False
+        )
 
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
 @discord.app_commands.describe(raison="Explique la raison de l'urgence")
@@ -6194,7 +6217,7 @@ async def urgence(interaction: discord.Interaction, raison: str):
 
     view = UrgenceView(interaction.user.id)
     message = await channel.send(
-        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée par {interaction.user.mention} depuis **{interaction.guild.name if interaction.guild else 'DM'}**",
+        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée**",
         embed=embed,
         view=view
     )
