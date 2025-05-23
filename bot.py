@@ -6131,6 +6131,13 @@ class UrgenceView(discord.ui.View):
             view=None
         )
 
+        # Notifier l'utilisateur à l'origine de l'urgence par DM
+        try:
+            user = await interaction.client.fetch_user(self.user_id)
+            await user.send(f"✅ Ton urgence a été claim par {interaction.user.mention}. Le staff est en train de la traiter.")
+        except discord.Forbidden:
+            pass  # L'utilisateur n'accepte pas les DMs
+
         await interaction.followup.send(f"{interaction.user.mention} a claim l'urgence.")
 
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
@@ -6158,7 +6165,7 @@ async def urgence(interaction: discord.Interaction, raison: str):
     if interaction.guild and interaction.channel.permissions_for(interaction.guild.me).create_instant_invite:
         try:
             invite = await interaction.channel.create_invite(
-                max_age=3600,  # Lien valable 1 heure
+                max_age=3600,
                 max_uses=1,
                 unique=True,
                 reason="Urgence signalée"
