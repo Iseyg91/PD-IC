@@ -6104,18 +6104,24 @@ class UrgenceView(discord.ui.View):
         super().__init__(timeout=None)
         self.user_id = user_id
 
-    @discord.ui.button(label="🚨 Claim", style=discord.ButtonStyle.success, custom_id="claim_button")
-    async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if self.user_id not in active_alerts or active_alerts[self.user_id]['claimed']:
-            await interaction.response.send_message("Cette urgence a déjà été claim.", ephemeral=True)
-            return
+@discord.ui.button(label="🚨 Claim", style=discord.ButtonStyle.success, custom_id="claim_button")
+async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
+    if self.user_id not in active_alerts or active_alerts[self.user_id]['claimed']:
+        await interaction.response.send_message("Cette urgence a déjà été claim.", ephemeral=True)
+        return
 
-        active_alerts[self.user_id]['claimed'] = True
-        await interaction.response.send_message(f"{interaction.user.mention} a claim l'urgence.")
-        await active_alerts[self.user_id]['message'].edit(
-            content="🚨 Urgence CLAIM par " + interaction.user.mention,
-            view=None
-        )
+    # On défère pour éviter l'erreur 404
+    await interaction.response.defer(ephemeral=False)
+
+    active_alerts[self.user_id]['claimed'] = True
+
+    await active_alerts[self.user_id]['message'].edit(
+        content="🚨 Urgence CLAIM par " + interaction.user.mention,
+        view=None
+    )
+
+    # Envoie la réponse après defer
+    await interaction.followup.send(f"{interaction.user.mention} a claim l'urgence.")
 
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
 @discord.app_commands.describe(raison="Explique la raison de l'urgence")
