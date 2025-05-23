@@ -4012,15 +4012,21 @@ async def kiss(ctx, member: discord.Member = None):
         await ctx.send("Vous n'avez ciblé personne !")
         return
 
-    # Créer l'embed
     embed = discord.Embed(
-        title=f"Tu as embrassé {member.name} !",
-        description="Un doux baiser 💋",  
+        title=f"💋 {ctx.author.name} a embrassé {member.name} !",
+        description="Un doux baiser partagé...",
         color=discord.Color.pink()
     )
+    
+    # Image en grand format
     embed.set_image(url="https://media.tenor.com/3DHc1_2PZ-oAAAAM/kiss.gif")
-    # embed.set_thumbnail(url=member.avatar.url)  # <- ligne supprimée
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
+    
+    # Footer
+    embed.set_footer(
+        text=f"Commandé par {ctx.author.name} | ♥️ by Iseyg",
+        icon_url=ctx.author.avatar.url if ctx.author.avatar else None
+    )
+
     await ctx.send(embed=embed)
     
 @bot.command()
