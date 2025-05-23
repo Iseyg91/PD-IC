@@ -4038,15 +4038,15 @@ async def kiss(ctx, member: discord.Member = None):
 
     # Créer l'embed
     embed = discord.Embed(
-        title=f"Tu as embrassé {member.name} !",  # Utilisation de member.name
+        title=f"Tu as embrassé {member.name} !",
         description="Un doux baiser 💋",  
         color=discord.Color.pink()
     )
     embed.set_image(url="https://media.tenor.com/3DHc1_2PZ-oAAAAM/kiss.gif")
-    embed.set_thumbnail(url=member.avatar.url)
+    # embed.set_thumbnail(url=member.avatar.url)  # <- ligne supprimée
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
-
+    
 @bot.command()
 async def kill(ctx, member: discord.Member = None):
     if member is None:
@@ -4060,7 +4060,6 @@ async def kill(ctx, member: discord.Member = None):
         color=discord.Color.red()
     )
     embed.set_image(url="https://media1.tenor.com/m/4hO2HfS9fcMAAAAd/toaru-index.gif")
-    embed.set_thumbnail(url=member.avatar.url)
     embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
     await ctx.send(embed=embed)
 
@@ -4093,25 +4092,6 @@ async def reverse(ctx, *, text: str = None):
     reversed_text = text[::-1]  # Inverser le texte
     await ctx.send(f"Texte inversé : {reversed_text}")
 
-@bot.command()
-async def note(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Tu n'as pas précisé l'utilisateur !")
-        return
-
-    # Générer une note aléatoire entre 1 et 10
-    note = random.randint(1, 10)
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"{member.name} a reçu une note !",
-        description=f"Note : {note}/10",
-        color=discord.Color.green()
-    )
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
 @bot.hybrid_command(name="say", description="Fais dire un message au bot.")
 @app_commands.describe(text="Le texte à dire")
 async def say(ctx: commands.Context, *, text: str = None):
@@ -4139,7 +4119,6 @@ async def coinflip(ctx):
     import random
     result = random.choice(["Pile", "Face"])
     await ctx.send(f"Résultat du coinflip : {result}")
-
 
 @bot.command()
 async def dice(ctx):
@@ -4285,7 +4264,7 @@ async def superpouvoir(ctx, user: discord.Member = None):
 
     embed = discord.Embed(
         title="⚡ Super-Pouvoir Débloqué !",
-        description=f"{user.mention} possède le pouvoir de**{pouvoir}** !",
+        description=f"{user.mention} possède le pouvoir de **{pouvoir}** !",
         color=discord.Color.purple()
     )
     embed.set_footer(text=f"Utilise-le avec sagesse... ou pas. {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
@@ -6455,17 +6434,17 @@ SENSIBLE_CATEGORIES = [
 ]
 
 SENSIBLE_DETAILS = {
-    "insultes_graves": ("🗯️ Insultes graves", "Détecte les insultes graves."),
-    "discours_haineux": ("⚠️ Discours haineux", "Détecte les propos discriminatoires."),
-    "ideologies_haineuses": ("⛔ Idéologies haineuses", "Détecte les termes liés à des idéologies haineuses."),
-    "violences_crimes": ("🔪 Violences et crimes", "Détecte les mentions de violences ou crimes graves."),
-    "drogues_substances": ("💊 Drogues & substances", "Détecte les mentions de drogues ou substances illicites."),
-    "contenus_sexuels": ("🔞 Contenus sexuels explicites", "Détecte les contenus à caractère sexuel explicite."),
-    "fraudes_financières": ("💰 Fraudes & crimes financiers", "Détecte les mentions de fraudes ou crimes financiers."),
-    "attaques_menaces": ("🛡️ Attaques et menaces", "Détecte les propos menaçants ou attaques."),
-    "raids_discord": ("🚨 Raids Discord", "Détecte les tentatives de raids sur le serveur."),
-    "harcèlement_haine": ("😡 Harcèlement et haine", "Détecte les propos haineux ou de harcèlement."),
-    "personnages_problématiques": ("👤 Personnages problématiques", "Détecte les mentions de personnages problématiques.")
+    "insultes_graves": ("Insultes graves", "Détecte les insultes graves."),
+    "discours_haineux": ("Discours haineux", "Détecte les propos discriminatoires."),
+    "ideologies_haineuses": ("Idéologies haineuses", "Détecte les termes liés à des idéologies haineuses."),
+    "violences_crimes": ("Violences et crimes", "Détecte les mentions de violences ou crimes graves."),
+    "drogues_substances": ("Drogues & substances", "Détecte les mentions de drogues ou substances illicites."),
+    "contenus_sexuels": ("Contenus sexuels explicites", "Détecte les contenus à caractère sexuel explicite."),
+    "fraudes_financières": ("Fraudes & crimes financiers", "Détecte les mentions de fraudes ou crimes financiers."),
+    "attaques_menaces": ("Attaques et menaces", "Détecte les propos menaçants ou attaques."),
+    "raids_discord": ("Raids Discord", "Détecte les tentatives de raids sur le serveur."),
+    "harcèlement_haine": ("Harcèlement et haine", "Détecte les propos haineux ou de harcèlement."),
+    "personnages_problématiques": ("Personnages problématiques", "Détecte les mentions de personnages problématiques.")
 }
 
 # Vérifie si l'utilisateur est administrateur ou ISEY
@@ -6561,39 +6540,6 @@ def format_sensible_field(cat, data, guild, bot):
 
     value = f"> {desc}\n> **Statut :** {status}{mod_info}{date_info}"
     return name, value
-
-# Notification au propriétaire du serveur
-async def notify_owner_of_sensible_change(guild, cat, new_value, interaction):
-    if guild and guild.owner:
-        try:
-            embed = Embed(
-                title="🧠 Mise à jour d'une catégorie de mots sensibles",
-                description=f"**Catégorie :** {SENSIBLE_DETAILS[cat][0]}\n"
-                            f"**Statut :** {'✅ Activée' if new_value else '❌ Désactivée'}",
-                color=discord.Color.green() if new_value else discord.Color.red()
-            )
-            embed.add_field(
-                name="👤 Modifiée par :",
-                value=f"{interaction.user.mention} ({interaction.user})",
-                inline=False
-            )
-            embed.add_field(name="🏠 Serveur :", value=guild.name, inline=False)
-            embed.add_field(
-                name="🕓 Date de modification :",
-                value=f"<t:{int(datetime.datetime.utcnow().timestamp())}:f>",
-                inline=False
-            )
-            embed.add_field(
-                name="ℹ️ Infos supplémentaires :",
-                value="Vous pouvez reconfigurer les catégories sensibles à tout moment avec la commande /set-sensible.",
-                inline=False
-            )
-
-            await guild.owner.send(embed=embed)
-        except discord.Forbidden:
-            print("Impossible d’envoyer un DM à l’owner.")
-        except Exception as e:
-            print(f"Erreur lors de l'envoi du DM : {e}")
 
 # Commande principale
 @bot.hybrid_command(name="set-sensible", description="Configurer les catégories de mots sensibles")
