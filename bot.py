@@ -6103,17 +6103,7 @@ async def set_sensible(ctx: commands.Context):
         name, value = format_sensible_field(cat, sensible_data, ctx.guild, ctx.bot)
         embed.add_field(name=name, value=value, inline=False)
 
-    embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
-    view = SensibleView(guild_id, sensible_data, ctx.bot)
-    await ctx.send(embed=embed, view=view)
-    
 active_alerts = {}
-
-# Variables constantes (à définir toi-même)
-GUILD_ID = 123456789012345678  # Remplace par ton ID de serveur
-CHANNEL_ID = 123456789012345678  # Remplace par l'ID du salon d'urgence
-STAFF_DELTA = 123456789012345678  # Remplace par l'ID du rôle à ping
-INVITE_LINK = "https://discord.gg/etherya"  # Lien d’invitation au serveur
 
 class UrgenceView(discord.ui.View):
     def __init__(self, user_id):
@@ -6130,8 +6120,9 @@ class UrgenceView(discord.ui.View):
 
         active_alerts[self.user_id]['claimed'] = True
 
+        # Récupération de l'embed d'origine et mise à jour
         embed = active_alerts[self.user_id]['message'].embeds[0]
-        embed.set_field_at(index=6, name="📌 Statut", value=f"✅ Claimé par {interaction.user.mention}", inline=False)
+        embed.set_field_at(index=4, name="📌 Statut", value=f"✅ Claimé par {interaction.user.mention}", inline=False)
         embed.color = discord.Color.green()
 
         await active_alerts[self.user_id]['message'].edit(
@@ -6161,7 +6152,22 @@ async def urgence(interaction: discord.Interaction, raison: str):
         return
 
     timestamp = datetime.utcnow()
-    urgence_id = str(uuid.uuid4())[:8]  # ID unique raccourci
+
+    # Générer un lien d'invitation vers le serveur source
+    invite_link = "Aucun lien disponible"
+    if interaction.guild and interaction.channel.permissions_for(interaction.guild.me).create_instant_invite:
+        try:
+            invite = await interaction.channel.create_invite(
+                max_age=3600,  # Lien valable 1 heure
+                max_uses=1,
+                unique=True,
+                reason="Urgence signalée"
+            )
+            invite_link = invite.url
+        except discord.Forbidden:
+            invite_link = "Permissions insuffisantes pour générer une invitation"
+        except Exception as e:
+            invite_link = f"Erreur lors de la création du lien : {e}"
 
     embed = discord.Embed(
         title="🚨 Nouvelle urgence",
@@ -6170,15 +6176,14 @@ async def urgence(interaction: discord.Interaction, raison: str):
         timestamp=timestamp
     )
     embed.set_footer(text=f"ID de l'utilisateur : {interaction.user.id}")
-    embed.add_field(name="🆔 Urgence ID", value=urgence_id, inline=True)
     embed.add_field(name="👤 Utilisateur", value=f"{interaction.user.mention} (`{interaction.user}`)", inline=True)
+    embed.add_field(name="🆔 User ID", value=str(interaction.user.id), inline=True)
     embed.add_field(name="🌐 Serveur", value=interaction.guild.name if interaction.guild else "DM", inline=True)
-    if interaction.guild:
-        embed.add_field(name="📺 Salon source", value=interaction.channel.mention, inline=True)
     embed.add_field(name="📅 Date", value=f"<t:{int(timestamp.timestamp())}:F>", inline=True)
-    embed.add_field(name="🔗 Invitation", value=f"[Rejoindre le serveur]({INVITE_LINK})", inline=True)
     embed.add_field(name="📌 Statut", value="⏳ En attente de claim", inline=False)
-    embed.add_field(name="📢 Réponse automatique", value="Le staff a été notifié. Merci de patienter calmement.", inline=False)
+    if interaction.guild:
+        embed.add_field(name="🔗 Message original", value=f"[Clique ici](https://discord.com/channels/{interaction.guild.id}/{interaction.channel.id}/{interaction.id})", inline=False)
+    embed.add_field(name="🔗 Invitation", value=invite_link, inline=False)
 
     view = UrgenceView(interaction.user.id)
     message = await channel.send(
@@ -6196,8 +6201,7 @@ async def urgence(interaction: discord.Interaction, raison: str):
         "guild_name": interaction.guild.name if interaction.guild else "DM",
         "guild_id": interaction.guild.id if interaction.guild else None,
         "channel_id": channel.id,
-        "reason": raison,
-        "urgence_id": urgence_id
+        "reason": raison
     }
 
     await interaction.response.send_message("🚨 Urgence envoyée au staff du serveur principal.", ephemeral=True)
