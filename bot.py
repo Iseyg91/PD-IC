@@ -4141,7 +4141,7 @@ def is_higher_or_equal(ctx, member):
     return member.top_role >= ctx.author.top_role
 
 # 📩 Envoi d'un log
-async def send_log(ctx, member, action, reason, duration=None):
+async def send_log_embed(ctx, member, action, reason, duration=None):
     guild_id = ctx.guild.id
     settings = GUILD_SETTINGS.get(guild_id, {})
     log_channel_id = settings.get("sanctions_channel")
@@ -4189,7 +4189,7 @@ async def ban(ctx, member: discord.Member = None, *, reason="Aucune raison spéc
         await member.ban(reason=reason)
         embed = create_embed("🔨 Ban", f"{member.mention} a été banni.", discord.Color.red(), ctx, member, "Ban", reason)
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Ban", reason)
+        await send_log_embed(ctx, member, "Ban", reason)
         await send_dm(member, "Ban", reason)
 
         # Enregistrement de la sanction
@@ -4209,7 +4209,7 @@ async def unban(ctx, user_id: int = None):
             await ctx.guild.unban(user)
             embed = create_embed("🔓 Unban", f"{user.mention} a été débanni.", discord.Color.green(), ctx, user, "Unban", "Réintégration")
             await ctx.send(embed=embed)
-            await send_log(ctx, user, "Unban", "Réintégration")
+            await send_log_embed(ctx, user, "Unban", "Réintégration")
             await send_dm(user, "Unban", "Réintégration")
         except discord.NotFound:
             return await ctx.send("❌ Aucun utilisateur trouvé avec cet ID.")
@@ -4232,7 +4232,7 @@ async def kick(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         await member.kick(reason=reason)
         embed = create_embed("👢 Kick", f"{member.mention} a été expulsé.", discord.Color.orange(), ctx, member, "Kick", reason)
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Kick", reason)
+        await send_log_embed(ctx, member, "Kick", reason)
         await send_dm(member, "Kick", reason)
 
 @bot.hybrid_command(
@@ -4297,7 +4297,7 @@ async def mute(
             duration_str
         )
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Mute", reason, duration_str)
+        await send_log_embed(ctx, member, "Mute", reason, duration_str)
         await send_dm(ctx, member, "Mute", reason, duration_str)
 
         # Ajout dans la base de données MongoDB
@@ -4330,7 +4330,7 @@ async def unmute(ctx, member: discord.Member = None):
         await member.timeout(None)
         embed = create_embed("🔊 Unmute", f"{member.mention} a été démuté.", discord.Color.green(), ctx, member, "Unmute", "Fin du mute")
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Unmute", "Fin du mute")
+        await send_log_embed(ctx, member, "Unmute", "Fin du mute")
         await send_dm(member, "Unmute", "Fin du mute")
 
 # Fonction de vérification des permissions
@@ -4403,7 +4403,7 @@ async def warn(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         # Embeds et réponses
         embed = create_embed("⚠️ Avertissement donné", f"{member.mention} a reçu un avertissement pour la raison suivante :\n{reason}", discord.Color.orange(), ctx, member, "Avertissement", reason)
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Warn", reason)
+        await send_log_embed(ctx, member, "Warn", reason)
         await send_dm(member, "Avertissement", reason)
 
     except Exception as e:
@@ -4480,7 +4480,7 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
         )
 
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Unwarn", to_delete["reason"])
+        await send_log_embed(ctx, member, "Unwarn", to_delete["reason"])
         await send_dm(member, "Unwarn", f"Ton avertissement datant du {to_delete['timestamp'].strftime('%d/%m/%Y à %Hh%M')} a été retiré.")
     
     except Exception as e:
