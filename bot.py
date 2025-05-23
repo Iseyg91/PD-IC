@@ -4153,7 +4153,7 @@ async def send_log(ctx, member, action, reason, duration=None):
             await log_channel.send(embed=embed)
 
 # 📩 Envoi d'un message privé à l'utilisateur sanctionné
-async def send_dm(member, action, reason, duration=None):
+async def send_dm(ctx, member, action, reason, duration=None):
     try:
         embed = create_embed("🚨 Vous avez reçu une sanction", "Consultez les détails ci-dessous.", discord.Color.red(), member, member, action, reason, duration)
         await member.send(embed=embed)
@@ -4298,7 +4298,7 @@ async def mute(
         )
         await ctx.send(embed=embed)
         await send_log(ctx, member, "Mute", reason, duration_str)
-        await send_dm(member, "Mute", reason, duration_str)
+        await send_dm(ctx, member, "Mute", reason, duration_str)
 
         # Ajout dans la base de données MongoDB
         sanction_data = {
