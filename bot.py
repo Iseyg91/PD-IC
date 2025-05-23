@@ -4235,10 +4235,6 @@ async def kick(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         await send_log(ctx, member, "Kick", reason)
         await send_dm(member, "Kick", reason)
 
-from datetime import datetime, timedelta
-import discord
-from discord.ext import commands
-
 @bot.hybrid_command(
     name="mute",
     description="Mute temporairement un membre (timeout) avec une durée spécifiée."
@@ -4266,8 +4262,8 @@ async def mute(
         return await ctx.send("❌ Vous n'avez pas la permission de mute des membres.")
 
     # Vérifie si le membre est déjà en timeout
-    if member.communication_disabled_until and member.communication_disabled_until > datetime.utcnow():
-        timeout_end = member.communication_disabled_until.strftime('%d/%m/%Y à %H:%M:%S')
+    if member.timed_out_until and member.timed_out_until > datetime.utcnow():
+        timeout_end = member.timed_out_until.strftime('%d/%m/%Y à %H:%M:%S')
         return await ctx.send(f"❌ {member.mention} est déjà en timeout jusqu'au {timeout_end} UTC.")
 
     # Traitement de la durée
