@@ -6110,13 +6110,12 @@ class UrgenceView(discord.ui.View):
             await interaction.response.send_message("Cette urgence a déjà été claim.", ephemeral=True)
             return
 
-        # On défère pour éviter l'erreur 404
         await interaction.response.defer(ephemeral=False)
 
         active_alerts[self.user_id]['claimed'] = True
 
         await active_alerts[self.user_id]['message'].edit(
-            content="🚨 Urgence CLAIM par " + interaction.user.mention,
+            content=f"🚨 Urgence CLAIM par {interaction.user.mention}",
             view=None
         )
 
@@ -6130,7 +6129,7 @@ async def urgence(interaction: discord.Interaction, raison: str):
         await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
         return
 
-    guild = bot.get_guild(GUILD_ID)
+    guild = interaction.guild
     channel = guild.get_channel(CHANNEL_ID)
 
     embed = discord.Embed(
@@ -6151,7 +6150,13 @@ async def urgence(interaction: discord.Interaction, raison: str):
     active_alerts[interaction.user.id] = {
         "message": message,
         "timestamp": datetime.utcnow(),
-        "claimed": False
+        "claimed": False,
+        "user_id": interaction.user.id,
+        "username": str(interaction.user),
+        "guild_name": guild.name,
+        "guild_id": guild.id,
+        "channel_id": channel.id,
+        "reason": raison
     }
 
     await interaction.response.send_message("🚨 Urgence envoyée au staff.", ephemeral=True)
