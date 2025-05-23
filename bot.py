@@ -796,7 +796,7 @@ async def send_alert_to_admin(message, detected_word):
         if hasattr(message, "jump_url"):
             embed.add_field(name="🔗 Lien", value=f"[Clique ici]({message.jump_url})", inline=False)
 
-        embed.add_field(name="🌐 Serveur", value=f"[{message.guild.name}](https://discord.com/channels/{message.guild.id})", inline=False)
+        embed.add_field(name="🌐 Serveur", value=invite_link, inline=False)
 
         avatar = bot.user.avatar.url if bot.user.avatar else None
         embed.set_footer(text="Système de détection automatique", icon_url=avatar)
