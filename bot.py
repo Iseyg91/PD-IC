@@ -6129,8 +6129,16 @@ async def urgence(interaction: discord.Interaction, raison: str):
         await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
         return
 
-    guild = interaction.guild
-    channel = guild.get_channel(CHANNEL_ID)
+    # On cible toujours le même serveur et salon, peu importe d'où la commande est appelée
+    target_guild = bot.get_guild(GUILD_ID)
+    if target_guild is None:
+        await interaction.response.send_message("❌ Erreur : le serveur cible est introuvable.", ephemeral=True)
+        return
+
+    channel = target_guild.get_channel(CHANNEL_ID)
+    if channel is None:
+        await interaction.response.send_message("❌ Erreur : le salon d'urgence est introuvable dans le serveur cible.", ephemeral=True)
+        return
 
     embed = discord.Embed(
         title="🚨 Nouvelle urgence",
@@ -6142,7 +6150,7 @@ async def urgence(interaction: discord.Interaction, raison: str):
 
     view = UrgenceView(interaction.user.id)
     message = await channel.send(
-        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée !",
+        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée par {interaction.user.mention} depuis {interaction.guild.name if interaction.guild else 'DM'} !",
         embed=embed,
         view=view
     )
@@ -6153,13 +6161,13 @@ async def urgence(interaction: discord.Interaction, raison: str):
         "claimed": False,
         "user_id": interaction.user.id,
         "username": str(interaction.user),
-        "guild_name": guild.name,
-        "guild_id": guild.id,
+        "guild_name": interaction.guild.name if interaction.guild else "DM",
+        "guild_id": interaction.guild.id if interaction.guild else None,
         "channel_id": channel.id,
         "reason": raison
     }
 
-    await interaction.response.send_message("🚨 Urgence envoyée au staff.", ephemeral=True)
+    await interaction.response.send_message("🚨 Urgence envoyée au staff du serveur principal.", ephemeral=True)
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
