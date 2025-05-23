@@ -1619,29 +1619,6 @@ async def on_guild_join(guild):
 
     await channel.send(embed=isey_embed)
 
-    # --- Embed public pour le salon du serveur ---
-    text_channels = [channel for channel in guild.text_channels if channel.permissions_for(guild.me).send_messages]
-    
-    if text_channels:
-        top_channel = sorted(text_channels, key=lambda x: x.position)[0]
-
-        public_embed = discord.Embed(
-            title="🎉 **Bienvenue sur le serveur !** 🎉",
-            description="Salut à tous ! Je suis **Project : Delta**, votre assistant virtuel ici pour rendre votre expérience sur ce serveur **inoubliable** et pleine d'interactions ! 😎🚀",
-            color=discord.Color.blurple()
-        )
-
-        public_embed.set_thumbnail(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/ea259e01-aa5c-4f7b-82fd-0c4e45bc2499%20(1).png?raw=true")
-        public_embed.set_image(url="https://github.com/Iseyg91/KNSKS-ET/blob/main/IMAGES%20Delta/uri_ifs___M_a08ff46b-5005-4ddb-86d9-a73f638d5cf2.jpg?raw=true")
-        public_embed.set_footer(text=f"Bot rejoint le serveur {guild.name}!", icon_url="https://github.com/Iseyg91/KNSKS-Q/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true")
-
-        public_embed.add_field(name="🔧 **Que puis-je faire pour vous ?**", value="Je propose des **commandes pratiques** pour gérer les serveurs, détecter les mots sensibles, et bien plus encore ! 👾🎮", inline=False)
-        public_embed.add_field(name="💡 **Commandes principales**", value="📜 Voici les commandes essentielles pour bien commencer :\n`+help` - Afficher toutes les commandes disponibles\n`+vc` - Voir les statistiques du serveur\n`+setup` - Configurer le bot selon vos besoins", inline=False)
-        public_embed.add_field(name="🚀 **Prêt à commencer ?**", value="Tapez `+aide` pour voir toutes les commandes disponibles ou dites-moi ce que vous souhaitez faire. Si vous avez des questions, je suis là pour vous aider ! 🎉", inline=False)
-        public_embed.add_field(name="🌐 **Serveurs utiles**", value="**[Serveur de Support](https://discord.com/invite/PzTHvVKDxN)**\n**[Serveur Etherya](https://discord.com/invite/tVVYC2Ynfy)**", inline=False)
-
-        await top_channel.send(embed=public_embed)
-
 @bot.event
 async def on_guild_remove(guild):
     channel_id = 1361306217460531225  # ID du salon cible
@@ -1681,7 +1658,6 @@ async def is_admin(interaction: discord.Interaction):
     return interaction.user.guild_permissions.administrator
 
 #---------------------------------------------------------------------------- Staff Project : Delta:
-
 # Vérifie si l'utilisateur est staff sur PROJECT_DELTA
 def is_staff(ctx):
     guild = bot.get_guild(PROJECT_DELTA)
@@ -3357,16 +3333,16 @@ async def help(ctx):
     select = discord.ui.Select(
         placeholder="Choisissez une catégorie 👇", 
         options=[
-            discord.SelectOption(label="Owner Bot", description="👑Commandes pour gèrer le bot", emoji="🎓"),
-            discord.SelectOption(label="Configuration du Bot", description="🖇️Commandes pour configurer le bot", emoji="📡"),
-            discord.SelectOption(label="Gestion", description="📚 Commandes pour gérer le serveur", emoji="🔧"),
-            discord.SelectOption(label="Utilitaire", description="⚙️ Commandes utiles", emoji="🔔"),
-            discord.SelectOption(label="Modération", description="⚖️ Commandes Modération", emoji="🔨"),
-            discord.SelectOption(label="Bot", description="🤖 Commandes Bot", emoji="🦾"),
-            discord.SelectOption(label="Économie", description="💸 Commandes économie", emoji="💰"),
-            discord.SelectOption(label="Ludiques", description="🎉 Commandes amusantes pour détendre l'atmosphère et interagir avec les autres.", emoji="🎈"),
-            discord.SelectOption(label="Test & Défis", description="🧠Commandes pour testez la personnalité et défiez vos amis avec des jeux et des évaluations.", emoji="🎲"),
-            discord.SelectOption(label="Crédits", description="💖 Remerciements et crédits", emoji="🙏")
+            discord.SelectOption(label="Owner Bot", description="Commandes pour gèrer le bot", emoji="🎓"),
+            discord.SelectOption(label="Configuration du Bot", description="Commandes pour configurer le bot", emoji="📡"),
+            discord.SelectOption(label="Gestion", description="Commandes pour gérer le serveur", emoji="🔧"),
+            discord.SelectOption(label="Utilitaire", description="Commandes utiles", emoji="🔔"),
+            discord.SelectOption(label="Modération", description="Commandes Modération", emoji="🔨"),
+            discord.SelectOption(label="Bot", description="Commandes Bot", emoji="🦾"),
+            discord.SelectOption(label="Économie", description="Commandes économie", emoji="💰"),
+            discord.SelectOption(label="Ludiques", description="Commandes amusantes pour détendre l'atmosphère et interagir avec les autres.", emoji="🎈"),
+            discord.SelectOption(label="Test & Défis", description="Commandes pour testez la personnalité et défiez vos amis avec des jeux et des évaluations.", emoji="🎲"),
+            discord.SelectOption(label="Crédits", description="Remerciements et crédits", emoji="💖")
         ], 
         custom_id="help_select"
     )
