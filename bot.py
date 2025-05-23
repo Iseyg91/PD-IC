@@ -4014,7 +4014,6 @@ async def kiss(ctx, member: discord.Member = None):
 
     embed = discord.Embed(
         title=f"💋 {ctx.author.name} a embrassé {member.name} !",
-        description="Un doux baiser partagé...",
         color=discord.Color.pink()
     )
     
@@ -4028,6 +4027,7 @@ async def kiss(ctx, member: discord.Member = None):
     )
 
     await ctx.send(embed=embed)
+
     
 @bot.command()
 async def kill(ctx, member: discord.Member = None):
