@@ -4235,11 +4235,21 @@ async def kick(ctx, member: discord.Member = None, *, reason="Aucune raison spé
         await send_log(ctx, member, "Kick", reason)
         await send_dm(member, "Kick", reason)
 
+from datetime import datetime, timedelta
+import discord
+from discord.ext import commands
+
 @bot.hybrid_command(
     name="mute",
     description="Mute temporairement un membre (timeout) avec une durée spécifiée."
 )
-async def mute(ctx, member: discord.Member = None, duration_with_unit: str = None, *, reason="Aucune raison spécifiée"):
+async def mute(
+    ctx,
+    member: discord.Member = None,
+    duration_with_unit: str = None,
+    *,
+    reason="Aucune raison spécifiée"
+):
     if member is None:
         return await ctx.send("❌ Il manque un argument : vous devez mentionner un membre à mute.")
     
@@ -4248,15 +4258,18 @@ async def mute(ctx, member: discord.Member = None, duration_with_unit: str = Non
 
     if ctx.author == member:
         return await ctx.send("🚫 Vous ne pouvez pas vous mute vous-même.")
+
     if is_higher_or_equal(ctx, member):
         return await ctx.send("🚫 Vous ne pouvez pas sanctionner quelqu'un de votre niveau ou supérieur.")
+
     if not has_permission(ctx, "moderate_members"):
         return await ctx.send("❌ Vous n'avez pas la permission de mute des membres.")
-    
-    # Vérification si le membre est déjà en timeout
-    if member.timed_out:
-        return await ctx.send(f"❌ {member.mention} est déjà en timeout.")
-    
+
+    # Vérifie si le membre est déjà en timeout
+    if member.communication_disabled_until and member.communication_disabled_until > datetime.utcnow():
+        timeout_end = member.communication_disabled_until.strftime('%d/%m/%Y à %H:%M:%S')
+        return await ctx.send(f"❌ {member.mention} est déjà en timeout jusqu'au {timeout_end} UTC.")
+
     # Traitement de la durée
     time_units = {"m": "minutes", "h": "heures", "j": "jours"}
     try:
@@ -4270,19 +4283,28 @@ async def mute(ctx, member: discord.Member = None, duration_with_unit: str = Non
     # Calcul de la durée
     time_deltas = {"m": timedelta(minutes=duration), "h": timedelta(hours=duration), "j": timedelta(days=duration)}
     duration_time = time_deltas[unit]
+    duration_str = f"{duration} {time_units[unit]}"
 
     try:
-        # Tente de mettre le membre en timeout
+        # Timeout du membre
         await member.timeout(duration_time, reason=reason)
-        duration_str = f"{duration} {time_units[unit]}"
-        
-        # Embeds et réponses
-        embed = create_embed("⏳ Mute", f"{member.mention} a été muté pour {duration_str}.", discord.Color.blue(), ctx, member, "Mute", reason, duration_str)
+
+        # Création et envoi de l'embed de confirmation
+        embed = create_embed(
+            "⏳ Mute",
+            f"{member.mention} a été muté pour {duration_str}.",
+            discord.Color.blue(),
+            ctx,
+            member,
+            "Mute",
+            reason,
+            duration_str
+        )
         await ctx.send(embed=embed)
         await send_log(ctx, member, "Mute", reason, duration_str)
         await send_dm(member, "Mute", reason, duration_str)
 
-        # Ajout des sanctions dans la base de données MongoDB
+        # Ajout dans la base de données MongoDB
         sanction_data = {
             "guild_id": str(ctx.guild.id),
             "user_id": str(member.id),
@@ -4291,8 +4313,8 @@ async def mute(ctx, member: discord.Member = None, duration_with_unit: str = Non
             "duration": duration_str,
             "timestamp": datetime.utcnow()
         }
-        collection7.insert_one(sanction_data)  # collection7 est la collection de sanctions
-        
+        collection7.insert_one(sanction_data)
+
     except discord.Forbidden:
         await ctx.send("❌ Je n'ai pas la permission de mute ce membre. Vérifiez les permissions du bot.")
     except discord.HTTPException as e:
