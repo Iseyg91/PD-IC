@@ -31,7 +31,6 @@ from typing import Optional
 from discord import app_commands, Interaction, Embed, SelectOption
 from discord.ui import View, Select
 
-
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
 start_time = time.time()
@@ -3134,7 +3133,7 @@ async def etherya(interaction: discord.Interaction):
         "☕ ・ Divers **Salons** pour un divertissement optimal.\n"
         "☁️ ・ Un staff sympa, à l'écoute et qui **recrute** !\n"
         "🔥 ・ Pas convaincu ? Rejoins-nous et vois par toi-même le potentiel de notre serveur !\n\n"
-        "🎫 **[Accès direct au serveur Etherya !](https://discord.gg/weX6tKbDta) **\n\n"
+        "🎫 **[Accès direct au serveur Etherya !](https://discord.gg/2CXDSSRTYz) **\n\n"
         "Rejoins-nous et amuse-toi ! 🎉"
     )
 
@@ -3396,7 +3395,6 @@ async def help(ctx):
             new_embed.add_field(name="📋 +listi", value="Affiche la **liste de tes idées notées**.\n*Utile pour retrouver facilement ce que tu as prévu ou pensé.*", inline=False)
             new_embed.add_field(name="💬 /suggestion", value="Propose une **suggestion ou une idée** pour améliorer **Etherya** ou le **bot** .\n*Ton avis compte, alors n’hésite pas à participer à l’évolution du projet.*", inline=False)
             new_embed.add_field(name="📊 /sondage", value="Crée un **sondage** pour obtenir l'avis des membres du serveur.\n*Parfait pour recueillir des retours ou prendre des décisions collectives.*", inline=False)
-            new_embed.add_field(name="⏰ /rappel", value="Crée un **rappel personnel** pour ne rien oublier.\n*Tu peux programmer des rappels pour des événements, des tâches ou des objectifs.*", inline=False)
             new_embed.add_field(name="👋 /presentation", value="Présente-toi au serveur et fais connaissance avec les membres.\n*Une manière sympa de partager tes intérêts et d'en savoir plus sur la communauté.*", inline=False)
             new_embed.add_field(name="🤖 +getbotinfo", value="Affiche des **informations détaillées** sur le bot.\n*Comprend des données comme la version, les statistiques et les fonctionnalités du bot.*", inline=False)
             new_embed.add_field(name="👑 +alladmin", value="Affiche la **liste de tous les administrateurs** du serveur.\n*Utile pour voir les membres avec les privilèges d'administration.*", inline=False)
@@ -4147,7 +4145,6 @@ async def unban(ctx, user_id: int = None):
         except discord.Forbidden:
             return await ctx.send("❌ Je n'ai pas les permissions nécessaires pour débannir cet utilisateur.")
 
-
 @bot.hybrid_command(
     name="kick",
     description="Expulse un membre du serveur avec une raison optionnelle."
@@ -4402,82 +4399,6 @@ async def unwarn(ctx, member: discord.Member = None, index: int = None):
         await ctx.send(f"❌ Une erreur s'est produite lors de la suppression de l'avertissement. Détails : {str(e)}")
 
 #------------------------------------------------------------------------- Commandes Utilitaires : +vc, +alerte, +uptime, +ping, +roleinfo
-
-# Fonction pour récupérer les paramètres d'alerte
-def get_alert_settings(guild_id: int):
-    alerte_data = collection26.find_one({"guild_id": guild_id})  # Utilisation de int pour la cohérence
-    if alerte_data:
-        return alerte_data.get("alerts_channel_id"), alerte_data.get("ping_role_id")
-    return None, None
-
-# Commande slash pour configurer les alertes
-@bot.tree.command(name="set_alerte", description="Configure les alertes pour ce serveur.")
-@app_commands.describe(alerts_channel="Le canal où les alertes seront envoyées.", ping_role="Le rôle à mentionner lors des alertes.")
-async def set_alerte(interaction: discord.Interaction, alerts_channel: discord.TextChannel, ping_role: discord.Role):
-    if not interaction.user.guild_permissions.administrator:
-        await interaction.response.send_message("Vous n'avez pas les permissions nécessaires pour configurer les alertes.", ephemeral=True)
-        return
-
-    collection26.update_one(
-        {"guild_id": interaction.guild.id},  # Stocké en int
-        {"$set": {
-            "alerts_channel_id": alerts_channel.id,
-            "ping_role_id": ping_role.id
-        }},
-        upsert=True
-    )
-
-    await interaction.response.send_message(f"✅ Configuration des alertes mise à jour :\n📢 Canal : {alerts_channel.mention}\n📌 Rôle : {ping_role.mention}")
-
-# Commande prefix pour envoyer une alerte
-@bot.command()
-async def alerte(ctx, member: discord.Member, *, reason: str):
-    alerts_channel_id, ping_role_id = get_alert_settings(ctx.guild.id)
-
-    if not alerts_channel_id or not ping_role_id:
-        await ctx.send("⚠️ La configuration des alertes est manquante. Utilisez `/set_alerte` pour la configurer.")
-        return
-
-    ping_role = ctx.guild.get_role(int(ping_role_id))
-    alerts_channel = bot.get_channel(int(alerts_channel_id))
-
-    if not ping_role:
-        await ctx.send("⚠️ Le rôle mentionné pour les alertes est introuvable.")
-        return
-    if not alerts_channel:
-        await ctx.send("⚠️ Le salon d'alertes est introuvable.")
-        return
-
-    alert_message = f"<@&{ping_role_id}>\n📢 Alerte émise par {ctx.author.mention}: {member.mention} - Raison : {reason}"
-
-    try:
-        await alerts_channel.send(alert_message)
-    except discord.DiscordException as e:
-        await ctx.send(f"❌ Erreur lors de l'envoi de l'alerte : {e}")
-        return
-
-    embed = discord.Embed(
-        title="🚨 Alerte Émise 🚨",
-        description=f"**Utilisateur:** {member.mention}\n**Raison:** {reason}",
-        color=0xff0000
-    )
-    embed.set_thumbnail(url="https://example.com/alert_icon.png")  # Remplace cette URL si tu veux une autre icône
-    embed.add_field(name="Alerte émise par", value=ctx.author.mention, inline=False)
-    embed.add_field(name="Membre mentionné", value=member.mention, inline=False)
-    embed.add_field(name="Raison de l'alerte", value=f"**{reason}**", inline=False)
-
-    avatar_url = ctx.author.avatar.url if ctx.author.avatar else "https://discord.com/assets/2c21aeda6b5d1fd8f6dcf6d1f7e0f96b.png"
-    embed.set_footer(text=f"Commandé par {ctx.author.name}", icon_url=avatar_url)
-
-    try:
-        await alerts_channel.send(embed=embed)
-    except discord.DiscordException as e:
-        await ctx.send(f"❌ Erreur lors de l'envoi de l'embed : {e}")
-        return
-
-    await ctx.send(f"✅ Alerte envoyée pour {member.mention} avec la raison : {reason}")
-
-
 sent_embed_channels = {}
 
 @bot.command()
@@ -5009,77 +4930,6 @@ async def sondage(interaction: discord.Interaction):
 
 #-------------------------------------------------------------------------------- Rappel: /rappel
 
-# Commande de rappel
-@bot.tree.command(name="rappel", description="Définis un rappel avec une durée, une raison et un mode d'alerte.")
-@app_commands.describe(
-    duree="Durée du rappel (format: nombre suivi de 's', 'm', 'h' ou 'd')",
-    raison="Pourquoi veux-tu ce rappel ?",
-    mode="Où voulez-vous que je vous rappelle ceci ?"
-)
-@app_commands.choices(
-    mode=[
-        app_commands.Choice(name="Message Privé", value="prive"),
-        app_commands.Choice(name="Salon", value="salon")
-    ]
-)
-async def rappel(interaction: discord.Interaction, duree: str, raison: str, mode: app_commands.Choice[str]):
-    # Vérification du format de durée
-    if not duree[:-1].isdigit() or duree[-1] not in "smhd":
-        await interaction.response.send_message(
-            "Format de durée invalide. Utilisez un nombre suivi de 's' (secondes), 'm' (minutes), 'h' (heures) ou 'd' (jours).",
-            ephemeral=True
-        )
-        return
-    
-    # Parsing de la durée
-    time_value = int(duree[:-1])  # Extrait le nombre
-    time_unit = duree[-1]  # Extrait l'unité de temps
-    
-    # Convertir la durée en secondes
-    conversion = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
-    total_seconds = time_value * conversion[time_unit]
-    
-    # Limiter la durée du rappel (max 7 jours pour éviter les abus)
-    max_seconds = 7 * 86400  # 7 jours
-    if total_seconds > max_seconds:
-        await interaction.response.send_message(
-            "La durée du rappel ne peut pas dépasser 7 jours (604800 secondes).",
-            ephemeral=True
-        )
-        return
-    
-    # Confirmation du rappel
-    embed = discord.Embed(
-        title="🔔 Rappel programmé !",
-        description=f"**Raison :** {raison}\n**Durée :** {str(timedelta(seconds=total_seconds))}\n**Mode :** {mode.name}",
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text="Je te rappellerai à temps ⏳")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-    
-    # Attendre le temps indiqué
-    await asyncio.sleep(total_seconds)
-    
-    # Création du rappel
-    rappel_embed = discord.Embed(
-        title="⏰ Rappel !",
-        description=f"**Raison :** {raison}\n\n⏳ Temps écoulé : {str(timedelta(seconds=total_seconds))}",
-        color=discord.Color.green()
-    )
-    rappel_embed.set_footer(text="Pense à ne pas oublier ! 😉")
-    
-    # Envoi en MP ou dans le salon
-    if mode.value == "prive":
-        try:
-            await interaction.user.send(embed=rappel_embed)
-        except discord.Forbidden:
-            await interaction.followup.send(
-                "Je n'ai pas pu t'envoyer le message en privé. Veuillez vérifier vos paramètres de confidentialité.",
-                ephemeral=True
-            )
-    else:
-        await interaction.channel.send(f"{interaction.user.mention}", embed=rappel_embed)
-
 THUMBNAIL_URL = "https://github.com/Iseyg91/Etherya/blob/main/3e3bd3c24e33325c7088f43c1ae0fadc.png?raw=true"
 
 # Fonction pour vérifier si une URL est valide
@@ -5416,7 +5266,6 @@ class GiveawayView(discord.ui.View):
         await message.channel.send(embed=embed)
         del giveaways[message.id]
 
-
 @bot.event
 async def on_reaction_add(reaction, user):
     if user.bot:
@@ -5426,7 +5275,6 @@ async def on_reaction_add(reaction, user):
     if message_id in giveaways and str(reaction.emoji) == giveaways[message_id]["emoji"]:
         if user not in giveaways[message_id]["participants"]:
             giveaways[message_id]["participants"].append(user)
-
 
 @bot.command()
 async def gcreate(ctx):
@@ -5498,7 +5346,6 @@ async def snipe(ctx, index: int = 1):
     embed.set_footer(text=f"Demandé par {ctx.author}")
 
     await ctx.send(embed=embed)
-
 
 class PresentationForm(discord.ui.Modal, title="📝 Faisons connaissance"):
     pseudo = TextInput(label="Ton pseudo", placeholder="Ex: Jean_57", required=True, max_length=50)
