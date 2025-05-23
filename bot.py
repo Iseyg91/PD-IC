@@ -3355,34 +3355,34 @@ async def help(ctx):
         if category == "Owner Bot":
             new_embed.title = "👑 **Commandes de Gestion du Bot**"
             new_embed.description = "Bienvenue dans la section gestion du bot !"
-            new_embed.add_field(name="💥 +shutdown", value="Déconnecte le **bot** ✂️.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
-            new_embed.add_field(name="🔧 +restart", value="Redémarre le **bot** 📍.\n*À utiliser en cas de mise à jour ou de bug mineur.*", inline=False)
+            new_embed.add_field(name="💥 +shutdown", value="Déconnecte le **bot**.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
+            new_embed.add_field(name="🔧 +restart", value="Redémarre le **bot**.\n*À utiliser en cas de mise à jour ou de bug mineur.*", inline=False)
             new_embed.add_field(name="🎈 +serverinfoall", value="Affiche les **informations de tous les serveurs** où le bot est présent.",  inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         if category == "Configuration du Bot":
             new_embed.title = "🗃️ **Commandes de Configuration du Bot**"
             new_embed.description = "Bienvenue dans la section configuration du bot !"
-            new_embed.add_field(name="⚙️ +setup", value="Lance la **configuration du bot** sur le serveur ⚙️.\n*Permet de personnaliser les paramètres du bot selon les besoins du serveur.*", inline=False)
-            new_embed.add_field(name="🛡️ +protection", value="Affiche les **protections disponibles** sur le bot et permet de les **activer ou désactiver** 🛠️.\n*Utile pour gérer les options de sécurité comme l'anti-spam, l'anti-lien, etc.*", inline=False)
-            new_embed.add_field(name="🔓 +addwl", value="Ajoute un membre à la **whitelist** pour qu'il soit **ignoré** par les protections du bot 🛡️.\n*Permet d'exempter certains utilisateurs des actions de sécurité comme l'anti-spam ou l'anti-lien.*", inline=False)
-            new_embed.add_field(name="❌ +removewl", value="Supprime un membre de la **whitelist** pour qu'il soit de nouveau **sujet aux protections** du bot 🛡️.\n*Utilisé pour réactiver les actions de sécurité contre l'utilisateur.*", inline=False)
+            new_embed.add_field(name="⚙️ /setup", value="Lance la **configuration du bot** sur le serveur.\n*Permet de personnaliser les paramètres du bot selon les besoins du serveur.*", inline=False)
+            new_embed.add_field(name="⚠️ /set-sensible", value="Permet de **configurer les catégories de mots sensibles** que le bot doit surveiller dans le chat.\n""*Pour personnaliser la détection de contenu inapproprié selon les besoins de votre serveur.*",inline=False)
+            new_embed.add_field(name="🔓 +addwl", value="Ajoute un membre à la **whitelist** pour qu'il soit **ignoré** par les protections du bot.\n*Permet d'exempter certains utilisateurs des actions de sécurité comme l'anti-spam ou l'anti-lien.*", inline=False)
+            new_embed.add_field(name="❌ +removewl", value="Supprime un membre de la **whitelist** pour qu'il soit de nouveau **sujet aux protections** du bot.\n*Utilisé pour réactiver les actions de sécurité contre l'utilisateur.*", inline=False)
             new_embed.add_field(name="🔍 +listwl", value="Affiche la **liste des membres sur la whitelist** du bot 🛡️.\n*Permet de voir quels utilisateurs sont exemptés des protections du bot.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         if category == "Gestion":
             new_embed.title = "🔨 **Commandes de Gestion**"
             new_embed.description = "Bienvenue dans la section gestion ! 📊\nCes commandes sont essentielles pour administrer le serveur. Voici un aperçu :"
-            new_embed.add_field(name="🔧 +clear (2-100)", value="Supprime des messages dans le salon 📬.\n*Utilisé pour nettoyer un salon ou supprimer un spam.*", inline=False)
-            new_embed.add_field(name="💥 +nuke", value="Efface **tous** les messages du salon 🚨.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
-            new_embed.add_field(name="➕ +addrole @user @rôle", value="Ajoute un rôle à un utilisateur 👤.\n*Pour attribuer des rôles et des privilèges spéciaux aux membres.*", inline=False)
-            new_embed.add_field(name="➖ +delrole @user @rôle", value="Retire un rôle à un utilisateur 🚫.\n*Retirer un rôle en cas de sanction ou de changement de statut.*", inline=False)
-            new_embed.add_field(name="🔲 /embed", value="Crée un **embed personnalisé** avec du texte, des images et des couleurs 🎨.\n*Pratique pour partager des informations de manière stylée et structurée.*", inline=False)
-            new_embed.add_field(name="🚫 +listban", value="Affiche la **liste des membres bannis** du serveur ⚠️.\n*Permet aux admins de voir les bannissements en cours.*", inline=False)
-            new_embed.add_field(name="🔓 +unbanall", value="Dé-banni **tous les membres** actuellement bannis du serveur 🔓.\n*Utilisé pour lever les bannissements en masse.*", inline=False)
-            new_embed.add_field(name="🎉 +gcreate", value="Crée un **giveaway** (concours) pour offrir des récompenses aux membres 🎁.\n*Permet d'organiser des tirages au sort pour des prix ou des objets.*", inline=False)
-            new_embed.add_field(name="⚡ +fastgw", value="Crée un **giveaway rapide** avec une durée courte ⏱️.\n*Idéal pour des concours instantanés avec des récompenses immédiates.*", inline=False)
-            new_embed.add_field(name="💎 /premium", value="Entre un **code premium** pour devenir membre **premium** et accéder à des fonctionnalités exclusives ✨.\n*Permet de débloquer des avantages supplémentaires pour améliorer ton expérience.*", inline=False)
-            new_embed.add_field(name="🔍 /viewpremium", value="Affiche la **liste des serveurs premium** actuellement actifs 🔑.\n*Permet de voir quels serveurs ont accédé aux avantages premium.*", inline=False)
-            new_embed.add_field(name="💎 /devenirpremium", value="Obtiens des **informations** sur la manière de devenir membre **premium** et débloquer des fonctionnalités exclusives ✨.\n*Un guide pour savoir comment accéder à l'expérience premium et ses avantages.*", inline=False)
+            new_embed.add_field(name="🔧 +clear (2-100)", value="Supprime des messages dans le salon.\n*Utilisé pour nettoyer un salon ou supprimer un spam.*", inline=False)
+            new_embed.add_field(name="💥 +nuke", value="Efface **tous** les messages du salon.\n*Pour une action plus drastique en cas de chaos ou d'urgence !*.", inline=False)
+            new_embed.add_field(name="➕ +addrole @user @rôle", value="Ajoute un rôle à un utilisateur.\n*Pour attribuer des rôles et des privilèges spéciaux aux membres.*", inline=False)
+            new_embed.add_field(name="➖ +delrole @user @rôle", value="Retire un rôle à un utilisateur.\n*Retirer un rôle en cas de sanction ou de changement de statut.*", inline=False)
+            new_embed.add_field(name="🔲 /embed", value="Crée un **embed personnalisé** avec du texte, des images et des couleurs.\n*Pratique pour partager des informations de manière stylée et structurée.*", inline=False)
+            new_embed.add_field(name="🚫 +listban", value="Affiche la **liste des membres bannis** du serveur.\n*Permet aux admins de voir les bannissements en cours.*", inline=False)
+            new_embed.add_field(name="🔓 +unbanall", value="Dé-banni **tous les membres** actuellement bannis du serveur.\n*Utilisé pour lever les bannissements en masse.*", inline=False)
+            new_embed.add_field(name="🎉 +gcreate", value="Crée un **giveaway** (concours) pour offrir des récompenses aux membres.\n*Permet d'organiser des tirages au sort pour des prix ou des objets.*", inline=False)
+            new_embed.add_field(name="⚡ +fastgw", value="Crée un **giveaway rapide** avec une durée courte.\n*Idéal pour des concours instantanés avec des récompenses immédiates.*", inline=False)
+            new_embed.add_field(name="💎 /premium", value="Entre un **code premium** pour devenir membre **premium** et accéder à des fonctionnalités exclusives.\n*Permet de débloquer des avantages supplémentaires pour améliorer ton expérience.*", inline=False)
+            new_embed.add_field(name="🔍 /viewpremium", value="Affiche la **liste des serveurs premium** actuellement actifs.\n*Permet de voir quels serveurs ont accédé aux avantages premium.*", inline=False)
+            new_embed.add_field(name="💎 /devenirpremium", value="Obtiens des **informations** sur la manière de devenir membre **premium** et débloquer des fonctionnalités exclusives.\n*Un guide pour savoir comment accéder à l'expérience premium et ses avantages.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Utilitaire":
             new_embed.title = "⚙️ **Commandes Utilitaires**"
@@ -3392,30 +3392,30 @@ async def help(ctx):
             new_embed.add_field(name="📶 +ping", value="Affiche la latence du bot en millisecondes.", inline=False)
             new_embed.add_field(name="⏳ +uptime", value="Affiche depuis combien de temps le bot est en ligne.", inline=False)
             new_embed.add_field(name="ℹ️ /rôle info <nom_du_rôle>", value="Affiche les informations détaillées sur un rôle spécifique.", inline=False)
-            new_embed.add_field(name="ℹ💡 /idée", value="Note une idée ou une chose à faire dans ta liste perso 📝.\n*Parfait pour te rappeler d'un projet, d'une envie ou d'un objectif.*", inline=False)
-            new_embed.add_field(name="📋 +listi", value="Affiche la **liste de tes idées notées** 🧾.\n*Utile pour retrouver facilement ce que tu as prévu ou pensé.*", inline=False)
-            new_embed.add_field(name="💬 /suggestion", value="Propose une **suggestion ou une idée** pour améliorer **Etherya** ou le **bot** 🛠️.\n*Ton avis compte, alors n’hésite pas à participer à l’évolution du projet.*", inline=False)
-            new_embed.add_field(name="📊 /sondage", value="Crée un **sondage** pour obtenir l'avis des membres du serveur 📋.\n*Parfait pour recueillir des retours ou prendre des décisions collectives.*", inline=False)
-            new_embed.add_field(name="⏰ /rappel", value="Crée un **rappel personnel** pour ne rien oublier 📅.\n*Tu peux programmer des rappels pour des événements, des tâches ou des objectifs.*", inline=False)
-            new_embed.add_field(name="👋 /presentation", value="Présente-toi au serveur et fais connaissance avec les membres 🌟.\n*Une manière sympa de partager tes intérêts et d'en savoir plus sur la communauté.*", inline=False)
-            new_embed.add_field(name="🤖 +getbotinfo", value="Affiche des **informations détaillées** sur le bot 🛠️.\n*Comprend des données comme la version, les statistiques et les fonctionnalités du bot.*", inline=False)
-            new_embed.add_field(name="👑 +alladmin", value="Affiche la **liste de tous les administrateurs** du serveur 🔑.\n*Utile pour voir les membres avec les privilèges d'administration.*", inline=False)
-            new_embed.add_field(name="🔍 +snipe", value="Affiche le **dernier message supprimé** du serveur 🕵️.\n*Permet de récupérer le contenu des messages effacés récemment.*", inline=False)
+            new_embed.add_field(name="ℹ💡 /idée", value="Note une idée ou une chose à faire dans ta liste perso.\n*Parfait pour te rappeler d'un projet, d'une envie ou d'un objectif.*", inline=False)
+            new_embed.add_field(name="📋 +listi", value="Affiche la **liste de tes idées notées**.\n*Utile pour retrouver facilement ce que tu as prévu ou pensé.*", inline=False)
+            new_embed.add_field(name="💬 /suggestion", value="Propose une **suggestion ou une idée** pour améliorer **Etherya** ou le **bot** .\n*Ton avis compte, alors n’hésite pas à participer à l’évolution du projet.*", inline=False)
+            new_embed.add_field(name="📊 /sondage", value="Crée un **sondage** pour obtenir l'avis des membres du serveur.\n*Parfait pour recueillir des retours ou prendre des décisions collectives.*", inline=False)
+            new_embed.add_field(name="⏰ /rappel", value="Crée un **rappel personnel** pour ne rien oublier.\n*Tu peux programmer des rappels pour des événements, des tâches ou des objectifs.*", inline=False)
+            new_embed.add_field(name="👋 /presentation", value="Présente-toi au serveur et fais connaissance avec les membres.\n*Une manière sympa de partager tes intérêts et d'en savoir plus sur la communauté.*", inline=False)
+            new_embed.add_field(name="🤖 +getbotinfo", value="Affiche des **informations détaillées** sur le bot.\n*Comprend des données comme la version, les statistiques et les fonctionnalités du bot.*", inline=False)
+            new_embed.add_field(name="👑 +alladmin", value="Affiche la **liste de tous les administrateurs** du serveur.\n*Utile pour voir les membres avec les privilèges d'administration.*", inline=False)
+            new_embed.add_field(name="🔍 +snipe", value="Affiche le **dernier message supprimé** du serveur.\n*Permet de récupérer le contenu des messages effacés récemment.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Modération":
             new_embed.title = "🔑 **Commandes Modération**"
             new_embed.add_field(name="🚫 +ban @user", value="Exile un membre du serveur pour un comportement inacceptable .\nL'action de bannir un utilisateur est irréversible et est utilisée pour des infractions graves aux règles du serveur.*", inline=False)
             new_embed.add_field(name="🚔 +unban @user", value="Lève le bannissement d'un utilisateur, lui permettant de revenir sur le serveur .\nUnban un utilisateur qui a été banni, après examen du cas et décision du staff..*", inline=False)
             new_embed.add_field(name="⚖️ +mute @user", value="Rend un utilisateur silencieux en l'empêchant de parler pendant un certain temps .\nUtilisé pour punir les membres qui perturbent le serveur par des messages intempestifs ou offensants.", inline=False)
-            new_embed.add_field(name="🔓 +unmute @user", value="Annule le silence imposé à un utilisateur et lui redonne la possibilité de communiquer 🔊.\nPermet à un membre de reprendre la parole après une période de mute.", inline=False)
+            new_embed.add_field(name="🔓 +unmute @user", value="Annule le silence imposé à un utilisateur et lui redonne la possibilité de communiquer.\nPermet à un membre de reprendre la parole après une période de mute.", inline=False)
             new_embed.add_field(name="⚠️ +warn @user", value="Avertit un utilisateur pour un comportement problématique ⚠.\nUn moyen de signaler qu'un membre a enfreint une règle mineure, avant de prendre des mesures plus sévères.", inline=False)
             new_embed.add_field(name="🚪 +kick @user", value="Expulse un utilisateur du serveur pour une infraction moins grave .\nUn kick expulse temporairement un membre sans le bannir, pour des violations légères des règles.", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Bot":
             new_embed.title = "🔑 **Commandes Bot**"
-            new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur 🎤.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
-            new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal** 🎤.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
-            new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté 🚀.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
+            new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
+            new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal**.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
+            new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Économie":
             new_embed.title = "⚖️ **Commandes Économie**"
@@ -3430,15 +3430,8 @@ async def help(ctx):
         elif category == "Ludiques":
             new_embed.title = "🎉 **Commandes de Détente**"
             new_embed.description = "Bienvenue dans la section Détente ! 🎈\nCes commandes sont conçues pour vous amuser et interagir de manière légère et drôle. Profitez-en !"
-            new_embed.add_field(name="🤗 +hug @user", value="Envoie un câlin à [membre] avec une image mignonne de câlin.", inline=False)
-            new_embed.add_field(name="💥 +slap @user", value="Tu as giflé [membre] avec une image drôle de gifle.", inline=False)
-            new_embed.add_field(name="💃 +dance @user", value="[membre] danse avec une animation rigolote.", inline=False)
-            new_embed.add_field(name="💘 +flirt @user", value="Vous avez charmé [membre] avec un compliment !", inline=False)
-            new_embed.add_field(name="💋 +kiss @user", value="Vous avez embrassé [membre] afin de lui démontrer votre amour !", inline=False)
-            new_embed.add_field(name="🤫 +whisper @user [message]", value="[membre] a chuchoté à [ton nom] : [message].", inline=False)
             new_embed.add_field(name="🌟 +blague", value="Envoie une blague aléatoire, comme 'Pourquoi les plongeurs plongent toujours en arrière et jamais en avant ? Parce que sinon ils tombent toujours dans le bateau !'.", inline=False)
             new_embed.add_field(name="🪙 +coinflip", value="Lancez une pièce pour voir si vous gagnez ! \n*Tentez votre chance et découvrez si vous avez un coup de chance.*", inline=False)
-            new_embed.add_field(name="🎲 +dice", value="Lancez un dé à 6 faces et voyez votre chance ! \n*Choisissez un numéro entre 1 et 6 et voyez si vous avez tiré le bon!*", inline=False)
             new_embed.add_field(name="🗣️ +say", value="Faites dire quelque chose au bot à la place de vous ! 🗨\n*Lancez votre message et il sera annoncé à tout le serveur !*", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Test & Défis":
@@ -3766,314 +3759,6 @@ async def testo(ctx, member: discord.Member = None):
     
     await ctx.send(embed=embed)
 
-class PFCView(View):
-    def __init__(self, player1, player2):
-        super().__init__(timeout=60)
-        self.choices = {}
-        self.player1 = player1
-        self.player2 = player2
-        
-        for choice in ['Pierre', 'Feuille', 'Ciseau']:
-            self.add_item(PFCButton(choice, self))
-
-    async def check_winner(self):
-        if len(self.choices) == 2:
-            p1_choice = self.choices[self.player1]
-            p2_choice = self.choices[self.player2]
-            result = determine_winner(p1_choice, p2_choice)
-            
-            winner_text = {
-                'win': f"{self.player1.mention} a gagné !",
-                'lose': f"{self.player2.mention} a gagné !",
-                'draw': "Match nul !"
-            }
-            
-            embed = discord.Embed(title="Résultat du Pierre-Feuille-Ciseaux !", description=f"{self.player1.mention} a choisi **{p1_choice}**\n{self.player2.mention} a choisi **{p2_choice}**\n\n{winner_text[result]}", color=0x00FF00)
-            await self.player1.send(embed=embed)
-            await self.player2.send(embed=embed)
-            await self.message.edit(embed=embed, view=None)
-
-class PFCButton(Button):
-    def __init__(self, choice, view):
-        super().__init__(label=choice, style=discord.ButtonStyle.primary)
-        self.choice = choice
-        self.pfc_view = view
-    
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user in [self.pfc_view.player1, self.pfc_view.player2]:
-            if interaction.user not in self.pfc_view.choices:
-                self.pfc_view.choices[interaction.user] = self.choice
-                await interaction.response.send_message(f"{interaction.user.mention} a choisi **{self.choice}**", ephemeral=True)
-                if len(self.pfc_view.choices) == 2:
-                    await self.pfc_view.check_winner()
-            else:
-                await interaction.response.send_message("Tu as déjà choisi !", ephemeral=True)
-        else:
-            await interaction.response.send_message("Tu ne participes pas à cette partie !", ephemeral=True)
-
-def determine_winner(choice1, choice2):
-    beats = {"Pierre": "Ciseau", "Ciseau": "Feuille", "Feuille": "Pierre"}
-    if choice1 == choice2:
-        return "draw"
-    elif beats[choice1] == choice2:
-        return "win"
-    else:
-        return "lose"
-
-class AcceptView(View):
-    def __init__(self, ctx, player1, player2):
-        super().__init__(timeout=30)
-        self.ctx = ctx
-        self.player1 = player1
-        self.player2 = player2
-
-        self.add_item(AcceptButton("✅ Accepter", discord.ButtonStyle.success, True, self))
-        self.add_item(AcceptButton("❌ Refuser", discord.ButtonStyle.danger, False, self))
-
-class AcceptButton(Button):
-    def __init__(self, label, style, accept, view):
-        super().__init__(label=label, style=style)
-        self.accept = accept
-        self.accept_view = view
-    
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user != self.accept_view.player2:
-            return await interaction.response.send_message("Ce n'est pas à toi d'accepter ou refuser !", ephemeral=True)
-        
-        if self.accept:
-            embed = discord.Embed(title="Pierre-Feuille-Ciseaux", description=f"{self.accept_view.player1.mention} VS {self.accept_view.player2.mention}\n\nCliquez sur votre choix !", color=0x00FF00)
-            await interaction.message.edit(embed=embed, view=PFCView(self.accept_view.player1, self.accept_view.player2))
-        else:
-            await interaction.message.edit(content=f"Le +pfc a été refusé par {self.accept_view.player2.mention}", embed=None, view=None)
-
-@bot.command()
-async def pfc(ctx, member: discord.Member = None):
-    if not member:
-        return await ctx.send("Vous devez mentionner un adversaire pour jouer !")
-    if member == ctx.author:
-        return await ctx.send("Vous ne pouvez pas jouer contre vous-même !")
-    
-    embed = discord.Embed(title="Défi Pierre-Feuille-Ciseaux", description=f"{member.mention}, acceptes-tu le défi de {ctx.author.mention} ?", color=0xFFA500)
-    await ctx.send(embed=embed, view=AcceptView(ctx, ctx.author, member))
-
-@bot.command()
-async def gunfight(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send('Erreur : vous devez cibler un membre !')
-        return
-
-    if member == ctx.author:
-        await ctx.send('Vous ne pouvez pas vous défier vous-même !')
-        return
-
-    # Création des boutons
-    accept_button = Button(label="Oui", style=discord.ButtonStyle.green)
-    decline_button = Button(label="Non", style=discord.ButtonStyle.red)
-
-    # Définir les actions des boutons
-    async def accept(interaction):
-        if interaction.user != member:
-            await interaction.response.send_message('Ce n\'est pas votre duel !', ephemeral=True)
-            return
-        result = random.choice([ctx.author, member])
-        winner = result.name
-        await interaction.message.edit(content=f"{member.mention} a accepté le duel ! Le gagnant est {winner} !", view=None)
-    
-    async def decline(interaction):
-        if interaction.user != member:
-            await interaction.response.send_message('Ce n\'est pas votre duel !', ephemeral=True)
-            return
-        await interaction.message.edit(content=f"{member.mention} a refusé le duel.", view=None)
-
-    accept_button.callback = accept
-    decline_button.callback = decline
-
-    # Création de la vue avec les boutons
-    view = View()
-    view.add_item(accept_button)
-    view.add_item(decline_button)
-
-    # Envoyer l'embed pour le défi
-    embed = discord.Embed(
-        title="Défi de Gunfight",
-        description=f"{ctx.author.mention} vous défie à un duel, {member.mention}. Acceptez-vous ?",
-        color=discord.Color.blue()
-    )
-    await ctx.send(embed=embed, view=view)
-    
-@bot.command()
-async def hug(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Tu as donné un câlin à {member.name} ! 🤗",  # Utilisation de member.name pour afficher le nom simple
-        description="Les câlins sont la meilleure chose au monde !",
-        color=discord.Color.blue()
-    )
-    embed.set_image(url="https://media.tenor.com/P6FsFii7pnoAAAAM/hug-warm-hug.gif")
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-
-@bot.command()
-async def slap(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Tu as giflé {member.name} !",  # Utilisation de member.name
-        description="Oups, ça a dû faire mal 😱",
-        color=discord.Color.red()
-    )
-    embed.set_image(url="https://media.tenor.com/QRdCcNbk18MAAAAM/slap.gif")
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-
-@bot.command()
-async def dance(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"{member.name} danse comme un pro ! 💃🕺",  # Utilisation de member.name
-        description="Admirez cette danse épique !",
-        color=discord.Color.green()
-    )
-    embed.set_image(url="https://media.tenor.com/d7ibtS6MLQgAAAAM/dancing-kid.gif")
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-
-@bot.command()
-async def flirt(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Vous avez charmé {member.name} avec un sourire éclatant ! 😍",  # Utilisation de member.name
-        description="Vous êtes irrésistible !",
-        color=discord.Color.purple()
-    )
-    embed.set_image(url="https://media.tenor.com/HDdV-0Km1QAAAAAM/hello-sugar.gif")
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-
-@bot.command()
-async def whisper(ctx, member: discord.Member = None, *, message):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Chuchotement de {ctx.author.name} à {member.name}",  # Utilisation de member.name et ctx.author.name
-        description=f"*{message}*",
-        color=discord.Color.greyple()
-    )
-    embed.set_footer(text=f"Un message secret entre vous deux... {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    embed.set_thumbnail(url=member.avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def troll(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Tu as trollé {member.name} ! 😆",  # Utilisation de member.name
-        description=f"Oups, {member.name} s'est fait avoir !",
-        color=discord.Color.orange()
-    )
-    embed.set_image(url="https://media.tenor.com/7Q8TRpW2ZXkAAAAM/yeet-lol.gif")
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def kiss(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    embed = discord.Embed(
-        title=f"💋 {ctx.author.name} a embrassé {member.name} !",
-        color=discord.Color.pink()
-    )
-    
-    # Image en grand format
-    embed.set_image(url="https://media.tenor.com/3DHc1_2PZ-oAAAAM/kiss.gif")
-    
-    # Footer
-    embed.set_footer(
-        text=f"Commandé par {ctx.author.name} | ♥️ by Iseyg",
-        icon_url=ctx.author.avatar.url if ctx.author.avatar else None
-    )
-
-    await ctx.send(embed=embed)
-
-    
-@bot.command()
-async def kill(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Vous n'avez ciblé personne !")
-        return
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Tu as tué {member.name} !",  # Utilisation de member.name
-        description="C'est la fin pour lui... 💀",  
-        color=discord.Color.red()
-    )
-    embed.set_image(url="https://media1.tenor.com/m/4hO2HfS9fcMAAAAd/toaru-index.gif")
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def love(ctx, member: discord.Member = None):
-    if not member:
-        await ctx.send("Tu n'as pas mentionné de membre ! Utilise +love @membre.")
-        return
-    
-    love_percentage = random.randint(0, 100)
-    
-    embed = discord.Embed(
-        title="L'Amour Etheryen",
-        description=f"L'amour entre {ctx.author.mention} et {member.mention} est de **{love_percentage}%** !",
-        color=discord.Color.red() if love_percentage > 50 else discord.Color.blue()
-    )
-    embed.set_footer(text=f"Commandé par {ctx.author.name} | ♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    
-    # Image en grand
-    embed.set_image(url="https://media.istockphoto.com/id/636379014/fr/photo/mains-formant-une-forme-de-c%C5%93ur-avec-sa-silhouette-au-coucher-du-soleil.jpg?s=612x612&w=0&k=20&c=x9tv_eEIyf5eBbNKJ4L8Nte2LE-UUh6YXVtr29ubwRk=")
-
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def reverse(ctx, *, text: str = None):
-    if text is None:
-        await ctx.send("Tu n'as pas fourni de texte à inverser !")
-        return
-
-    reversed_text = text[::-1]  # Inverser le texte
-    await ctx.send(f"Texte inversé : {reversed_text}")
-
 @bot.hybrid_command(name="say", description="Fais dire un message au bot.")
 @app_commands.describe(text="Le texte à dire")
 async def say(ctx: commands.Context, *, text: str = None):
@@ -4101,33 +3786,6 @@ async def coinflip(ctx):
     import random
     result = random.choice(["Pile", "Face"])
     await ctx.send(f"Résultat du coinflip : {result}")
-
-@bot.command()
-async def dice(ctx):
-    import random
-    result = random.randint(1, 6)
-    await ctx.send(f"Résultat du dé : {result}")
-
-
-@bot.command()
-async def fight(ctx, member: discord.Member = None):
-    if member is None:
-        await ctx.send("Tu n'as ciblé personne pour te battre !")
-        return
-
-    # Simuler un combat
-    import random
-    result = random.choice([f"{ctx.author.name} a gagné !", f"{member.name} a gagné !", "C'est une égalité !"])
-
-    # Créer l'embed
-    embed = discord.Embed(
-        title=f"Combat entre {ctx.author.name} et {member.name}",
-        description=result,
-        color=discord.Color.blue()
-    )
-    embed.set_thumbnail(url=member.avatar.url)
-    embed.set_footer(text=f"Commandé par {ctx.author.name} |♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
 
 # Définir la commande +roll
 @bot.command()
