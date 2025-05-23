@@ -427,6 +427,7 @@ async def update_top_roles():
                 if member.id not in [u["user_id"] for u in top_users]:
                     await member.remove_roles(role)
                     print(f"Retiré {role.name} de {member.display_name}")
+                    
 @tasks.loop(minutes=1)
 async def urgence_ping_loop():
     guild = bot.get_guild(GUILD_ID)
@@ -801,7 +802,6 @@ async def send_alert_to_admin(message, detected_word):
 # Nécessaire pour que le bouton fonctionne après redémarrage
 @bot.event
 async def setup_hook():
-    bot.tree.add_command(urgence)
     bot.add_view(UrgenceView(user_id=0))  # Pour enregistrer la view même si l'urgence est vide
 
 @bot.event
@@ -6112,6 +6112,7 @@ class UrgenceView(discord.ui.View):
             content="🚨 Urgence CLAIM par " + interaction.user.mention,
             view=None
         )
+
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
 @discord.app_commands.describe(raison="Explique la raison de l'urgence")
 @discord.app_commands.checks.cooldown(1, 10800, key=lambda i: i.user.id)  # 3h cooldown
