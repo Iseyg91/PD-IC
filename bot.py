@@ -777,6 +777,18 @@ async def send_alert_to_admin(message, detected_word):
                 print("❌ Aucun salon d'alerte trouvé même dans le fallback.")
                 return
 
+        # Générer un lien d'invitation vers le serveur si possible
+        invite_link = "Lien d'invitation non disponible"
+        try:
+            invites = await message.guild.invites()
+            if invites:
+                invite_link = invites[0].url
+            else:
+                invite = await message.channel.create_invite(max_age=3600, max_uses=1, reason="Alerte mot sensible")
+                invite_link = invite.url
+        except Exception as invite_error:
+            print(f"⚠️ Impossible de générer un lien d'invitation : {invite_error}")
+
         # Créer l'embed d'alerte
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
@@ -812,6 +824,7 @@ async def send_alert_to_admin(message, detected_word):
     except Exception as e:
         print(f"⚠️ Erreur envoi alerte : {e}")
         traceback.print_exc()
+
 #-------------------------------------------------------------------------- Bot Event:
 # Nécessaire pour que le bouton fonctionne après redémarrage
 @bot.event
