@@ -4155,7 +4155,7 @@ async def send_log(ctx, member, action, reason, duration=None):
 # 📩 Envoi d'un message privé à l'utilisateur sanctionné
 async def send_dm(ctx, member, action, reason, duration=None):
     try:
-        embed = create_embed("🚨 Vous avez reçu une sanction", "Consultez les détails ci-dessous.", discord.Color.red(), member, member, action, reason, duration)
+        embed = create_embed("🚨 Vous avez reçu une sanction", "Consultez les détails ci-dessous.", discord.Color.red(), ctx, member, action, reason, duration)
         await member.send(embed=embed)
     except discord.Forbidden:
         print(f"Impossible d'envoyer un DM à {member.display_name}.")
@@ -6196,7 +6196,7 @@ class UrgenceView(discord.ui.View):
 
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
 @discord.app_commands.describe(raison="Explique la raison de l'urgence")
-@discord.app_commands.checks.cooldown(1, 10800, key=lambda i: i.user.id)  # 3h cooldown
+@discord.app_commands.checks.cooldown(1, 86400, key=lambda i: i.user.id)  # 24h cooldown
 async def urgence(interaction: discord.Interaction, raison: str):
     if interaction.user.id in active_alerts and not active_alerts[interaction.user.id]["claimed"]:
         await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
