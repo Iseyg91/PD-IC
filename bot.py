@@ -427,7 +427,18 @@ async def update_top_roles():
                 if member.id not in [u["user_id"] for u in top_users]:
                     await member.remove_roles(role)
                     print(f"Retiré {role.name} de {member.display_name}")
+@tasks.loop(minutes=1)
+async def urgence_ping_loop():
+    guild = bot.get_guild(GUILD_ID)
+    channel = guild.get_channel(CHANNEL_ID)
 
+    for user_id, data in list(active_alerts.items()):
+        if not data["claimed"]:
+            try:
+                await channel.send(f"<@&{STAFF_DELTA}> 🚨 Urgence toujours non claimée.")
+            except Exception as e:
+                print(f"Erreur ping staff : {e}")
+                
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
@@ -439,6 +450,7 @@ async def on_ready():
 
     # Démarrer les tâches de fond
     update_stats.start()
+    urgence_ping_loop.start()
     
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
@@ -786,6 +798,11 @@ async def send_alert_to_admin(message, detected_word):
         print(f"⚠️ Erreur envoi alerte : {e}")
         traceback.print_exc()
 #-------------------------------------------------------------------------- Bot Event:
+# Nécessaire pour que le bouton fonctionne après redémarrage
+@bot.event
+async def setup_hook():
+    bot.tree.add_command(urgence)
+    bot.add_view(UrgenceView(user_id=0))  # Pour enregistrer la view même si l'urgence est vide
 
 @bot.event
 async def on_message_delete(message):
@@ -2824,7 +2841,6 @@ async def premium(interaction: discord.Interaction, code: str):
     except Exception as e:
         await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
 
-
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
     if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
@@ -3475,9 +3491,6 @@ async def help(ctx):
             new_embed.add_field(name="🤪 +fou @user", value="Détermine le taux de folie d'un utilisateur .\n*Testez l'état mental de vos amis !*.", inline=False)
             new_embed.add_field(name="💪 +testo @user", value="Détermine le taux de testostérone d'un utilisateur .\n*Testez la virilité de vos amis !*.", inline=False)
             new_embed.add_field(name="🍑 +libido @user", value="Détermine le taux de libido d'un utilisateur .\n*Testez la chaleur de vos amis sous la couette !*.", inline=False)
-            new_embed.add_field(name="🪴 +pfc @user", value="Jouez à Pierre-Feuille-Ciseaux avec un utilisateur ! \n*Choisissez votre coup et voyez si vous gagnez contre votre adversaire !*.", inline=False)
-            new_embed.add_field(name="🔫 +gunfight @user", value="Affrontez un autre utilisateur dans un duel de Gunfight ! \n*Acceptez ou refusez le défi et découvrez qui sera le gagnant !*", inline=False)
-            new_embed.add_field(name="💀 +kill @user", value="Tuez un autre utilisateur dans un duel de force ! \n*Acceptez ou refusez le défi et découvrez qui sortira vainqueur de cette confrontation!*", inline=False)
             new_embed.add_field(name="🔄 +reverse [texte]", value="Inverser un texte et le partager avec un autre utilisateur ! \n*Lancez un défi pour voir si votre inversion sera correcte !*", inline=False)
             new_embed.add_field(name="⭐ +note @user [note sur 10]", value="Notez un autre utilisateur sur 10 ! \n*Exprimez votre avis sur leur comportement ou performance dans le serveur.*", inline=False)
             new_embed.add_field(name="🎲 +roll", value="Lance un dé pour générer un nombre aléatoire entre 1 et 500 .\n*Essayez votre chance !*.", inline=False)
@@ -6079,6 +6092,59 @@ async def set_sensible(ctx: commands.Context):
     embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
     view = SensibleView(guild_id, sensible_data, ctx.bot)
     await ctx.send(embed=embed, view=view)
+    
+active_alerts = {}
+
+class UrgenceView(discord.ui.View):
+    def __init__(self, user_id):
+        super().__init__(timeout=None)
+        self.user_id = user_id
+
+    @discord.ui.button(label="🚨 Claim", style=discord.ButtonStyle.success, custom_id="claim_button")
+    async def claim(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if self.user_id not in active_alerts or active_alerts[self.user_id]['claimed']:
+            await interaction.response.send_message("Cette urgence a déjà été claim.", ephemeral=True)
+            return
+
+        active_alerts[self.user_id]['claimed'] = True
+        await interaction.response.send_message(f"{interaction.user.mention} a claim l'urgence.")
+        await active_alerts[self.user_id]['message'].edit(
+            content="🚨 Urgence CLAIM par " + interaction.user.mention,
+            view=None
+        )
+@bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
+@discord.app_commands.describe(raison="Explique la raison de l'urgence")
+@discord.app_commands.checks.cooldown(1, 10800, key=lambda i: i.user.id)  # 3h cooldown
+async def urgence(interaction: discord.Interaction, raison: str):
+    if interaction.user.id in active_alerts and not active_alerts[interaction.user.id]["claimed"]:
+        await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
+        return
+
+    guild = bot.get_guild(GUILD_ID)
+    channel = guild.get_channel(CHANNEL_ID)
+
+    embed = discord.Embed(
+        title="🚨 Nouvelle urgence",
+        description=raison,
+        color=discord.Color.red(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_footer(text=f"Envoyée par {interaction.user} ({interaction.user.id})")
+
+    view = UrgenceView(interaction.user.id)
+    message = await channel.send(
+        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée !",
+        embed=embed,
+        view=view
+    )
+
+    active_alerts[interaction.user.id] = {
+        "message": message,
+        "timestamp": datetime.utcnow(),
+        "claimed": False
+    }
+
+    await interaction.response.send_message("🚨 Urgence envoyée au staff.", ephemeral=True)
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
