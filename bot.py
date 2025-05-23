@@ -6114,8 +6114,14 @@ class UrgenceView(discord.ui.View):
 
         active_alerts[self.user_id]['claimed'] = True
 
+        # Récupération de l'embed d'origine et mise à jour
+        embed = active_alerts[self.user_id]['message'].embeds[0]
+        embed.set_field_at(index=4, name="📌 Statut", value=f"✅ Claimé par {interaction.user.mention}", inline=False)
+        embed.color = discord.Color.green()
+
         await active_alerts[self.user_id]['message'].edit(
             content=f"🚨 Urgence CLAIM par {interaction.user.mention}",
+            embed=embed,
             view=None
         )
 
@@ -6129,7 +6135,6 @@ async def urgence(interaction: discord.Interaction, raison: str):
         await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
         return
 
-    # On cible toujours le même serveur et salon, peu importe d'où la commande est appelée
     target_guild = bot.get_guild(GUILD_ID)
     if target_guild is None:
         await interaction.response.send_message("❌ Erreur : le serveur cible est introuvable.", ephemeral=True)
@@ -6140,24 +6145,32 @@ async def urgence(interaction: discord.Interaction, raison: str):
         await interaction.response.send_message("❌ Erreur : le salon d'urgence est introuvable dans le serveur cible.", ephemeral=True)
         return
 
+    timestamp = datetime.utcnow()
     embed = discord.Embed(
         title="🚨 Nouvelle urgence",
         description=raison,
         color=discord.Color.red(),
-        timestamp=datetime.utcnow()
+        timestamp=timestamp
     )
-    embed.set_footer(text=f"Envoyée par {interaction.user} ({interaction.user.id})")
+    embed.set_footer(text=f"ID de l'utilisateur : {interaction.user.id}")
+    embed.add_field(name="👤 Utilisateur", value=f"{interaction.user.mention} (`{interaction.user}`)", inline=True)
+    embed.add_field(name="🆔 User ID", value=str(interaction.user.id), inline=True)
+    embed.add_field(name="🌐 Serveur", value=interaction.guild.name if interaction.guild else "DM", inline=True)
+    embed.add_field(name="📅 Date", value=f"<t:{int(timestamp.timestamp())}:F>", inline=True)
+    embed.add_field(name="📌 Statut", value="⏳ En attente de claim", inline=False)
+    if interaction.guild:
+        embed.add_field(name="🔗 Lien", value=f"[Aller au message original](https://discord.com/channels/{interaction.guild.id}/{interaction.channel.id}/{interaction.id})", inline=False)
 
     view = UrgenceView(interaction.user.id)
     message = await channel.send(
-        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée par {interaction.user.mention} depuis {interaction.guild.name if interaction.guild else 'DM'} !",
+        content=f"<@&{STAFF_DELTA}> 🚨 Urgence signalée par {interaction.user.mention} depuis **{interaction.guild.name if interaction.guild else 'DM'}**",
         embed=embed,
         view=view
     )
 
     active_alerts[interaction.user.id] = {
         "message": message,
-        "timestamp": datetime.utcnow(),
+        "timestamp": timestamp,
         "claimed": False,
         "user_id": interaction.user.id,
         "username": str(interaction.user),
