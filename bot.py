@@ -435,15 +435,24 @@ async def update_top_roles():
                     
 @tasks.loop(minutes=1)
 async def urgence_ping_loop():
+    await bot.wait_until_ready()  # S'assure que le bot est connecté et prêt
+
     guild = bot.get_guild(GUILD_ID)
+    if guild is None:
+        print(f"[ERREUR] Impossible de récupérer le serveur avec l'ID {GUILD_ID}")
+        return
+
     channel = guild.get_channel(CHANNEL_ID)
+    if channel is None:
+        print(f"[ERREUR] Impossible de récupérer le salon avec l'ID {CHANNEL_ID}")
+        return
 
     for user_id, data in list(active_alerts.items()):
-        if not data["claimed"]:
+        if not data.get("claimed"):
             try:
                 await channel.send(f"<@&{STAFF_DELTA}> 🚨 Urgence toujours non claimée.")
             except Exception as e:
-                print(f"Erreur ping staff : {e}")
+                print(f"Erreur lors de l'envoi du message d'urgence : {e}")
                 
 # Événement quand le bot est prêt
 @bot.event
