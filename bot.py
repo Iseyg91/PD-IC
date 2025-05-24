@@ -6266,6 +6266,49 @@ async def urgence(interaction: discord.Interaction, raison: str):
     }
 
     await interaction.response.send_message("🚨 Urgence envoyée au staff du serveur principal.", ephemeral=True)
+
+class MPVerificationModal(discord.ui.Modal, title="Code de vérification"):
+    code = discord.ui.TextInput(label="Entre le code de vérification", style=discord.TextStyle.short)
+
+    def __init__(self, target_id: int, message: str, original_interaction: discord.Interaction):
+        super().__init__()
+        self.target_id = target_id
+        self.message = message
+        self.original_interaction = original_interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != VERIFICATION_CODE:
+            await interaction.response.send_message("❌ Code de vérification incorrect.", ephemeral=True)
+            return
+
+        try:
+            user = await bot.fetch_user(self.target_id)
+            await user.send(self.message)
+            await interaction.response.send_message(f"✅ Message envoyé à {user.mention}.", ephemeral=True)
+        except discord.NotFound:
+            await interaction.response.send_message("❌ Utilisateur introuvable.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ Impossible d’envoyer un message à cet utilisateur.", ephemeral=True)
+        except Exception as e:
+            await interaction.response.send_message(f"❌ Une erreur est survenue : `{e}`", ephemeral=True)
+
+@bot.tree.command(name="mp", description="Envoie un MP à quelqu'un (réservé à Isey).")
+@app_commands.describe(utilisateur="Mention ou ID de la personne", message="Message à envoyer")
+async def mp(interaction: discord.Interaction, utilisateur: str, message: str):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser cette commande.", ephemeral=True)
+        return
+
+    try:
+        # Si mention : <@123456789012345678>
+        if utilisateur.startswith("<@") and utilisateur.endswith(">"):
+            utilisateur = utilisateur.replace("<@", "").replace("!", "").replace(">", "")
+        target_id = int(utilisateur)
+    except ValueError:
+        await interaction.response.send_message("❌ ID ou mention invalide.", ephemeral=True)
+        return
+
+    await interaction.response.send_modal(MPVerificationModal(target_id, message, interaction))
     
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
