@@ -4958,7 +4958,7 @@ async def on_submit(self, interaction: discord.Interaction):
         ),
         color=discord.Color.blue()
     )
-    embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
     view = JoinGiveawayView(giveaway_id)
     await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
