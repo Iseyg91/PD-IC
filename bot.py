@@ -6268,12 +6268,17 @@ async def urgence(interaction: discord.Interaction, raison: str):
     await interaction.response.send_message("🚨 Urgence envoyée au staff du serveur principal.", ephemeral=True)
 
 class MPVerificationModal(discord.ui.Modal, title="Code de vérification"):
-    code = discord.ui.TextInput(label="Entre le code de vérification", style=discord.TextStyle.short)
-
     def __init__(self, target_user: discord.User, message: str):
         super().__init__()
         self.target_user = target_user
         self.message = message
+
+        self.code = discord.ui.TextInput(
+            label="Entre le code de vérification",
+            style=discord.TextStyle.short,
+            required=True
+        )
+        self.add_item(self.code)
 
     async def on_submit(self, interaction: discord.Interaction):
         if self.code.value != VERIFICATION_CODE:
@@ -6289,7 +6294,7 @@ class MPVerificationModal(discord.ui.Modal, title="Code de vérification"):
 class MyBot(commands.Bot):
     def __init__(self):
         super().__init__(command_prefix="!", intents=discord.Intents.all())
-        self.tree = app_commands.CommandTree(self)
+        # Ne surtout pas redéfinir self.tree
 
     async def setup_hook(self):
         await self.tree.sync()
@@ -6305,20 +6310,21 @@ async def mp(interaction: discord.Interaction, utilisateur: str, message: str):
 
     # Trouver l'utilisateur cible
     target_user = None
-    if utilisateur.isdigit():
-        try:
+    try:
+        if utilisateur.isdigit():
             target_user = await bot.fetch_user(int(utilisateur))
-        except:
-            pass
-    elif interaction.guild:
-        target_user = await interaction.guild.fetch_member(int(utilisateur.strip("<@!>")))
+        elif interaction.guild:
+            user_id = int(utilisateur.strip("<@!>"))
+            target_user = await interaction.guild.fetch_member(user_id)
+    except:
+        pass
 
     if target_user is None:
         await interaction.response.send_message("❌ Utilisateur introuvable.", ephemeral=True)
         return
 
-    # Afficher le modal de vérification
     await interaction.response.send_modal(MPVerificationModal(target_user, message))
+    
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
