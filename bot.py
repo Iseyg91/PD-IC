@@ -1600,7 +1600,7 @@ async def premium(interaction: discord.Interaction, code: str):
     except Exception as e:
         await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
 
-@bot.tree.command(name="total-premium", description="Affiche tous les serveurs premium (réservé à Isey)")
+@bot.tree.command(name="total-premium", description="Met tous les serveurs en premium et affiche la liste (réservé à Isey)")
 async def total_premium(interaction: discord.Interaction):
     if interaction.user.id != ISEY_ID:
         await interaction.response.send_message("❌ Vous n'avez pas l'autorisation d'utiliser cette commande.", ephemeral=True)
@@ -1609,27 +1609,34 @@ async def total_premium(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
     try:
-        # Rechercher tous les serveurs premium
+        # Mettre tous les serveurs en premium
+        result = collection2.update_many(
+            {"is_premium": {"$ne": True}},  # Tous ceux qui ne sont pas déjà premium
+            {"$set": {"is_premium": True}}
+        )
+
+        # Récupérer tous les serveurs maintenant premium
         premium_servers = list(collection2.find({"is_premium": True}))
 
         if not premium_servers:
             await interaction.followup.send("Aucun serveur premium trouvé.")
             return
 
-        # Créer une liste de serveurs formatée
-        server_list = "\n".join([f"- {s['guild_name']} (`{s['guild_id']}`)" for s in premium_servers])
+        # Créer une liste formatée
+        server_list = "\n".join([f"- {s.get('guild_name', 'Inconnu')} (`{s.get('guild_id', '??')}`)" for s in premium_servers])
 
         embed = discord.Embed(
-            title=f"🌟 Serveurs Premium ({len(premium_servers)})",
+            title=f"🌟 Tous les serveurs sont maintenant Premium ({len(premium_servers)})",
             description=server_list,
             color=discord.Color.gold()
         )
-        embed.set_footer(text="Commande réservée à Isey")
+        embed.set_footer(text=f"Commande exécutée par {interaction.user.name}")
 
         await interaction.followup.send(embed=embed)
 
     except Exception as e:
         await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
