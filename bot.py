@@ -2168,49 +2168,55 @@ async def reset_stats(interaction: discord.Interaction):
 @bot.tree.command(name="add-client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
     user="Mentionne un membre du serveur",
-    service="Type de service acheté (Graphisme, Serveur, Site, Bot)",
-    service_name="Nom du service acheté (ex: Project Delta)"
+    service="Type de service acheté",
+    service_name="Nom du service acheté (ex: Project : Delta)"
 )
-async def add_client(interaction: discord.Interaction, user: discord.Member, service: str, service_name: str):
+@app_commands.choices(
+    service=[
+        app_commands.Choice(name="Graphisme", value="Graphisme"),
+        app_commands.Choice(name="Serveur Discord", value="Serveur"),
+        app_commands.Choice(name="Site Web", value="Site"),
+        app_commands.Choice(name="Bot Discord", value="Bot"),
+    ]
+)
+async def add_client(
+    interaction: discord.Interaction,
+    user: discord.Member,
+    service: app_commands.Choice[str],
+    service_name: str
+):
     try:
-        # ⬇️ Déferer la réponse uniquement si ce n'est pas déjà fait
         if not interaction.response.is_done():
             await interaction.response.defer(thinking=True)
 
-        # ⬇️ Vérification du contexte serveur
         if not interaction.guild or interaction.guild.id != PROJECT_DELTA:
             return await interaction.followup.send("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-        # Vérification des permissions de l'utilisateur
-        if interaction.user.id != STAFF_PROJECT:
-            return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-
-        # Log de la commande lancée
+        role = discord.utils.get(interaction.user.roles, id=STAFF_PROJECT)
+        if not role:
+            return await interaction.followup.send("🚫 Tu dois avoir le rôle `Staff Project` pour utiliser cette commande.", ephemeral=True)
+        
         print(f"🔧 Commande /add_client lancée par {interaction.user} ({interaction.user.id}) pour {user} ({user.id})")
 
-        # Récupérer les données existantes
         existing_data = collection5.find_one({"guild_id": interaction.guild.id}) or {}
         existing_clients = existing_data.get("clients", [])
 
-        # Vérifier si le client existe déjà
         if any(client.get("user_id") == user.id for client in existing_clients):
             return await interaction.followup.send(f"⚠️ {user.mention} est déjà enregistré comme client !", ephemeral=True)
 
-        # Préparer les données du client
         purchase_date = datetime.utcnow().strftime("%d/%m/%Y à %H:%M:%S")
         client_data = {
             "user_id": user.id,
-            "service": service,
+            "service": service.value,
             "service_name": service_name,
             "purchase_date": purchase_date,
-            "creator_id": interaction.user.id,  # 👈 Ajout ici
+            "creator_id": interaction.user.id,
             "done_by": {
                 "name": str(interaction.user),
                 "id": interaction.user.id
             }
         }
 
-        # Mise à jour ou insertion des données
         if existing_data:
             collection5.update_one(
                 {"guild_id": interaction.guild.id},
@@ -2222,31 +2228,24 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
                 "clients": [client_data]
             })
 
-        # Ajouter le rôle client
         role = discord.utils.get(interaction.guild.roles, id=1359963854389379241)
         if role:
             await user.add_roles(role)
-            print(f"🔧 Rôle ajouté à {user}")
-        else:
-            print("⚠️ Rôle introuvable.")
 
-        # Embed de confirmation public
         confirmation_embed = discord.Embed(
             title="🎉 Nouveau client enregistré !",
             description=f"Bienvenue à {user.mention} en tant que **client officiel** ! 🛒",
             color=discord.Color.green()
         )
-        confirmation_embed.add_field(name="🛠️ Service", value=f"`{service}`", inline=True)
+        confirmation_embed.add_field(name="🛠️ Service", value=f"`{service.value}`", inline=True)
         confirmation_embed.add_field(name="📌 Nom du Service", value=f"`{service_name}`", inline=True)
         confirmation_embed.add_field(name="👨‍💻 Réalisé par", value=f"`{interaction.user}`", inline=False)
         confirmation_embed.add_field(name="🗓️ Date d'achat", value=f"`{purchase_date}`", inline=False)
         confirmation_embed.set_footer(text=f"Ajouté par {interaction.user}", icon_url=interaction.user.display_avatar.url)
         confirmation_embed.set_thumbnail(url=user.display_avatar.url)
 
-        # Envoi de la confirmation publique
         await interaction.followup.send(embed=confirmation_embed)
 
-        # Embed de log privé
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
@@ -2255,15 +2254,13 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
                 timestamp=datetime.utcnow()
             )
             log_embed.add_field(name="👤 Client", value=f"{user.mention} (`{user.id}`)", inline=False)
-            log_embed.add_field(name="🛠️ Service", value=service, inline=True)
+            log_embed.add_field(name="🛠️ Service", value=service.value, inline=True)
             log_embed.add_field(name="📌 Nom", value=service_name, inline=True)
             log_embed.add_field(name="👨‍💻 Fait par", value=f"{interaction.user} (`{interaction.user.id}`)", inline=False)
             log_embed.add_field(name="🗓️ Date", value=purchase_date, inline=False)
             log_embed.set_footer(text="Log automatique", icon_url=interaction.user.display_avatar.url)
 
             await log_channel.send(embed=log_embed)
-        else:
-            print("⚠️ Salon de log introuvable.")
 
     except Exception as e:
         print("❌ Erreur inattendue :", e)
@@ -2868,6 +2865,37 @@ async def premium(interaction: discord.Interaction, code: str):
     except Exception as e:
         await interaction.followup.send(f"Une erreur est survenue : {str(e)}")
 
+@bot.tree.command(name="total-premium", description="Affiche tous les serveurs premium (réservé à Isey)")
+async def total_premium(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Vous n'avez pas l'autorisation d'utiliser cette commande.", ephemeral=True)
+        return
+
+    await interaction.response.defer(thinking=True)
+
+    try:
+        # Rechercher tous les serveurs premium
+        premium_servers = list(collection2.find({"is_premium": True}))
+
+        if not premium_servers:
+            await interaction.followup.send("Aucun serveur premium trouvé.")
+            return
+
+        # Créer une liste de serveurs formatée
+        server_list = "\n".join([f"- {s['guild_name']} (`{s['guild_id']}`)" for s in premium_servers])
+
+        embed = discord.Embed(
+            title=f"🌟 Serveurs Premium ({len(premium_servers)})",
+            description=server_list,
+            color=discord.Color.gold()
+        )
+        embed.set_footer(text="Commande réservée à Isey")
+
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
     if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
@@ -3000,7 +3028,7 @@ class SetupView(View):
 🎉 **Bienvenue dans le menu de configuration !**  
 Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+📌 **Gestion du Bot**
 
 🔽 **Sélectionnez la catégorie pour commencer !**
             """,
@@ -3019,7 +3047,7 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
             🎉 **Bienvenue dans le menu de configuration !**  
             Personnalisez votre serveur **facilement** grâce aux options ci-dessous.  
 
-            📌 **Gestion du Bot** - 🎛️ Modifier les rôles et salons.  
+            📌 **Gestion du Bot** 
             
             🔽 **Sélectionnez la catégorie pour commencer !**
             """
@@ -4186,12 +4214,10 @@ async def mute(
     if not has_permission(ctx, "moderate_members"):
         return await ctx.send("❌ Vous n'avez pas la permission de mute des membres.")
 
-    # Vérifie si le membre est déjà en timeout
     if member.timed_out_until and member.timed_out_until > datetime.utcnow().replace(tzinfo=timezone.utc):
         timeout_end = member.timed_out_until.strftime('%d/%m/%Y à %H:%M:%S')
         return await ctx.send(f"❌ {member.mention} est déjà en timeout jusqu'au {timeout_end} UTC.")
 
-    # Traitement de la durée
     time_units = {"m": "minutes", "h": "heures", "j": "jours"}
     try:
         duration = int(duration_with_unit[:-1])
@@ -4201,16 +4227,13 @@ async def mute(
     except ValueError:
         return await ctx.send("❌ Format invalide ! Utilisez un nombre suivi de `m` (minutes), `h` (heures) ou `j` (jours).")
 
-    # Calcul de la durée
     time_deltas = {"m": timedelta(minutes=duration), "h": timedelta(hours=duration), "j": timedelta(days=duration)}
     duration_time = time_deltas[unit]
     duration_str = f"{duration} {time_units[unit]}"
 
     try:
-        # Timeout du membre
         await member.timeout(duration_time, reason=reason)
 
-        # Création et envoi de l'embed de confirmation
         embed = create_embed(
             "⏳ Mute",
             f"{member.mention} a été muté pour {duration_str}.",
@@ -4222,10 +4245,8 @@ async def mute(
             duration_str
         )
         await ctx.send(embed=embed)
-        await send_log(ctx, member, "Mute", reason, duration_str)
         await send_dm(ctx, member, "Mute", reason, duration_str)
 
-        # Ajout dans la base de données MongoDB
         sanction_data = {
             "guild_id": str(ctx.guild.id),
             "user_id": str(member.id),
@@ -4543,7 +4564,6 @@ async def vc(ctx):
         await ctx.send("Une erreur est survenue lors de l'exécution de la commande.")
         return  # Empêche l'exécution du reste du code après une erreur
 
-
 @bot.hybrid_command(
     name="ping",
     description="Affiche le Ping du bot."
@@ -4750,7 +4770,7 @@ async def liste_idees(ctx):
 
 
 # Commande pour supprimer une idée
-@bot.tree.command(name="remove_idee", description="Supprime une de tes idées enregistrées")
+@bot.tree.command(name="remove-idee", description="Supprime une de tes idées enregistrées")
 async def remove_idee(interaction: discord.Interaction):
     user_id = interaction.user.id  # Utilisation de interaction.user.id pour obtenir l'ID utilisateur
     
@@ -4918,7 +4938,7 @@ async def suggest(interaction: discord.Interaction):
     await interaction.response.send_modal(SuggestionModal())
 
 # --- Commande /set_suggestion pour configurer le salon + rôle ---
-@bot.tree.command(name="set_suggestion", description="📝 Définir le salon et rôle pour les suggestions")
+@bot.tree.command(name="set-suggestion", description="📝 Définir le salon et rôle pour les suggestions")
 @app_commands.describe(channel="Salon pour recevoir les suggestions", role="Rôle à ping lors des suggestions")
 async def set_suggestion(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
     if not interaction.user.guild_permissions.administrator:
