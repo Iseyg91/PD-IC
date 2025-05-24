@@ -2129,7 +2129,7 @@ async def stats(interaction: discord.Interaction, role: discord.Role):
     except Exception as e:
         await interaction.response.send_message(f"❌ Une erreur est survenue : {e}", ephemeral=True)
 
-@bot.tree.command(name="reset_stats", description="Réinitialise les salons de stats")
+@bot.tree.command(name="reset-stats", description="Réinitialise les salons de stats")
 async def reset_stats(interaction: discord.Interaction):
     author = interaction.user
 
@@ -2165,7 +2165,7 @@ async def reset_stats(interaction: discord.Interaction):
 
 #--------------------------------------------------------------------------- Gestion Clients
 
-@bot.tree.command(name="add_client", description="Ajoute un client via mention ou ID")
+@bot.tree.command(name="add-client", description="Ajoute un client via mention ou ID")
 @app_commands.describe(
     user="Mentionne un membre du serveur",
     service="Type de service acheté (Graphisme, Serveur, Site, Bot)",
@@ -2271,7 +2271,7 @@ async def add_client(interaction: discord.Interaction, user: discord.Member, ser
         await interaction.followup.send("⚠️ Une erreur est survenue. Merci de réessayer plus tard.", ephemeral=True)
 
 
-@bot.tree.command(name="remove_client", description="Supprime un client enregistré")
+@bot.tree.command(name="remove-client", description="Supprime un client enregistré")
 @app_commands.describe(
     user="Mentionne le client à supprimer"
 )
@@ -2410,7 +2410,7 @@ class ClientListView(View):
             self.page += 1
             await interaction.response.edit_message(embed=self.format_embed(), view=self)
 
-@bot.tree.command(name="list_clients", description="Affiche tous les clients enregistrés")
+@bot.tree.command(name="list-clients", description="Affiche tous les clients enregistrés")
 async def list_clients(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
@@ -4636,7 +4636,7 @@ async def calcul(interaction: discord.Interaction, nombre1: float, operation: st
 
     await interaction.followup.send(embed=embed)
 
-@bot.tree.command(name="calcul_pourcentage", description="Calcule un pourcentage d'un nombre")
+@bot.tree.command(name="calcul-pourcentage", description="Calcule un pourcentage d'un nombre")
 @app_commands.describe(nombre="Le nombre de base", pourcentage="Le pourcentage à appliquer (ex: 15 pour 15%)")
 async def calcul(interaction: discord.Interaction, nombre: float, pourcentage: float):
     await interaction.response.defer()  # ✅ Correctement placé à l'intérieur de la fonction
@@ -5504,7 +5504,7 @@ async def presentation(interaction: discord.Interaction):
         )
 
 # Commande pour définir le salon de présentation
-@bot.tree.command(name="set_presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
+@bot.tree.command(name="set-presentation", description="Définit le salon où les présentations seront envoyées (admin uniquement)")
 @app_commands.checks.has_permissions(administrator=True)
 async def set_presentation(interaction: discord.Interaction, salon: discord.TextChannel):
     guild_id = interaction.guild.id
@@ -5883,7 +5883,7 @@ async def listwl(ctx):
 # ===============================
 # ┃ COMMANDE /set_absence
 # ===============================
-@bot.tree.command(name="set_absence", description="Configurer le salon des absences et le rôle autorisé")
+@bot.tree.command(name="set-absence", description="Configurer le salon des absences et le rôle autorisé")
 @discord.app_commands.describe(channel="Salon de destination", role="Rôle autorisé à envoyer des absences")
 async def set_absence(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
     if not interaction.user.guild_permissions.administrator:
