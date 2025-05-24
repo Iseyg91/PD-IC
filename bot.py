@@ -5221,7 +5221,7 @@ async def unbanall(ctx):
     await ctx.send("✅ Tous les utilisateurs bannis ont été débannis !")
 
 
-giveaways = {}  # Stockage temporaire : giveaway_id -> data
+giveaways = {}  # giveaway_id -> data
 
 class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
     duration = discord.ui.TextInput(label="Durée (ex: 10m, 2h, 1d)", required=True)
@@ -5267,6 +5267,33 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
 
         await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
 
+        # Planifier la fin du giveaway
+        async def end_giveaway():
+            await asyncio.sleep(seconds)
+            data = giveaways.get(giveaway_id)
+            if not data:
+                return
+
+            channel = interaction.channel
+            try:
+                msg = await channel.fetch_message(data["message_id"])
+            except:
+                return
+
+            if not data["participants"]:
+                await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
+                await msg.edit(view=None)
+                del giveaways[giveaway_id]
+                return
+
+            winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
+            winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
+            await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
+            await msg.edit(view=None)
+            del giveaways[giveaway_id]
+
+        asyncio.create_task(end_giveaway())
+
     def parse_duration(self, s: str) -> int:
         unit = s[-1]
         val = int(s[:-1])
@@ -5286,6 +5313,9 @@ class JoinGiveawayView(discord.ui.View):
         data = giveaways.get(self.giveaway_id)
         if not data:
             return await interaction.response.send_message("Giveaway introuvable.", ephemeral=True)
+
+        if discord.utils.utcnow() > data["end"]:
+            return await interaction.response.send_message("⏰ Ce giveaway est terminé !", ephemeral=True)
 
         if interaction.user.id in data["participants"]:
             return await interaction.response.send_message(
