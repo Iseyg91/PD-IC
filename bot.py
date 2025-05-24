@@ -6046,10 +6046,6 @@ SENSIBLE_DETAILS = {
     "personnages_problématiques": ("Personnages problématiques", "Détecte les mentions de personnages problématiques.")
 }
 
-ISEY_ID = 123456789012345678  # Remplacer par ton ID
-collection28 = None  # Remplacer par ta référence Mongo
-bot = commands.Bot(command_prefix="!")  # Adapter selon ta config
-
 # Vérification des droits
 def is_admin_or_isey():
     async def predicate(ctx):
