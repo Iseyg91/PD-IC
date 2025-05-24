@@ -5262,10 +5262,13 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
         embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
         view = JoinGiveawayView(giveaway_id)
+
+        # Répondre à l'interaction avant d'envoyer un autre message
+        await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
+
+        # Ensuite on peut envoyer le message dans le salon
         message = await interaction.channel.send(embed=embed, view=view)
         giveaways[giveaway_id]["message_id"] = message.id
-
-        await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
 
         # Planifier la fin du giveaway
         async def end_giveaway():
