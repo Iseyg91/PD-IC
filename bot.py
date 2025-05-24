@@ -5239,7 +5239,7 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
         except:
             return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
 
-        end_time = discord.utils.utcnow() + datetime.timedelta(seconds=seconds)
+        end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
         giveaway_id = str(uuid.uuid4())[:8]
 
         giveaways[giveaway_id] = {
