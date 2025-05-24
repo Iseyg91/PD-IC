@@ -4961,48 +4961,48 @@ async def on_submit(self, interaction: discord.Interaction):
     embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
     view = JoinGiveawayView(giveaway_id)
-    await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
-    message = await interaction.channel.send(embed=embed, view=view)
-    giveaways[giveaway_id]["message_id"] = message.id
+await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
+message = await interaction.channel.send(embed=embed, view=view)
+giveaways[giveaway_id]["message_id"] = message.id
 
-        async def end_giveaway():
-            await asyncio.sleep(seconds)
-            data = giveaways.get(giveaway_id)
-            if not data:
-                return
+async def end_giveaway():
+    await asyncio.sleep(seconds)
+    data = giveaways.get(giveaway_id)
+    if not data:
+        return
 
-            channel = interaction.channel
-            try:
-                msg = await channel.fetch_message(data["message_id"])
-            except:
-                return
+    channel = interaction.channel
+    try:
+        msg = await channel.fetch_message(data["message_id"])
+    except:
+        return
 
-            if not data["participants"]:
-                await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
-                await msg.edit(view=None)
-                del giveaways[giveaway_id]
-                return
+    if not data["participants"]:
+        await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
+        await msg.edit(view=None)
+        del giveaways[giveaway_id]
+        return
 
-            winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
-            winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
-            await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
+    winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
+    winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
+    await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
 
-            ended_embed = discord.Embed(
-                title=data["prize"],
-                description=(
-                    f"**Ended:** <t:{int(data['end'].timestamp())}:F>\n"
-                    f"**Hosted by:** <@{data['host']}>\n"
-                    f"**Entries:** {len(data['participants'])}\n"
-                    f"**Winners:** {winner_mentions}"
-                ),
-                color=discord.Color.blue()
-            )
-            ended_embed.set_footer(text=f"ID: {giveaway_id} — Terminé")
+    ended_embed = discord.Embed(
+        title=data["prize"],
+        description=(
+            f"**Ended:** <t:{int(data['end'].timestamp())}:F>\n"
+            f"**Hosted by:** <@{data['host']}>\n"
+            f"**Entries:** {len(data['participants'])}\n"
+            f"**Winners:** {winner_mentions}"
+        ),
+        color=discord.Color.blue()
+    )
+    ended_embed.set_footer(text=f"ID: {giveaway_id} — Terminé")
 
-            await msg.edit(embed=ended_embed, view=None)
-            del giveaways[giveaway_id]
+    await msg.edit(embed=ended_embed, view=None)
+    del giveaways[giveaway_id]
 
-        asyncio.create_task(end_giveaway())
+asyncio.create_task(end_giveaway())
 
     def parse_duration(self, s: str) -> int:
         unit = s[-1]
