@@ -4958,7 +4958,7 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
             title=str(self.prize),
             description=(
                 f"{extra_description}"
-                f"**Ends:** dans <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
+                f"**Ends:** <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
                 f"**Hosted by:** {self.interactor.user.mention}\n"
                 f"**Entries:** 0\n"
                 f"**Winners:** {str(self.winners)}"
