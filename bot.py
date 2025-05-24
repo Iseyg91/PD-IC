@@ -757,7 +757,6 @@ class UrgencyClaimView(View):
 
         await interaction.response.send_message(f"<@{ISEY_ID}> a été prévenu !", ephemeral=True)
 
-
 async def send_alert_to_admin(message, detected_word):
     try:
         print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
@@ -1209,7 +1208,6 @@ async def on_guild_role_delete(role):
                 if str(user.id) in wl_ids:
                     print(f"[Anti-deleterole] Suppression par {user} (whitelist). Ignorée.")
                     return
-
                 try:
                     # Recréation du rôle
                     new_role = await role.guild.create_role(
@@ -6019,6 +6017,14 @@ async def deactivate_troll_error(interaction: discord.Interaction, error):
     else:
         await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
 
+import discord
+from discord.ext import commands
+from discord.ui import View, Select, SelectOption
+from discord import Interaction, Embed
+from datetime import datetime
+import pytz
+
+# Liste des catégories
 SENSIBLE_CATEGORIES = [
     "insultes_graves",
     "discours_haineux",
@@ -6033,6 +6039,7 @@ SENSIBLE_CATEGORIES = [
     "personnages_problématiques"
 ]
 
+# Détails des catégories
 SENSIBLE_DETAILS = {
     "insultes_graves": ("Insultes graves", "Détecte les insultes graves."),
     "discours_haineux": ("Discours haineux", "Détecte les propos discriminatoires."),
@@ -6047,13 +6054,42 @@ SENSIBLE_DETAILS = {
     "personnages_problématiques": ("Personnages problématiques", "Détecte les mentions de personnages problématiques.")
 }
 
-# Vérifie si l'utilisateur est administrateur ou ISEY
+ISEY_ID = 123456789012345678  # Remplacer par ton ID
+collection28 = None  # Remplacer par ta référence Mongo
+bot = commands.Bot(command_prefix="!")  # Adapter selon ta config
+
+# Vérification des droits
 def is_admin_or_isey():
     async def predicate(ctx):
         return ctx.author.guild_permissions.administrator or ctx.author.id == ISEY_ID
     return commands.check(predicate)
 
-# Vue pour le menu de sélection des catégories sensibles
+def format_sensible_field(cat, data, guild, bot):
+    try:
+        name, desc = SENSIBLE_DETAILS[cat]
+        enabled = data.get(cat, True)
+        status = "✅ Activée" if enabled else "❌ Désactivée"
+        updated_by_id = data.get(f"{cat}_updated_by")
+        updated_at = data.get(f"{cat}_updated_at")
+
+        modifier = None
+        if updated_by_id:
+            modifier = guild.get_member(int(updated_by_id)) or updated_by_id
+
+        formatted_date = ""
+        if updated_at:
+            dt = updated_at.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Paris"))
+            formatted_date = f"🕒 {dt.strftime('%d/%m/%Y à %H:%M')}"
+
+        mod_info = f"\n👤 Modifié par : {modifier.mention if isinstance(modifier, discord.Member) else modifier}" if modifier else ""
+        date_info = f"\n{formatted_date}" if formatted_date else ""
+
+        value = f"> {desc}\n> **Statut :** {status}{mod_info}{date_info}"
+        return name, value
+    except Exception as e:
+        print(f"[ERREUR] format_sensible_field({cat}) : {e}")
+        return "Erreur", f"Impossible de charger la catégorie {cat}."
+
 class SensibleMenu(Select):
     def __init__(self, guild_id, sensible_data, bot):
         self.guild_id = guild_id
@@ -6066,8 +6102,7 @@ class SensibleMenu(Select):
                 description="Activer ou désactiver cette catégorie.",
                 emoji="🟢" if sensible_data.get(cat, True) else "🔴",
                 value=cat
-            )
-            for cat in SENSIBLE_CATEGORIES
+            ) for cat in SENSIBLE_CATEGORIES
         ]
 
         super().__init__(
@@ -6081,82 +6116,76 @@ class SensibleMenu(Select):
         cat = self.values[0]
         current = self.sensible_data.get(cat, True)
         new_value = not current
+        print(f"[LOG] {interaction.user} modifie {cat} : {current} -> {new_value}")
 
-        # Met à jour la base de données
-        collection28.update_one(
-            {"guild_id": str(self.guild_id)},
-            {"$set": {
-                cat: new_value,
-                f"{cat}_updated_by": str(interaction.user.id),
-                f"{cat}_updated_at": datetime.utcnow()
-            }},
-            upsert=True
-        )
+        try:
+            collection28.update_one(
+                {"guild_id": str(self.guild_id)},
+                {"$set": {
+                    cat: new_value,
+                    f"{cat}_updated_by": str(interaction.user.id),
+                    f"{cat}_updated_at": datetime.utcnow()
+                }},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"[ERREUR] Mongo update {cat} : {e}")
+            await interaction.response.send_message("Erreur BDD", ephemeral=True)
+            return
 
         self.sensible_data[cat] = new_value
         self.sensible_data[f"{cat}_updated_by"] = interaction.user.id
         self.sensible_data[f"{cat}_updated_at"] = datetime.utcnow()
 
-        guild = interaction.guild
-        if guild and guild.owner:
-            await notify_owner_of_sensible_change(guild, cat, new_value, interaction)
+        try:
+            embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
+            for c in SENSIBLE_CATEGORIES:
+                name, value = format_sensible_field(c, self.sensible_data, interaction.guild, self.bot)
+                embed.add_field(name=name, value=value, inline=False)
 
-        # Met à jour l'embed
-        embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
-        for c in SENSIBLE_CATEGORIES:
-            name, value = format_sensible_field(c, self.sensible_data, guild, self.bot)
-            embed.add_field(name=name, value=value, inline=False)
+            embed.set_footer(text="🌺 Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
+            view = View()
+            view.add_item(SensibleMenu(self.guild_id, self.sensible_data, self.bot))
+            await interaction.response.edit_message(embed=embed, view=view)
+            print(f"[LOG] Message modifié suite à {cat}")
+        except Exception as e:
+            print(f"[ERREUR] Update message {cat} : {e}")
 
-        embed.set_footer(text="🎚️ Sélectionnez une option ci-dessous pour gérer les mots sensibles.")
-        view = View()
-        view.add_item(SensibleMenu(self.guild_id, self.sensible_data, self.bot))
-        await interaction.response.edit_message(embed=embed, view=view)
-
-# Vue principale pour la commande
 class SensibleView(View):
     def __init__(self, guild_id, sensible_data, bot):
         super().__init__(timeout=None)
         self.add_item(SensibleMenu(guild_id, sensible_data, bot))
 
-# Formatage des champs de l'embed
-def format_sensible_field(cat, data, guild, bot):
-    name, desc = SENSIBLE_DETAILS[cat]
-    enabled = data.get(cat, True)
-    status = "✅ Activée" if enabled else "❌ Désactivée"
-    updated_by_id = data.get(f"{cat}_updated_by")
-    updated_at = data.get(f"{cat}_updated_at")
-
-    modifier = None
-    if updated_by_id:
-        modifier = guild.get_member(int(updated_by_id)) or updated_by_id
-
-    formatted_date = ""
-    if updated_at:
-        dt = updated_at.replace(tzinfo=pytz.utc).astimezone(pytz.timezone("Europe/Paris"))
-        formatted_date = f"🕓 {dt.strftime('%d/%m/%Y à %H:%M')}"
-
-    mod_info = f"\n👤 Modifié par : {modifier.mention if isinstance(modifier, discord.Member) else modifier}" if modifier else ""
-    date_info = f"\n{formatted_date}" if formatted_date else ""
-
-    value = f"> {desc}\n> **Statut :** {status}{mod_info}{date_info}"
-    return name, value
-
-# Commande principale
 @bot.hybrid_command(name="set-sensible", description="Configurer les catégories de mots sensibles")
 @is_admin_or_isey()
 async def set_sensible(ctx: commands.Context):
-    guild_id = str(ctx.guild.id)
-    sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
+    print(f"[LOG] /set-sensible appelé par {ctx.author} ({ctx.author.id}) sur {ctx.guild.name}")
 
-    # Initialise toutes les catégories à True si elles ne sont pas définies
+    guild_id = str(ctx.guild.id)
+    try:
+        sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
+        print(f"[LOG] Données chargées : {sensible_data}")
+    except Exception as e:
+        print(f"[ERREUR] Mongo find : {e}")
+        await ctx.send("Erreur lors de la lecture des données sensibles.")
+        return
+
     for cat in SENSIBLE_CATEGORIES:
         if cat not in sensible_data:
             sensible_data[cat] = True
 
-    embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
-    for cat in SENSIBLE_CATEGORIES:
-        name, value = format_sensible_field(cat, sensible_data, ctx.guild, ctx.bot)
-        embed.add_field(name=name, value=value, inline=False)
+    try:
+        embed = Embed(title="🧠 Configuration des mots sensibles", color=discord.Color.blurple())
+        for cat in SENSIBLE_CATEGORIES:
+            name, value = format_sensible_field(cat, sensible_data, ctx.guild, ctx.bot)
+            embed.add_field(name=name, value=value, inline=False)
+
+        view = SensibleView(ctx.guild.id, sensible_data, ctx.bot)
+        await ctx.send(embed=embed, view=view)
+        print("[LOG] Embed envoyé avec succès.")
+    except Exception as e:
+        print(f"[ERREUR] Affichage de l'embed : {e}")
+        await ctx.send("Erreur lors de l'affichage de la configuration.")
 
 active_alerts = {}
 
@@ -6327,7 +6356,6 @@ async def mp(interaction: discord.Interaction, utilisateur: str, message: str):
     if interaction.user.id != ISEY_ID:
         await interaction.response.send_message("❌ Tu n'es pas autorisé à utiliser cette commande.", ephemeral=True)
         return
-
     try:
         # Si mention : <@123456789012345678>
         if utilisateur.startswith("<@") and utilisateur.endswith(">"):
