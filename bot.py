@@ -6267,6 +6267,58 @@ async def urgence(interaction: discord.Interaction, raison: str):
 
     await interaction.response.send_message("🚨 Urgence envoyée au staff du serveur principal.", ephemeral=True)
 
+class MPVerificationModal(discord.ui.Modal, title="Code de vérification"):
+    code = discord.ui.TextInput(label="Entre le code de vérification", style=discord.TextStyle.short)
+
+    def __init__(self, target_user: discord.User, message: str):
+        super().__init__()
+        self.target_user = target_user
+        self.message = message
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != VERIFICATION_CODE:
+            await interaction.response.send_message("❌ Code de vérification incorrect.", ephemeral=True)
+            return
+
+        try:
+            await self.target_user.send(self.message)
+            await interaction.response.send_message(f"✅ Message envoyé à {self.target_user.mention}.", ephemeral=True)
+        except discord.Forbidden:
+            await interaction.response.send_message("❌ Impossible d’envoyer un message privé à cette personne.", ephemeral=True)
+
+class MyBot(commands.Bot):
+    def __init__(self):
+        super().__init__(command_prefix="!", intents=discord.Intents.all())
+        self.tree = app_commands.CommandTree(self)
+
+    async def setup_hook(self):
+        await self.tree.sync()
+
+bot = MyBot()
+
+@bot.tree.command(name="mp", description="Envoie un MP via le bot (réservé à Isey).")
+@app_commands.describe(utilisateur="Mention ou ID de l'utilisateur", message="Message à envoyer")
+async def mp(interaction: discord.Interaction, utilisateur: str, message: str):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Cette commande est réservée à Isey.", ephemeral=True)
+        return
+
+    # Trouver l'utilisateur cible
+    target_user = None
+    if utilisateur.isdigit():
+        try:
+            target_user = await bot.fetch_user(int(utilisateur))
+        except:
+            pass
+    elif interaction.guild:
+        target_user = await interaction.guild.fetch_member(int(utilisateur.strip("<@!>")))
+
+    if target_user is None:
+        await interaction.response.send_message("❌ Utilisateur introuvable.", ephemeral=True)
+        return
+
+    # Afficher le modal de vérification
+    await interaction.response.send_modal(MPVerificationModal(target_user, message))
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
