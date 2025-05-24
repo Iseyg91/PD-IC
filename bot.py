@@ -6016,14 +6016,6 @@ async def deactivate_troll_error(interaction: discord.Interaction, error):
         await interaction.response.send_message("🚫 Vous devez être **administrateur** pour utiliser cette commande.", ephemeral=True)
     else:
         await interaction.response.send_message("❌ Une erreur est survenue.", ephemeral=True)
-
-import discord
-from discord.ext import commands
-from discord.ui import View, Select, SelectOption
-from discord import Interaction, Embed
-from datetime import datetime
-import pytz
-
 # Liste des catégories
 SENSIBLE_CATEGORIES = [
     "insultes_graves",
