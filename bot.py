@@ -5125,30 +5125,36 @@ async def g_fast(interaction: discord.Interaction, duration: str, prize: str):
             await interaction.channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
             return
 
-        winner = random.choice(list(data["participants"]))
-        winner_mention = f"<@{winner}>"
-
-        # Annonce du gagnant
-        react_msg = await interaction.channel.send(
-            f"🎉 {winner_mention} tu as gagné **{data['prize']}** ! Réagis à ce message pour valider ta victoire !",
-        )
-        await react_msg.add_reaction("<a:fete:1375944789035319470>")
-
-        start = discord.utils.utcnow()
-
-        def check(reaction, user):
-            return user.id == winner and reaction.message.id == react_msg.id and str(reaction.emoji) == "<a:fete:1375944789035319470>"
+        winner_id = random.choice(list(data["participants"]))
+        winner = await bot.fetch_user(winner_id)
 
         try:
-            await bot.wait_for('reaction_add', check=check, timeout=60)
-            end = discord.utils.utcnow()
-            delta = end - start
+            dm = await winner.create_dm()
+            dm_msg = await dm.send(
+                f"🎉 Tu as gagné **{data['prize']}** ! Réagis à ce message avec <a:fete:1375944789035319470> pour valider ta victoire."
+            )
+            await dm_msg.add_reaction("<a:fete:1375944789035319470>")
+        except Exception:
+            return await interaction.channel.send(f"❌ Impossible d'envoyer un MP à <@{winner_id}>.")
+
+        start_time = discord.utils.utcnow()
+
+        def check(reaction, user):
+            return (
+                user.id == winner_id and
+                reaction.message.id == dm_msg.id and
+                str(reaction.emoji) == "<a:fete:1375944789035319470>"
+            )
+
+        try:
+            await bot.wait_for('reaction_add', timeout=60, check=check)
+            delay = (discord.utils.utcnow() - start_time).total_seconds()
             await interaction.channel.send(
-                f"⏱️ {winner_mention} a réagi en **{round(delta.total_seconds(), 2)} secondes** !"
+                f"⏱️ <@{winner_id}> a réagi en **{round(delay, 2)} secondes** pour valider sa victoire sur **{data['prize']}** !"
             )
         except asyncio.TimeoutError:
             await interaction.channel.send(
-                f"❌ {winner_mention} n’a pas réagi à temps."
+                f"❌ <@{winner_id}> n’a pas réagi dans les 60 secondes en MP. Giveaway perdu."
             )
 
         del fast_giveaways[giveaway_id]
@@ -5172,6 +5178,7 @@ class FastGiveawayView(discord.ui.View):
 
         data["participants"].add(interaction.user.id)
         await interaction.response.send_message("✅ Participation enregistrée !", ephemeral=True)
+
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
