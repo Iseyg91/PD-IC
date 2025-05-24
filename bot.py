@@ -5067,7 +5067,112 @@ async def g(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
     await interaction.response.send_modal(GiveawayModal(interaction))
-    
+
+fast_giveaways = {}
+
+@bot.tree.command(name="g-fast", description="Créer un giveaway rapide (g-fast)")
+async def g_fast(interaction: discord.Interaction, duration: str, prize: str):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
+
+    def parse_duration(s):
+        unit = s[-1]
+        val = int(s[:-1])
+        if unit == "s": return val
+        elif unit == "m": return val * 60
+        elif unit == "h": return val * 3600
+        elif unit == "d": return val * 86400
+        else: raise ValueError("Unité invalide")
+
+    try:
+        seconds = parse_duration(duration)
+    except:
+        return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
+
+    end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
+    giveaway_id = ''.join(str(random.randint(0, 9)) for _ in range(10))
+
+    data = {
+        "participants": set(),
+        "prize": prize,
+        "host": interaction.user.id,
+        "end": end_time,
+        "message_id": None,
+        "channel_id": interaction.channel.id
+    }
+    fast_giveaways[giveaway_id] = data
+
+    embed = discord.Embed(
+        title=f"🎉 Giveaway Fast - {prize}",
+        description=(
+            f"**Ends:** <t:{int(end_time.timestamp())}:R>\n"
+            f"**Hosted by:** {interaction.user.mention}\n"
+            f"**Entries:** 0\n"
+            f"**1 Winner**"
+        ),
+        color=discord.Color.green()
+    )
+
+    view = FastGiveawayView(giveaway_id)
+    msg = await interaction.channel.send(embed=embed, view=view)
+    data["message_id"] = msg.id
+    await interaction.response.send_message("Giveaway rapide lancé !", ephemeral=True)
+
+    async def end_fast():
+        await asyncio.sleep(seconds)
+        data = fast_giveaways.get(giveaway_id)
+        if not data or not data["participants"]:
+            await interaction.channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
+            return
+
+        winner = random.choice(list(data["participants"]))
+        winner_mention = f"<@{winner}>"
+
+        # Annonce du gagnant
+        react_msg = await interaction.channel.send(
+            f"🎉 {winner_mention} tu as gagné **{data['prize']}** ! Réagis à ce message pour valider ta victoire !",
+        )
+        await react_msg.add_reaction("<a:fete:1375944789035319470>")
+
+        start = discord.utils.utcnow()
+
+        def check(reaction, user):
+            return user.id == winner and reaction.message.id == react_msg.id and str(reaction.emoji) == "<a:fete:1375944789035319470>"
+
+        try:
+            await bot.wait_for('reaction_add', check=check, timeout=60)
+            end = discord.utils.utcnow()
+            delta = end - start
+            await interaction.channel.send(
+                f"⏱️ {winner_mention} a réagi en **{round(delta.total_seconds(), 2)} secondes** !"
+            )
+        except asyncio.TimeoutError:
+            await interaction.channel.send(
+                f"❌ {winner_mention} n’a pas réagi à temps."
+            )
+
+        del fast_giveaways[giveaway_id]
+
+    asyncio.create_task(end_fast())
+
+class FastGiveawayView(discord.ui.View):
+    def __init__(self, giveaway_id):
+        super().__init__(timeout=None)
+        self.giveaway_id = giveaway_id
+
+    @discord.ui.button(label="🎉 Participer", style=discord.ButtonStyle.green)
+    async def join_fast(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data = fast_giveaways.get(self.giveaway_id)
+        if not data:
+            return await interaction.response.send_message("Giveaway introuvable.", ephemeral=True)
+        if discord.utils.utcnow() > data["end"]:
+            return await interaction.response.send_message("⏰ Ce giveaway est terminé !", ephemeral=True)
+        if interaction.user.id in data["participants"]:
+            return await interaction.response.send_message("Tu es déjà inscrit !", ephemeral=True)
+
+        data["participants"].add(interaction.user.id)
+        await interaction.response.send_message("✅ Participation enregistrée !", ephemeral=True)
+
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
