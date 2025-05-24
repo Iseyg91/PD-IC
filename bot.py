@@ -1607,21 +1607,21 @@ async def total_premium(interaction: discord.Interaction):
     await interaction.response.defer(thinking=True)
 
     try:
-        # Mettre tous les serveurs en premium
-        result = collection2.update_many(
-            {"is_premium": {"$ne": True}},  # Tous ceux qui ne sont pas déjà premium
-            {"$set": {"is_premium": True}}
-        )
+        premium_servers = []
+        
+        for guild in bot.guilds:
+            collection2.update_one(
+                {"guild_id": str(guild.id)},
+                {"$set": {
+                    "guild_id": str(guild.id),
+                    "guild_name": guild.name,
+                    "is_premium": True
+                }},
+                upsert=True  # Crée le document si il n'existe pas
+            )
+            premium_servers.append(f"- {guild.name} (`{guild.id}`)")
 
-        # Récupérer tous les serveurs maintenant premium
-        premium_servers = list(collection2.find({"is_premium": True}))
-
-        if not premium_servers:
-            await interaction.followup.send("Aucun serveur premium trouvé.")
-            return
-
-        # Créer une liste formatée
-        server_list = "\n".join([f"- {s.get('guild_name', 'Inconnu')} (`{s.get('guild_id', '??')}`)" for s in premium_servers])
+        server_list = "\n".join(premium_servers) or "Aucun serveur trouvé."
 
         embed = discord.Embed(
             title=f"🌟 Tous les serveurs sont maintenant Premium ({len(premium_servers)})",
@@ -1634,7 +1634,6 @@ async def total_premium(interaction: discord.Interaction):
 
     except Exception as e:
         await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
@@ -2180,14 +2179,12 @@ async def help(ctx):
             discord.SelectOption(label="Utilitaire", description="Commandes utiles", emoji="🔔"),
             discord.SelectOption(label="Modération", description="Commandes Modération", emoji="🔨"),
             discord.SelectOption(label="Bot", description="Commandes Bot", emoji="🦾"),
-            discord.SelectOption(label="Économie", description="Commandes économie", emoji="💰"),
             discord.SelectOption(label="Ludiques", description="Commandes amusantes pour détendre l'atmosphère et interagir avec les autres.", emoji="🎈"),
             discord.SelectOption(label="Test & Défis", description="Commandes pour testez la personnalité et défiez vos amis avec des jeux et des évaluations.", emoji="🎲"),
             discord.SelectOption(label="Crédits", description="Remerciements et crédits", emoji="💖")
         ], 
         custom_id="help_select"
     )
-
     # Définir la méthode pour gérer l'interaction du menu déroulant
     async def on_select(interaction: discord.Interaction):
         category = interaction.data['values'][0]
@@ -2219,8 +2216,8 @@ async def help(ctx):
             new_embed.add_field(name="🔲 /embed", value="Crée un **embed personnalisé** avec du texte, des images et des couleurs.\n*Pratique pour partager des informations de manière stylée et structurée.*", inline=False)
             new_embed.add_field(name="🚫 +listban", value="Affiche la **liste des membres bannis** du serveur.\n*Permet aux admins de voir les bannissements en cours.*", inline=False)
             new_embed.add_field(name="🔓 +unbanall", value="Dé-banni **tous les membres** actuellement bannis du serveur.\n*Utilisé pour lever les bannissements en masse.*", inline=False)
-            new_embed.add_field(name="🎉 +gcreate", value="Crée un **giveaway** (concours) pour offrir des récompenses aux membres.\n*Permet d'organiser des tirages au sort pour des prix ou des objets.*", inline=False)
-            new_embed.add_field(name="⚡ +fastgw", value="Crée un **giveaway rapide** avec une durée courte.\n*Idéal pour des concours instantanés avec des récompenses immédiates.*", inline=False)
+            new_embed.add_field(name="🎉 /g-create", value="Crée un **giveaway** (concours) pour offrir des récompenses aux membres.\n*Permet d'organiser des tirages au sort pour des prix ou des objets.*", inline=False)
+            new_embed.add_field(name="⚡ /g-fast", value="Crée un **giveaway rapide** avec une durée courte.\n*Idéal pour des concours instantanés avec des récompenses immédiates.*", inline=False)
             new_embed.add_field(name="💎 /premium", value="Entre un **code premium** pour devenir membre **premium** et accéder à des fonctionnalités exclusives.\n*Permet de débloquer des avantages supplémentaires pour améliorer ton expérience.*", inline=False)
             new_embed.add_field(name="🔍 /viewpremium", value="Affiche la **liste des serveurs premium** actuellement actifs.\n*Permet de voir quels serveurs ont accédé aux avantages premium.*", inline=False)
             new_embed.add_field(name="💎 /devenirpremium", value="Obtiens des **informations** sur la manière de devenir membre **premium** et débloquer des fonctionnalités exclusives.\n*Un guide pour savoir comment accéder à l'expérience premium et ses avantages.*", inline=False)
@@ -2256,16 +2253,6 @@ async def help(ctx):
             new_embed.add_field(name="🔊 /connect", value="Connecte le **bot à un canal vocal** du serveur.\n*Permet au bot de rejoindre un salon vocal pour y diffuser de la musique ou d'autres interactions.*", inline=False)
             new_embed.add_field(name="🔴 /disconnect", value="Déconnecte le **bot du canal vocal**.\n*Permet au bot de quitter un salon vocal après une session musicale ou autre interaction.*", inline=False)
             new_embed.add_field(name="🌐 /etherya", value="Affiche le **lien du serveur Etherya** pour rejoindre la communauté.\n*Permet d'accéder facilement au serveur Etherya et de rejoindre les discussions et événements.*", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        elif category == "Économie":
-            new_embed.title = "⚖️ **Commandes Économie**"
-            new_embed.description = "Gérez l’économie et la sécurité du serveur ici ! 💼"
-            new_embed.add_field(name="🏰 +prison @user", value="Mets un utilisateur en prison pour taxes impayées.", inline=False)
-            new_embed.add_field(name="🚔 +arrestation @user", value="Arrête un utilisateur après un braquage raté.", inline=False)
-            new_embed.add_field(name="⚖️ +liberation @user", value="Libère un utilisateur après le paiement des taxes.", inline=False)
-            new_embed.add_field(name="🔓 +evasion", value="Permet de s’évader après un braquage raté.", inline=False)
-            new_embed.add_field(name="💰 +cautionpayer @user", value="Payez la caution d’un membre emprisonné.", inline=False)
-            new_embed.add_field(name="🎫 +ticket_euro_million @user", value="Achetez un ticket Euromillion avec un combiné.", inline=False)
             new_embed.set_footer(text="♥️ by Iseyg")
         elif category == "Ludiques":
             new_embed.title = "🎉 **Commandes de Détente**"
