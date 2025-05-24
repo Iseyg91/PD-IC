@@ -5219,151 +5219,6 @@ async def unbanall(ctx):
     async for ban_entry in ctx.guild.bans():
         await ctx.guild.unban(ban_entry.user)
     await ctx.send("✅ Tous les utilisateurs bannis ont été débannis !")
-
-
-giveaways = {}  # giveaway_id -> data
-
-class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
-    duration = discord.ui.TextInput(label="Durée (ex: 10m, 2h, 1d)", required=True)
-    winners = discord.ui.TextInput(label="Nombre de gagnants", required=True)
-    prize = discord.ui.TextInput(label="Prix", required=True)
-    description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, required=False)
-
-    def __init__(self, interactor):
-        super().__init__()
-        self.interactor = interactor
-
-    async def on_submit(self, interaction: discord.Interaction):
-        try:
-            seconds = self.parse_duration(str(self.duration))
-        except:
-            return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
-
-        end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
-        giveaway_id = str(uuid.uuid4())[:8]
-
-        giveaways[giveaway_id] = {
-            "participants": set(),
-            "prize": str(self.prize),
-            "host": self.interactor.user.id,
-            "winners": int(str(self.winners)),
-            "end": end_time,
-            "message_id": None
-        }
-
-        embed = discord.Embed(
-            title=str(self.prize),
-            description=f"**Ends:** dans <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
-                        f"**Hosted by:** {self.interactor.user.mention}\n"
-                        f"**Entries:** 0\n"
-                        f"**Winners:** {str(self.winners)}",
-            color=discord.Color.blue()
-        )
-        embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-
-        view = JoinGiveawayView(giveaway_id)
-
-        # Répondre à l'interaction avant d'envoyer un autre message
-        await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
-
-        # Ensuite on peut envoyer le message dans le salon
-        message = await interaction.channel.send(embed=embed, view=view)
-        giveaways[giveaway_id]["message_id"] = message.id
-
-        # Planifier la fin du giveaway
-        async def end_giveaway():
-            await asyncio.sleep(seconds)
-            data = giveaways.get(giveaway_id)
-            if not data:
-                return
-
-            channel = interaction.channel
-            try:
-                msg = await channel.fetch_message(data["message_id"])
-            except:
-                return
-
-            if not data["participants"]:
-                await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
-                await msg.edit(view=None)
-                del giveaways[giveaway_id]
-                return
-
-            winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
-            winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
-            await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
-            await msg.edit(view=None)
-            del giveaways[giveaway_id]
-
-        asyncio.create_task(end_giveaway())
-
-    def parse_duration(self, s: str) -> int:
-        unit = s[-1]
-        val = int(s[:-1])
-        if unit == "s": return val
-        elif unit == "m": return val * 60
-        elif unit == "h": return val * 3600
-        elif unit == "d": return val * 86400
-        else: raise ValueError("Invalid unit")
-
-class JoinGiveawayView(discord.ui.View):
-    def __init__(self, giveaway_id):
-        super().__init__(timeout=None)
-        self.giveaway_id = giveaway_id
-
-    @discord.ui.button(label="🎉 Participate", style=discord.ButtonStyle.green)
-    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
-        data = giveaways.get(self.giveaway_id)
-        if not data:
-            return await interaction.response.send_message("Giveaway introuvable.", ephemeral=True)
-
-        if discord.utils.utcnow() > data["end"]:
-            return await interaction.response.send_message("⏰ Ce giveaway est terminé !", ephemeral=True)
-
-        if interaction.user.id in data["participants"]:
-            return await interaction.response.send_message(
-                "You have already entered this giveaway!", ephemeral=True,
-                view=LeaveGiveawayView(self.giveaway_id)
-            )
-
-        data["participants"].add(interaction.user.id)
-        await self.update_embed(interaction.channel, data)
-
-        await interaction.response.send_message("✅ Participation enregistrée !", ephemeral=True)
-
-    async def update_embed(self, channel, data):
-        try:
-            msg = await channel.fetch_message(data["message_id"])
-            embed = msg.embeds[0]
-            new_desc = embed.description
-            lines = new_desc.split('\n')
-            for i in range(len(lines)):
-                if lines[i].startswith("**Entries:**"):
-                    lines[i] = f"**Entries:** {len(data['participants'])}"
-            embed.description = '\n'.join(lines)
-            await msg.edit(embed=embed)
-        except:
-            pass
-
-class LeaveGiveawayView(discord.ui.View):
-    def __init__(self, giveaway_id):
-        super().__init__(timeout=30)
-        self.giveaway_id = giveaway_id
-
-    @discord.ui.button(label="Leave", style=discord.ButtonStyle.danger)
-    async def leave(self, interaction: discord.Interaction, button: discord.ui.Button):
-        data = giveaways.get(self.giveaway_id)
-        if data and interaction.user.id in data["participants"]:
-            data["participants"].remove(interaction.user.id)
-            await interaction.response.send_message("❌ Tu as quitté le giveaway.", ephemeral=True)
-        else:
-            await interaction.response.send_message("Tu n’étais pas inscrit !", ephemeral=True)
-
-@bot.tree.command(name="g-create", description="Créer un giveaway")
-async def g(interaction: discord.Interaction):
-    if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
-    await interaction.response.send_modal(GiveawayModal(interaction))
     
 @bot.command()
 async def alladmin(ctx):
@@ -6315,6 +6170,157 @@ async def mp(interaction: discord.Interaction, utilisateur: str, message: str):
         return
 
     await interaction.response.send_modal(MPVerificationModal(target_id, message, interaction))
+
+giveaways = {}  # giveaway_id -> data
+
+class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
+    duration = discord.ui.TextInput(label="Durée (ex: 10m, 2h, 1d)", required=True)
+    winners = discord.ui.TextInput(label="Nombre de gagnants", required=True)
+    prize = discord.ui.TextInput(label="Prix", required=True)
+    description = discord.ui.TextInput(label="Description", style=discord.TextStyle.paragraph, required=False)
+
+    def __init__(self, interactor):
+        super().__init__()
+        self.interactor = interactor
+
+    async def on_submit(self, interaction: discord.Interaction):
+        try:
+            seconds = self.parse_duration(str(self.duration))
+        except:
+            return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
+
+        end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
+        giveaway_id = str(uuid.uuid4())[:8]
+
+        giveaways[giveaway_id] = {
+            "participants": set(),
+            "prize": str(self.prize),
+            "host": self.interactor.user.id,
+            "winners": int(str(self.winners)),
+            "end": end_time,
+            "message_id": None
+        }
+
+        embed = discord.Embed(
+            title=str(self.prize),
+            description=f"**Ends:** dans <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
+                        f"**Hosted by:** {self.interactor.user.mention}\n"
+                        f"**Entries:** 0\n"
+                        f"**Winners:** {str(self.winners)}",
+            color=discord.Color.blue()
+        )
+        embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+        view = JoinGiveawayView(giveaway_id)
+        await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
+        message = await interaction.channel.send(embed=embed, view=view)
+        giveaways[giveaway_id]["message_id"] = message.id
+
+        async def end_giveaway():
+            await asyncio.sleep(seconds)
+            data = giveaways.get(giveaway_id)
+            if not data:
+                return
+
+            channel = interaction.channel
+            try:
+                msg = await channel.fetch_message(data["message_id"])
+            except:
+                return
+
+            if not data["participants"]:
+                await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
+                await msg.edit(view=None)
+                del giveaways[giveaway_id]
+                return
+
+            winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
+            winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
+            await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
+
+            ended_embed = discord.Embed(
+                title=data["prize"],
+                description=(
+                    f"**Ended:** <t:{int(data['end'].timestamp())}:F>\n"
+                    f"**Hosted by:** <@{data['host']}>\n"
+                    f"**Entries:** {len(data['participants'])}\n"
+                    f"**Winners:** {winner_mentions}"
+                ),
+                color=discord.Color.red()
+            )
+            ended_embed.set_footer(text=f"ID: {giveaway_id} — Terminé")
+
+            await msg.edit(embed=ended_embed, view=None)
+            del giveaways[giveaway_id]
+
+        asyncio.create_task(end_giveaway())
+
+    def parse_duration(self, s: str) -> int:
+        unit = s[-1]
+        val = int(s[:-1])
+        if unit == "s": return val
+        elif unit == "m": return val * 60
+        elif unit == "h": return val * 3600
+        elif unit == "d": return val * 86400
+        else: raise ValueError("Invalid unit")
+
+class JoinGiveawayView(discord.ui.View):
+    def __init__(self, giveaway_id):
+        super().__init__(timeout=None)
+        self.giveaway_id = giveaway_id
+
+    @discord.ui.button(label="🎉 Participate", style=discord.ButtonStyle.green)
+    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data = giveaways.get(self.giveaway_id)
+        if not data:
+            return await interaction.response.send_message("Giveaway introuvable.", ephemeral=True)
+
+        if discord.utils.utcnow() > data["end"]:
+            return await interaction.response.send_message("⏰ Ce giveaway est terminé !", ephemeral=True)
+
+        if interaction.user.id in data["participants"]:
+            return await interaction.response.send_message(
+                "You have already entered this giveaway!", ephemeral=True,
+                view=LeaveGiveawayView(self.giveaway_id)
+            )
+
+        data["participants"].add(interaction.user.id)
+        await self.update_embed(interaction.channel, data)
+        await interaction.response.send_message("✅ Participation enregistrée !", ephemeral=True)
+
+    async def update_embed(self, channel, data):
+        try:
+            msg = await channel.fetch_message(data["message_id"])
+            embed = msg.embeds[0]
+            new_desc = embed.description
+            lines = new_desc.split('\n')
+            for i in range(len(lines)):
+                if lines[i].startswith("**Entries:**"):
+                    lines[i] = f"**Entries:** {len(data['participants'])}"
+            embed.description = '\n'.join(lines)
+            await msg.edit(embed=embed)
+        except:
+            pass
+
+class LeaveGiveawayView(discord.ui.View):
+    def __init__(self, giveaway_id):
+        super().__init__(timeout=30)
+        self.giveaway_id = giveaway_id
+
+    @discord.ui.button(label="Leave", style=discord.ButtonStyle.danger)
+    async def leave(self, interaction: discord.Interaction, button: discord.ui.Button):
+        data = giveaways.get(self.giveaway_id)
+        if data and interaction.user.id in data["participants"]:
+            data["participants"].remove(interaction.user.id)
+            await interaction.response.send_message("❌ Tu as quitté le giveaway.", ephemeral=True)
+        else:
+            await interaction.response.send_message("Tu n’étais pas inscrit !", ephemeral=True)
+
+@bot.tree.command(name="g-create", description="Créer un giveaway")
+async def g(interaction: discord.Interaction):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
+    await interaction.response.send_modal(GiveawayModal(interaction))
     
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
