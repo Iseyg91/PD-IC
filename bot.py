@@ -4916,38 +4916,47 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
         super().__init__()
         self.interactor = interactor
 
-    async def on_submit(self, interaction: discord.Interaction):
-        try:
-            seconds = self.parse_duration(str(self.duration))
-        except:
-            return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
+async def on_submit(self, interaction: discord.Interaction):
+    try:
+        seconds = self.parse_duration(str(self.duration))
+    except:
+        return await interaction.response.send_message("Durée invalide. Utilise 10m, 2h, 1d...", ephemeral=True)
 
-        end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
-        giveaway_id = str(uuid.uuid4())[:8]
+    end_time = discord.utils.utcnow() + timedelta(seconds=seconds)
+    giveaway_id = ''.join(str(random.randint(0, 9)) for _ in range(10))
 
-        giveaways[giveaway_id] = {
-            "participants": set(),
-            "prize": str(self.prize),
-            "host": self.interactor.user.id,
-            "winners": int(str(self.winners)),
-            "end": end_time,
-            "message_id": None
-        }
+    giveaways[giveaway_id] = {
+        "participants": set(),
+        "prize": str(self.prize),
+        "host": self.interactor.user.id,
+        "winners": int(str(self.winners)),
+        "end": end_time,
+        "message_id": None
+    }
 
-        embed = discord.Embed(
-            title=str(self.prize),
-            description=f"**Ends:** dans <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
-                        f"**Hosted by:** {self.interactor.user.mention}\n"
-                        f"**Entries:** 0\n"
-                        f"**Winners:** {str(self.winners)}",
-            color=discord.Color.blue()
-        )
-        embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    # Ajout de la description personnalisée si fournie
+    extra_description = ""
+    if self.description.value and self.description.value.strip():
+        giveaways[giveaway_id]["description"] = self.description.value.strip()
+        extra_description = f"> {self.description.value.strip()}\n\n"
 
-        view = JoinGiveawayView(giveaway_id)
-        await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
-        message = await interaction.channel.send(embed=embed, view=view)
-        giveaways[giveaway_id]["message_id"] = message.id
+    embed = discord.Embed(
+        title=str(self.prize),
+        description=(
+            f"{extra_description}"
+            f"**Ends:** dans <t:{int(end_time.timestamp())}:R> (<t:{int(end_time.timestamp())}:F>)\n"
+            f"**Hosted by:** {self.interactor.user.mention}\n"
+            f"**Entries:** 0\n"
+            f"**Winners:** {str(self.winners)}"
+        ),
+        color=discord.Color.blue()
+    )
+    embed.set_footer(text=f"ID: {giveaway_id} — Fin: {end_time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+    view = JoinGiveawayView(giveaway_id)
+    await interaction.response.send_message("Giveaway créé avec succès !", ephemeral=True)
+    message = await interaction.channel.send(embed=embed, view=view)
+    giveaways[giveaway_id]["message_id"] = message.id
 
         async def end_giveaway():
             await asyncio.sleep(seconds)
@@ -4979,7 +4988,7 @@ class GiveawayModal(discord.ui.Modal, title="Créer un Giveaway"):
                     f"**Entries:** {len(data['participants'])}\n"
                     f"**Winners:** {winner_mentions}"
                 ),
-                color=discord.Color.red()
+                color=discord.Color.blue()
             )
             ended_embed.set_footer(text=f"ID: {giveaway_id} — Terminé")
 
