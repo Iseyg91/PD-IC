@@ -5004,14 +5004,14 @@ async def end_giveaway():
 
 asyncio.create_task(end_giveaway())
 
-def parse_duration(self, s: str) -> int:
-    unit = s[-1]
-    val = int(s[:-1])
-    if unit == "s": return val
-    elif unit == "m": return val * 60
-    elif unit == "h": return val * 3600
-    elif unit == "d": return val * 86400
-    else: raise ValueError("Unité invalide (utilise s, m, h ou d)")
+    def parse_duration(self, s: str) -> int:
+        unit = s[-1]
+        val = int(s[:-1])
+        if unit == "s": return val
+        elif unit == "m": return val * 60
+        elif unit == "h": return val * 3600
+        elif unit == "d": return val * 86400
+        else: raise ValueError("Unité invalide (utilise s, m, h ou d)")
 
 class JoinGiveawayView(discord.ui.View):
     def __init__(self, giveaway_id):
