@@ -145,6 +145,9 @@ def add_premium_server(guild_id: int, guild_name: str):
         {"$set": {"guild_name": guild_name}},
         upsert=True
     )
+async def is_blacklisted(user_id: int) -> bool:
+    result = collection25.find_one({"user_id": str(user_id)})
+    return result is not None
 
 # --- Charger les paramètres du serveur dynamiquement ---
 def load_guild_settings(guild_id: int) -> dict:
