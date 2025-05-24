@@ -6214,11 +6214,16 @@ class UrgenceView(discord.ui.View):
             f"✅ {interaction.user.mention} a claim l'urgence. L'utilisateur a été notifié en privé.",
             ephemeral=False
         )
-
+        
 @bot.tree.command(name="urgence", description="Signaler une urgence au staff.")
 @discord.app_commands.describe(raison="Explique la raison de l'urgence")
 @discord.app_commands.checks.cooldown(1, 86400, key=lambda i: i.user.id)  # 24h cooldown
 async def urgence(interaction: discord.Interaction, raison: str):
+    # Vérification de blacklist
+    if await is_blacklisted(interaction.user.id):
+        await interaction.response.send_message("❌ Tu es blacklist du bot. Tu ne peux pas utiliser cette commande.", ephemeral=True)
+        return
+
     if interaction.user.id in active_alerts and not active_alerts[interaction.user.id]["claimed"]:
         await interaction.response.send_message("Tu as déjà une urgence en cours.", ephemeral=True)
         return
