@@ -2279,8 +2279,9 @@ async def remove_client(interaction: discord.Interaction, user: discord.Member):
     if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in STAFF_PROJECT:
-        return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
+        role = discord.utils.get(interaction.user.roles, id=STAFF_PROJECT)
+        if not role:
+            return await interaction.followup.send("🚫 Tu dois avoir le rôle `Staff Project` pour utiliser cette commande.", ephemeral=True)
 
     if not interaction.guild:
         return await interaction.followup.send("❌ Cette commande ne peut être utilisée qu'en serveur.", ephemeral=True)
@@ -2415,9 +2416,9 @@ async def list_clients(interaction: discord.Interaction):
     if interaction.guild.id != PROJECT_DELTA:
         return await interaction.response.send_message("❌ Cette commande n'est autorisée que sur le serveur Project : Delta.", ephemeral=True)
 
-    if interaction.user.id not in STAFF_PROJECT:
-        return await interaction.followup.send("🚫 Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True)
-
+        role = discord.utils.get(interaction.user.roles, id=STAFF_PROJECT)
+        if not role:
+            return await interaction.followup.send("🚫 Tu dois avoir le rôle `Staff Project` pour utiliser cette commande.", ephemeral=True)
 
     try:
         data = collection5.find_one({"guild_id": interaction.guild.id})
