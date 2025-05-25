@@ -1806,6 +1806,8 @@ class SetupView(View):
         self.add_item(MainSelect(self))
 
     async def start(self):  
+        print("[SetupView] Démarrage du menu de configuration...")
+
         embed = discord.Embed(
             title="⚙️ **Configuration du Serveur**",
             description="""
@@ -1820,8 +1822,11 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
         )
 
         self.embed_message = await self.ctx.send(embed=embed, view=self)
+        print("[SetupView] Embed de configuration envoyé.")
 
     async def update_embed(self, category):
+        print(f"[SetupView] Mise à jour de l'embed pour la catégorie : {category}")
+        
         embed = discord.Embed(color=discord.Color.blurple(), timestamp=discord.utils.utcnow())
         embed.set_footer(text=f"Serveur : {self.ctx.guild.name}", icon_url=self.ctx.guild.icon.url if self.ctx.guild.icon else None)
 
@@ -1852,10 +1857,12 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
 
         if self.embed_message:
             await self.embed_message.edit(embed=embed, view=self)
+            print(f"[SetupView] Embed mis à jour pour : {category}")
 
     async def notify_guild_owner(self, interaction, param, new_value):
-        guild_owner = interaction.guild.owner  
-        if guild_owner:  
+        print(f"[Notify] Envoi d'une notification au propriétaire pour la modification de : {param}")
+        guild_owner = interaction.guild.owner
+        if guild_owner:
             embed = discord.Embed(
                 title="🔔 **Mise à jour de la configuration**",
                 description=f"⚙️ **Une modification a été effectuée sur votre serveur `{interaction.guild.name}`.**",
@@ -1869,6 +1876,102 @@ Personnalisez votre serveur **facilement** grâce aux options ci-dessous.
             embed.set_footer(text="Pensez à vérifier la configuration si nécessaire.")
 
             await guild_owner.send(embed=embed)
+            print(f"[Notify] Notification envoyée au propriétaire : {guild_owner}")
+
+
+class MainSelect(Select):
+    def __init__(self, view):
+        options = [
+            discord.SelectOption(label="⚙️ Gestion du Bot", description="Modifier les rôles et salons", value="gestion"),
+        ]
+        super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
+        self.view_ctx = view
+
+    async def callback(self, interaction: discord.Interaction):
+        print(f"[MainSelect] Catégorie sélectionnée : {self.values[0]}")
+        await interaction.response.defer()
+        if hasattr(self.view_ctx, 'update_embed'):
+            await self.view_ctx.update_embed(self.values[0])
+        else:
+            print("[MainSelect] Erreur : view_ctx ne possède pas update_embed.")
+
+
+class ReturnButton(Button):
+    def __init__(self, view):
+        super().__init__(style=discord.ButtonStyle.danger, label="🔙 Retour", custom_id="return")
+        self.view_ctx = view
+
+    async def callback(self, interaction: discord.Interaction):
+        print("[ReturnButton] Retour vers l'accueil.")
+        await interaction.response.defer()
+        await self.view_ctx.update_embed("accueil")
+
+
+class InfoSelect(Select):
+    def __init__(self, view):
+        options = [
+            discord.SelectOption(label="⚙️ Modifier le préfixe", value="prefix"),
+            discord.SelectOption(label="👑 Propriétaire", value="owner"),
+            discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
+            discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
+            discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
+        ]
+        super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
+        self.view_ctx = view
+
+    async def callback(self, interaction: discord.Interaction):
+        param = self.values[0]
+        print(f"[InfoSelect] Paramètre sélectionné : {param}")
+
+        if param == "prefix":
+            embed_request = discord.Embed(
+                title="✏️ **Modification du Préfixe du Bot**",
+                description="Veuillez entrer le **nouveau préfixe** pour le bot.",
+                color=discord.Color.blurple(),
+                timestamp=discord.utils.utcnow()
+            )
+            embed_request.set_footer(text="Répondez dans les 60 secondes.")
+            await interaction.response.send_message(embed=embed_request, ephemeral=True)
+            print("[InfoSelect] Demande de nouveau préfixe envoyée.")
+
+            def check(msg):
+                return msg.author.id == interaction.user.id and msg.channel.id == interaction.channel.id
+
+            try:
+                print("[InfoSelect] En attente de la réponse de l'utilisateur...")
+                response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
+                print(f"[InfoSelect] Réponse reçue : {response.content}")
+                await response.delete()
+            except asyncio.TimeoutError:
+                print("[InfoSelect] Temps écoulé pour la réponse.")
+                embed_timeout = discord.Embed(
+                    title="⏳ **Temps écoulé**",
+                    description="Aucune modification effectuée.",
+                    color=discord.Color.red()
+                )
+                return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
+
+            new_value = response.content.strip()
+
+            if new_value:
+                print(f"[InfoSelect] Mise à jour du préfixe en base de données : {new_value}")
+                self.view_ctx.collection.update_one(
+                    {"guild_id": str(self.view_ctx.ctx.guild.id)},
+                    {"$set": {"prefix": new_value}},
+                    upsert=True
+                )
+                self.view_ctx.guild_data["prefix"] = new_value
+                await self.view_ctx.notify_guild_owner(interaction, "prefix", new_value)
+
+                embed_success = discord.Embed(
+                    title="✅ **Modification enregistrée !**",
+                    description="Le préfixe a été mis à jour avec succès.",
+                    color=discord.Color.green(),
+                    timestamp=discord.utils.utcnow()
+                )
+                await interaction.followup.send(embed=embed_success, ephemeral=True)
+                print("[InfoSelect] Préfixe mis à jour avec succès.")
+
 
 def format_mention(id, type_mention):
     if not id or id == "Non défini":
@@ -1889,121 +1992,27 @@ def format_mention(id, type_mention):
             channel_mention = id.channel.mention if hasattr(id, 'channel') else "Salon inconnu"
             return f"**{author_mention}** dans **{channel_mention}**"
         except Exception as e:
-            print(f"Erreur formatage Message : {e}")
+            print(f"[format_mention] Erreur : {e}")
             return "❌ **Erreur formatage message**"
 
-    print(f"⚠️ format_mention: type inattendu pour id = {id} ({type(id)})")
+    print(f"[format_mention] Type inattendu pour id : {id} ({type(id)})")
     return "❌ **Format invalide**"
 
-class MainSelect(Select):
-    def __init__(self, view):
-        options = [
-            discord.SelectOption(label="⚙️ Gestion du Bot", description="Modifier les rôles et salons", value="gestion"),
-        ]
-        super().__init__(placeholder="📌 Sélectionnez une catégorie", options=options)
-        self.view_ctx = view
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()  
-        if hasattr(self.view_ctx, 'update_embed'):
-            await self.view_ctx.update_embed(self.values[0])  
-        else:
-            print("Erreur: view_ctx n'a pas la méthode update_embed.")
-
-class ReturnButton(Button):
-    def __init__(self, view):
-        super().__init__(style=discord.ButtonStyle.danger, label="🔙 Retour", custom_id="return")
-        self.view_ctx = view
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        await self.view_ctx.update_embed("accueil")
-
-class InfoSelect(Select):
-    def __init__(self, view):
-        options = [
-            discord.SelectOption(label="⚙️ Modifier le préfixe", value="prefix"),
-            discord.SelectOption(label="👑 Propriétaire", value="owner"),
-            discord.SelectOption(label="🛡️ Rôle Admin", value="admin_role"),
-            discord.SelectOption(label="👥 Rôle Staff", value="staff_role"),
-            discord.SelectOption(label="🚨 Salon Sanctions", value="sanctions_channel"),
-        ]
-        super().__init__(placeholder="🎛️ Sélectionnez un paramètre à modifier", options=options)
-        self.view_ctx = view
-
-    async def callback(self, interaction: discord.Interaction):
-        param = self.values[0]
-
-        if param == "prefix":
-            embed_request = discord.Embed(
-                title="✏️ **Modification du Préfixe du Bot**",
-                description="Veuillez entrer le **nouveau préfixe** pour le bot.",
-                color=discord.Color.blurple(),
-                timestamp=discord.utils.utcnow()
-            )
-            embed_request.set_footer(text="Répondez dans les 60 secondes.")
-            await interaction.response.send_message(embed=embed_request, ephemeral=True)
-
-            def check(msg):
-                return msg.author == self.view_ctx.ctx.author and msg.channel == self.view_ctx.ctx.channel
-
-            try:
-                response = await self.view_ctx.ctx.bot.wait_for("message", check=check, timeout=60)
-                await response.delete()  
-            except asyncio.TimeoutError:
-                embed_timeout = discord.Embed(
-                    title="⏳ **Temps écoulé**",
-                    description="Aucune modification effectuée.",
-                    color=discord.Color.red()
-                )
-                return await interaction.followup.send(embed=embed_timeout, ephemeral=True)
-
-            new_value = response.content.strip()
-
-            if new_value:
-                self.view_ctx.collection.update_one(
-                    {"guild_id": str(self.view_ctx.ctx.guild.id)},
-                    {"$set": {"prefix": new_value}},
-                    upsert=True
-                )
-                self.view_ctx.guild_data["prefix"] = new_value
-                await self.view_ctx.notify_guild_owner(interaction, "prefix", new_value)
-
-                embed_success = discord.Embed(
-                    title="✅ **Modification enregistrée !**",
-                    description=f"Le préfixe a été mis à jour avec succès.",
-                    color=discord.Color.green(),
-                    timestamp=discord.utils.utcnow()
-                )
-                await interaction.followup.send(embed=embed_success, ephemeral=True)
 
 @bot.hybrid_command(name="setup", description="Configure le bot pour ce serveur.")
 async def setup(ctx):
-    print("Commande 'setup' appelée.")  # Log de débogage
+    print("[Setup] Commande 'setup' appelée.")
     if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
-        print("Utilisateur non autorisé.")
+        print("[Setup] Utilisateur non autorisé.")
         await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
         return
 
+    print("[Setup] Récupération des données du serveur...")
     guild_data = collection.find_one({"guild_id": str(ctx.guild.id)}) or {}
 
-    embed = discord.Embed(
-        title="⚙️ **Configuration du Serveur**",
-        description="""
-        🔧 **Bienvenue dans le setup !**  
-        Configurez votre serveur facilement en quelques clics !  
-
-        📌 **Gestion du Bot**
-
-        🔽 **Sélectionnez une option pour commencer !**
-        """,
-        color=discord.Color.blurple()
-    )
-
-    print("Embed créé, envoi en cours...")
     view = SetupView(ctx, guild_data, collection)
-    await view.start()  # ✅ appelle la méthode start(), qui envoie le message et stocke embed_message
-    print("Message d'embed envoyé.")
+    await view.start()
+    print("[Setup] Menu de configuration envoyé.")
 
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
