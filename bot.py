@@ -5005,7 +5005,7 @@ class JoinGiveawayView(discord.ui.View):
         super().__init__(timeout=None)
         self.giveaway_id = giveaway_id
 
-    @discord.ui.button(label="🎉 Participate", style=discord.ButtonStyle.green)
+    @discord.ui.button(label="🎉", style=discord.ButtonStyle.blue)
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
         data = giveaways.get(self.giveaway_id)
         if not data:
@@ -5056,6 +5056,51 @@ async def g(interaction: discord.Interaction):
     if not interaction.user.guild_permissions.administrator:
         return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
     await interaction.response.send_modal(GiveawayModal(interaction))
+
+@bot.tree.command(name="g-end", description="Terminer un giveaway prématurément")
+@app_commands.describe(giveaway_id="L'ID du giveaway à terminer")
+async def g_end(interaction: discord.Interaction, giveaway_id: str):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
+
+    data = giveaways.get(giveaway_id)
+    if not data:
+        return await interaction.response.send_message("Giveaway introuvable ou déjà terminé.", ephemeral=True)
+
+    channel = interaction.channel
+    try:
+        msg = await channel.fetch_message(data["message_id"])
+    except:
+        return await interaction.response.send_message("Impossible de retrouver le message du giveaway.", ephemeral=True)
+
+    if not data["participants"]:
+        await channel.send(f"🎉 Giveaway **{data['prize']}** annulé : aucun participant.")
+        await msg.edit(view=None)
+        del giveaways[giveaway_id]
+        return await interaction.response.send_message("Giveaway terminé manuellement (aucun participant).", ephemeral=True)
+
+    winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
+    winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
+    await channel.send(f"🎉 Giveaway terminé pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}")
+
+    ended_embed = discord.Embed(
+        title=data["prize"],
+        description=(
+            f"**Ended (manuellement):** <t:{int(discord.utils.utcnow().timestamp())}:F>\n"
+            f"**Hosted by:** <@{data['host']}>\n"
+            f"**Entries:** {len(data['participants'])}\n"
+            f"**Winners:** {winner_mentions}"
+        ),
+        color=discord.Color.blue()
+    )
+    ended_embed.set_footer(text=f"ID: {giveaway_id} — Terminé manuellement")
+
+    await msg.edit(embed=ended_embed, view=None)
+
+    ended_giveaways[giveaway_id] = data
+    del giveaways[giveaway_id]
+
+    await interaction.response.send_message("✅ Giveaway terminé manuellement.", ephemeral=True)
 
 @bot.tree.command(name="g-reroll", description="Relancer un giveaway terminé")
 @app_commands.describe(giveaway_id="L'ID du giveaway à reroll")
