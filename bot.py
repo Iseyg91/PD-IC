@@ -1502,7 +1502,7 @@ class MpAllModal(ui.Modal, title="🔐 Vérification requise"):
         self.interaction = interaction
 
     async def on_submit(self, interaction: discord.Interaction):
-        if self.code.value != CODE_DE_VERIF:
+        if self.code.value != VERIFICATION_CODE:
             await interaction.response.send_message("❌ Code incorrect. Action annulée.", ephemeral=True)
             return
 
