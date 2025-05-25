@@ -5055,6 +5055,30 @@ async def g(interaction: discord.Interaction):
         return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
     await interaction.response.send_modal(GiveawayModal(interaction))
 
+@bot.tree.command(name="g-reroll", description="Relancer un tirage pour un giveaway déjà terminé.")
+@app_commands.describe(id="ID du giveaway à relancer")
+async def g_reroll(interaction: discord.Interaction, id: str):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("Tu dois être admin pour faire ça.", ephemeral=True)
+
+    data = giveaways.get(id)
+    if not data:
+        return await interaction.response.send_message("❌ Giveaway introuvable.", ephemeral=True)
+
+    if not data.get("participants"):
+        return await interaction.response.send_message("❌ Aucun participant n’a été enregistré.", ephemeral=True)
+
+    if discord.utils.utcnow() < data["end"]:
+        return await interaction.response.send_message("⏳ Ce giveaway n’est pas encore terminé.", ephemeral=True)
+
+    winners = random.sample(list(data["participants"]), min(data["winners"], len(data["participants"])))
+    winner_mentions = ', '.join(f"<@{uid}>" for uid in winners)
+
+    await interaction.response.send_message(
+        f"🔁 Nouveau tirage pour **{data['prize']}** ! Gagnant(s) : {winner_mentions}"
+    )
+
+
 fast_giveaways = {}
 
 @bot.tree.command(name="g-fast", description="Créer un giveaway rapide (g-fast)")
