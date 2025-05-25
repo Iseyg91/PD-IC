@@ -5005,7 +5005,7 @@ class JoinGiveawayView(discord.ui.View):
         super().__init__(timeout=None)
         self.giveaway_id = giveaway_id
 
-    @discord.ui.button(label="🎉", style=discord.ButtonStyle.blue)
+    @discord.ui.button(label="🎉", style=discord.ButtonStyle.primary)
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
         data = giveaways.get(self.giveaway_id)
         if not data:
