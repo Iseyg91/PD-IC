@@ -1491,6 +1491,61 @@ async def isey(interaction: discord.Interaction, duration: str):
 
     await interaction.response.send_modal(VerificationModal(delay_seconds, interaction))
 
+# Générateur de code de vérif aléatoire
+def generate_code(length=6):
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+
+# Modal pour confirmation
+class MpAllModal(ui.Modal, title="🔐 Vérification requise"):
+
+    code = ui.TextInput(label="Code de vérification", placeholder="Entre le code envoyé", required=True)
+    message = ui.TextInput(label="Message à envoyer", style=discord.TextStyle.paragraph, required=True)
+
+    def __init__(self, correct_code: str, interaction: discord.Interaction):
+        super().__init__()
+        self.correct_code = correct_code
+        self.interaction = interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != self.correct_code:
+            await interaction.response.send_message("❌ Code incorrect. Action annulée.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        owners = set()
+        for guild in self.interaction.client.guilds:
+            owner = guild.owner
+            if owner:
+                owners.add(owner)
+
+        sent = 0
+        failed = 0
+
+        for owner in owners:
+            try:
+                await owner.send(self.message.value)
+                sent += 1
+            except:
+                failed += 1
+
+        await interaction.followup.send(f"✅ Message envoyé à {sent} owner(s). ❌ Échecs : {failed}.", ephemeral=True)
+
+# La commande principale
+@bot.tree.command(name="mp-all", description="MP tous les owners des serveurs (réservé à Isey)")
+async def mp_all(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Seul Isey peut utiliser cette commande.", ephemeral=True)
+        return
+
+    code = generate_code()
+    try:
+        await interaction.user.send(f"🔐 Voici ton code de vérification : **{code}**\nUtilise-le pour valider la commande `/mp-all`.")
+    except:
+        await interaction.response.send_message("❌ Je ne peux pas t'envoyer de MP. Active tes messages privés !", ephemeral=True)
+        return
+
+    await interaction.response.send_modal(MpAllModal(code, interaction))
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
 @bot.tree.command(name="premium")
 @app_commands.describe(code="Entrez votre code premium")
