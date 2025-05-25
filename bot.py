@@ -2000,7 +2000,20 @@ class InfoSelect(Select):
         )
         await interaction.followup.send(embed=embed_success, ephemeral=True)
         print(f"[InfoSelect] {param} modifi\u00e9 avec : {new_value}")
+@bot.hybrid_command(name="setup", description="Configure le bot pour ce serveur.")
+async def setup(ctx):
+    print("[Setup] Commande 'setup' appelée.")
+    if ctx.author.id != ISEY_ID and not ctx.author.guild_permissions.administrator:
+        print("[Setup] Utilisateur non autorisé.")
+        await ctx.send("❌ Vous n'avez pas les permissions nécessaires.", ephemeral=True)
+        return
 
+    print("[Setup] Récupération des données du serveur...")
+    guild_data = collection.find_one({"guild_id": str(ctx.guild.id)}) or {}
+
+    view = SetupView(ctx, guild_data, collection)
+    await view.start()
+    print("[Setup] Menu de configuration envoyé.")
 #-------------------------------------------------------------------------- Commandes Liens Etherya: /etherya
 
 @bot.tree.command(name="etherya", description="Obtiens le lien du serveur Etherya !")
