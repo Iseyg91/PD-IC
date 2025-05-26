@@ -1173,7 +1173,7 @@ async def reset_stats(interaction: discord.Interaction):
 def is_owner(ctx):
     return ctx.author.id == ISEY_ID
 
-@bot.hybrid_command()
+@bot.command()
 async def shutdown(ctx):
     if is_owner(ctx):
         embed = discord.Embed(
@@ -1537,7 +1537,7 @@ async def mp_all(interaction: discord.Interaction):
 
     await interaction.response.send_modal(MpAllModal(interaction))
 #-------------------------------------------------------------------------- Commandes /premium et /viewpremium
-@bot.tree.command(name="premium")
+@bot.tree.command(name="premium", description="Active les avantages premium pour votre serveur à l'aide d'un code.")
 @app_commands.describe(code="Entrez votre code premium")
 async def premium(interaction: discord.Interaction, code: str):
     if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
@@ -1746,7 +1746,10 @@ async def delete_premium(interaction: discord.Interaction, server: str):
     else:
         await interaction.response.send_message("⚠️ Aucun serveur trouvé avec cet ID.", ephemeral=True)
 
-@bot.tree.command(name="devenirpremium")
+@bot.tree.command(
+    name="info-premium",
+    description="Affiche les informations sur le statut premium du serveur et comment l'obtenir."
+)
 async def devenirpremium(interaction: discord.Interaction):
     if interaction.user.id != ISEY_ID and not interaction.user.guild_permissions.administrator:
         print("Utilisateur non autorisé.")
