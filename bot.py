@@ -4399,15 +4399,20 @@ async def listwl(ctx):
     embed.set_footer(text=f"Project : Delta • {len(whitelist_users)} utilisateur(s) whitelisté(s)")
     await ctx.send(embed=embed)
 
-# ===============================
-# ┃ COMMANDE /set_absence
-# ===============================
 @bot.tree.command(name="set-absence", description="Configurer le salon des absences et le rôle autorisé")
 @discord.app_commands.describe(channel="Salon de destination", role="Rôle autorisé à envoyer des absences")
 async def set_absence(interaction: discord.Interaction, channel: discord.TextChannel, role: discord.Role):
     if not interaction.user.guild_permissions.administrator:
-        return await interaction.response.send_message("❌ Vous devez être administrateur pour utiliser cette commande.", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ Vous devez être administrateur pour utiliser cette commande.",
+            ephemeral=True
+        )
+        return
 
+    # On évite l'expiration de l'interaction
+    await interaction.response.defer(ephemeral=True)
+
+    # Enregistrement en base de données
     collection22.update_one(
         {"guild_id": str(interaction.guild.id)},
         {"$set": {
@@ -4416,7 +4421,12 @@ async def set_absence(interaction: discord.Interaction, channel: discord.TextCha
         }},
         upsert=True
     )
-    await interaction.response.send_message(f"✅ Salon d'absence défini sur {channel.mention}, rôle autorisé : {role.mention}", ephemeral=True)
+
+    # Réponse après defer
+    await interaction.followup.send(
+        f"✅ Salon d'absence défini sur {channel.mention}, rôle autorisé : {role.mention}",
+        ephemeral=True
+    )
 
 # ===============================
 # ┃ MODAL pour /absence
