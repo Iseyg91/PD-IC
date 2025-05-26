@@ -285,7 +285,7 @@ protection_settings = {}
 ban_times = {}  # Dictionnaire pour stocker les temps de bans
 
 # Tâche de fond pour mettre à jour les stats toutes les 5 secondes
-@tasks.loop(seconds=5)
+@tasks.loop(minutes=5)
 async def update_stats():
     all_stats = collection9.find()
 
@@ -316,127 +316,7 @@ async def update_stats():
         except Exception as e:
             print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
-# Tâche de fond pour donner des coins toutes les minutes en vocal
-@tasks.loop(minutes=1)
-async def reward_voice():
-    for guild in bot.guilds:
-        if guild.id == 1359963854200639498:
-            for member in guild.members:
-                if member.voice:
-                    coins_to_add = random.randint(25, 75)
-                    add_coins(guild.id, str(member.id), coins_to_add)
-
-# Tâche de fond pour mettre à jour les XP en vocal toutes les 60 secondes
-@tasks.loop(seconds=60)
-async def update_voice_xp():
-    for guild in bot.guilds:
-        for vc in guild.voice_channels:
-            for member in vc.members:
-                if member.bot:
-                    continue
-
-                base_xp = xp_rate["voice"]
-                if member.voice.self_video:
-                    base_xp = xp_rate["camera"]
-                elif member.voice.self_stream:
-                    base_xp = xp_rate["stream"]
-
-                update_user_xp(str(guild.id), str(member.id), base_xp)
-
-# --- Boucle auto-collecte (optimisée) ---
-@tasks.loop(minutes=15)
-async def auto_collect_loop():
-    print("[Auto Collect] Lancement de la collecte automatique...")
-    now = datetime.utcnow()
-
-    for guild in bot.guilds:
-        for config in COLLECT_ROLES_CONFIG:
-            role = discord.utils.get(guild.roles, id=config["role_id"])
-            if not role or not config["auto"]:
-                continue
-
-            # Parcourir uniquement les membres ayant le rôle
-            for member in role.members:
-                cd_data = collection5.find_one({
-                    "guild_id": guild.id,
-                    "user_id": member.id,
-                    "role_id": role.id
-                })
-                last_collect = cd_data.get("last_collect") if cd_data else None
-
-                if not last_collect or (now - last_collect).total_seconds() >= config["cooldown"]:
-                    eco_data = collection.find_one({
-                        "guild_id": guild.id,
-                        "user_id": member.id
-                    }) or {"guild_id": guild.id, "user_id": member.id, "cash": 1500, "bank": 0}
-
-                    eco_data.setdefault("cash", 0)
-                    eco_data.setdefault("bank", 0)
-
-                    before = eco_data[config["target"]]
-                    if "amount" in config:
-                        eco_data[config["target"]] += config["amount"]
-                    elif "percent" in config:
-                        eco_data[config["target"]] += eco_data[config["target"]] * (config["percent"] / 100)
-
-                    collection.update_one(
-                        {"guild_id": guild.id, "user_id": member.id},
-                        {"$set": {config["target"]: eco_data[config["target"]]}},
-                        upsert=True
-                    )
-
-                    collection5.update_one(
-                        {"guild_id": guild.id, "user_id": member.id, "role_id": role.id},
-                        {"$set": {"last_collect": now}},
-                        upsert=True
-                    )
-
-                    after = eco_data[config["target"]]
-                    await log_eco_channel(bot, guild.id, member, f"Auto Collect ({role.name})", config.get("amount", config.get("percent")), before, after, note="Collect automatique")
-
-# --- Boucle Top Roles (optimisée) ---
-@tasks.loop(minutes=15)
-async def update_top_roles():
-    print("[Top Roles] Mise à jour des rôles de top...")
-    for guild in bot.guilds:
-        if guild.id != GUILD_ID:  # On ne traite qu'un seul serveur
-            continue
-
-        all_users_data = list(collection.find({"guild_id": guild.id}))
-        sorted_users = sorted(all_users_data, key=lambda u: u.get("cash", 0) + u.get("bank", 0), reverse=True)
-        top_users = sorted_users[:3]
-
-        # Récupérer une seule fois tous les membres nécessaires
-        members = {member.id: member async for member in guild.fetch_members(limit=None)}
-
-        for rank, user_data in enumerate(top_users, start=1):
-            user_id = user_data["user_id"]
-            role_id = TOP_ROLES[rank]
-            role = discord.utils.get(guild.roles, id=role_id)
-            if not role:
-                print(f"Rôle manquant : {role_id} dans {guild.name}")
-                continue
-
-            member = members.get(user_id)
-            if not member:
-                print(f"Membre {user_id} non trouvé dans {guild.name}")
-                continue
-
-            if role not in member.roles:
-                await member.add_roles(role)
-                print(f"Ajouté {role.name} à {member.display_name}")
-
-        # Nettoyer les rôles qui ne doivent plus être là
-        for rank, role_id in TOP_ROLES.items():
-            role = discord.utils.get(guild.roles, id=role_id)
-            if not role:
-                continue
-            for member in role.members:
-                if member.id not in [u["user_id"] for u in top_users]:
-                    await member.remove_roles(role)
-                    print(f"Retiré {role.name} de {member.display_name}")
-                    
-@tasks.loop(minutes=1)
+@tasks.loop(minutes=2)
 async def urgence_ping_loop():
     await bot.wait_until_ready()  # S'assure que le bot est connecté et prêt
 
@@ -456,7 +336,25 @@ async def urgence_ping_loop():
                 await channel.send(f"<@&{STAFF_DELTA}> 🚨 Urgence toujours non claimée.")
             except Exception as e:
                 print(f"Erreur lors de l'envoi du message d'urgence : {e}")
-                
+
+@tasks.loop(seconds=30)  # toutes les 30 secondes
+async def update_bot_presence():
+    guild_count = len(bot.guilds)
+    member_count = sum(guild.member_count for guild in bot.guilds)
+
+    activity_types = [
+        discord.Activity(type=discord.ActivityType.watching, name=f"{member_count} Membres"),
+        discord.Activity(type=discord.ActivityType.streaming, name=f"{guild_count} Serveurs"),
+        discord.Activity(type=discord.ActivityType.playing, name="Project : Delta"),
+    ]
+
+    status_types = [discord.Status.online, discord.Status.idle, discord.Status.dnd]
+
+    activity = random.choice(activity_types)
+    status = random.choice(status_types)
+
+    await bot.change_presence(activity=activity, status=status)
+
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
@@ -467,7 +365,8 @@ async def on_ready():
     # Démarrer les tâches de fond
     update_stats.start()
     urgence_ping_loop.start()
-    
+    update_bot_presence.start()
+
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
 
@@ -536,7 +435,6 @@ async def on_error(event, *args, **kwargs):
                 print("Erreur : Aucun salon textuel trouvé pour envoyer l'embed.")
     else:
         print("Erreur : Le type de l'objet n'est pas pris en charge pour l'envoi du message.")
-
 #------------------------------------------------------------------------- Commande Mention ainsi que Commandes d'Administration : Detections de Mots sensible et Mention
 
 sensitive_categories = {
