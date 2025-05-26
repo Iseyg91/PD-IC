@@ -5212,28 +5212,38 @@ class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
                 continue
 
             try:
-                # Fetch du propriétaire (plus fiable que guild.owner_id)
+                # Petit délai pour éviter d'être rate-limité
+                await asyncio.sleep(1)
+
+                # Récupération du propriétaire du serveur
                 owner = await guild.fetch_owner()
                 owner_id = owner.id
+
+                data = {
+                    "guild_id": guild.id,
+                    "guild_name": guild.name,
+                    "member_count": guild.member_count,
+                    "owner_id": owner_id,
+                    "timestamp": datetime.utcnow()
+                }
+                collection31.insert_one(data)
+                enregistrés += 1
+
             except Exception as e:
                 erreurs += 1
-                print(f"Erreur fetch owner pour {guild.name} ({guild.id}) : {e}")
+                print(f"\n--- ERREUR FETCH OWNER ---")
+                print(f"Serveur : {guild.name} ({guild.id})")
+                print(f"Erreur : {e}")
+                traceback.print_exc()
                 continue
 
-            data = {
-                "guild_id": guild.id,
-                "guild_name": guild.name,
-                "member_count": guild.member_count,
-                "owner_id": owner_id,
-                "timestamp": datetime.utcnow()
-            }
-            collection31.insert_one(data)
-            enregistrés += 1
-
         await interaction.followup.send(
-            f"✅ {enregistrés} serveur(s) enregistré(s).\n🗂️ {déjà} déjà présent(s).\n⚠️ {erreurs} erreur(s) lors du fetch des owners.",
+            f"✅ {enregistrés} serveur(s) enregistré(s).\n"
+            f"🗂️ {déjà} déjà présent(s).\n"
+            f"⚠️ {erreurs} erreur(s) lors du fetch des owners.",
             ephemeral=True
         )
+
 # Commande slash
 @bot.tree.command(name="enregistrer-serveur", description="Enregistre les infos des serveurs (réservé à Isey).")
 async def enregistrer_serveur(interaction: discord.Interaction):
