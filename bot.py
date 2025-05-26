@@ -733,6 +733,27 @@ async def setup_hook():
 #-------------------------------------------------------------------------- Bot Join:
 @bot.event
 async def on_guild_join(guild):
+    # ====== PARTIE WHITELIST ======
+    guild_id = str(guild.id)
+    owner_id = str(guild.owner_id)
+
+    wl_data = collection19.find_one({"guild_id": guild_id})
+
+    if not wl_data:
+        # Crée une nouvelle entrée avec l'owner whitelisté
+        collection19.insert_one({
+            "guild_id": guild_id,
+            "whitelist": [owner_id]
+        })
+    else:
+        # Ajoute l'owner si pas encore présent
+        if owner_id not in wl_data.get("whitelist", []):
+            collection19.update_one(
+                {"guild_id": guild_id},
+                {"$push": {"whitelist": owner_id}}
+            )
+
+    # ====== PARTIE EMBED DE NOTIF ======
     channel_id = 1361304582424232037  # ID du salon cible
     channel = bot.get_channel(channel_id)
 
@@ -4356,31 +4377,29 @@ async def protection(ctx: commands.Context):
     view = ProtectionView(guild_id, protection_data, ctx.bot)
     await ctx.send(embed=embed, view=view)
 
-# Fonction pour ajouter un utilisateur à la whitelist
 @bot.command()
 async def addwl(ctx, user: discord.User):
-    if ctx.author.id != ISEY_ID:  # Vérifie si l'utilisateur est bien l'administrateur
+    # Autorise ISEY ou le propriétaire du serveur
+    if ctx.author.id != ISEY_ID and ctx.author.id != ctx.guild.owner_id:
         await ctx.send("Désolé, vous n'avez pas l'autorisation d'utiliser cette commande.")
         return
 
     guild_id = str(ctx.guild.id)
     wl_data = collection19.find_one({"guild_id": guild_id})
 
-    # Si la whitelist n'existe pas encore, on la crée
     if not wl_data:
         collection19.insert_one({"guild_id": guild_id, "whitelist": []})
         wl_data = {"whitelist": []}
 
-    # Si l'utilisateur est déjà dans la whitelist
     if str(user.id) in wl_data["whitelist"]:
         await ctx.send(f"{user.name} est déjà dans la whitelist.")
     else:
-        # Ajoute l'utilisateur à la whitelist
         collection19.update_one(
             {"guild_id": guild_id},
             {"$push": {"whitelist": str(user.id)}}
         )
         await ctx.send(f"{user.name} a été ajouté à la whitelist.")
+
 
 # Fonction pour retirer un utilisateur de la whitelist
 @bot.command()
