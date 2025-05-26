@@ -1656,7 +1656,7 @@ async def total_premium(interaction: discord.Interaction):
 
         for guild in bot.guilds:
             result = collection2.update_one(
-                {"guild_id": str(guild.id)},
+                {"guild_id": guild.id},  # ✅ utiliser un int, pas str
                 {"$set": {
                     "is_premium": True,
                     "guild_name": guild.name  # utile pour le suivi
@@ -1678,7 +1678,6 @@ async def total_premium(interaction: discord.Interaction):
 
     except Exception as e:
         await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
-
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
