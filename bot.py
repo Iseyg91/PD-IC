@@ -357,6 +357,7 @@ async def update_bot_presence():
     status = random.choice(status_types)
 
     await bot.change_presence(activity=activity, status=status)
+    
 @tasks.loop(minutes=2)
 async def update_status_embed():
     global status_message
@@ -365,16 +366,14 @@ async def update_status_embed():
         print("Salon introuvable.")
         return
 
-    # Supprime l'ancien message
     try:
         if status_message:
             await status_message.delete()
     except discord.NotFound:
         pass
 
-    # Calcul des infos
     total_members = sum(guild.member_count for guild in bot.guilds)
-    uptime = datetime.utcnow() - start_time
+    uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
 
     embed = discord.Embed(
@@ -388,9 +387,7 @@ async def update_status_embed():
     embed.add_field(name="📡 Latence", value=f"{ping} ms")
     embed.set_footer(text=f"Mis à jour toutes les 2 minutes")
 
-    # Envoie le nouveau message
     status_message = await channel.send(embed=embed)
-
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
