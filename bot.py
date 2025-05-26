@@ -5212,11 +5212,10 @@ class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
                 continue
 
             try:
-                # Petit délai pour éviter d'être rate-limité
-                await asyncio.sleep(1)
+                await asyncio.sleep(1)  # éviter les rate limits
 
-                # Récupération du propriétaire du serveur
-                owner = await guild.fetch_owner()
+                # Remplacement de fetch_owner() par fetch_user(owner_id)
+                owner = await interaction.client.fetch_user(guild.owner_id)
                 owner_id = owner.id
 
                 data = {
@@ -5231,9 +5230,7 @@ class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
 
             except Exception as e:
                 erreurs += 1
-                print(f"\n--- ERREUR FETCH OWNER ---")
-                print(f"Serveur : {guild.name} ({guild.id})")
-                print(f"Erreur : {e}")
+                print(f"Erreur fetch owner pour {guild.name} ({guild.id}) : {e}")
                 traceback.print_exc()
                 continue
 
@@ -5252,6 +5249,7 @@ async def enregistrer_serveur(interaction: discord.Interaction):
         return
 
     await interaction.response.send_modal(EnregistrerServeurModal(interaction))
+
 
 class ResetServeurModal(ui.Modal, title="⚠️ Réinitialisation requise"):
     code = ui.TextInput(label="Code de vérification", placeholder="Entre le code fourni", required=True)
