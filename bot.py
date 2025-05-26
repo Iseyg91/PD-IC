@@ -66,6 +66,7 @@ SUPPORT_ROLE_ID = 1359963854422933876
 SALON_REPORT_ID = 1361362788672344290
 ROLE_REPORT_ID = 1362339195380568085
 TRANSCRIPT_CHANNEL_ID = 1361669998665535499
+STATUT_ID = 1360361796464021745
 
 # --- ID Gestion Clients Delta ---
 LOG_CHANNEL_RETIRE_ID = 1360864806957092934
@@ -361,7 +362,7 @@ async def update_bot_presence():
 @tasks.loop(minutes=2)
 async def update_status_embed():
     global status_message
-    channel = bot.get_channel(CHANNEL_ID)
+    channel = bot.get_channel(STATUT_ID)
     if channel is None:
         print("Salon introuvable.")
         return
@@ -388,6 +389,7 @@ async def update_status_embed():
     embed.set_footer(text=f"Mis à jour toutes les 2 minutes")
 
     status_message = await channel.send(embed=embed)
+    
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
