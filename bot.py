@@ -5203,6 +5203,7 @@ class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
 
         enregistrés = 0
         déjà = 0
+        erreurs = 0
 
         for guild in interaction.client.guilds:
             existing = collection31.find_one({"guild_id": guild.id})
@@ -5210,21 +5211,29 @@ class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
                 déjà += 1
                 continue
 
+            try:
+                # Fetch du propriétaire (plus fiable que guild.owner_id)
+                owner = await guild.fetch_owner()
+                owner_id = owner.id
+            except Exception as e:
+                erreurs += 1
+                print(f"Erreur fetch owner pour {guild.name} ({guild.id}) : {e}")
+                continue
+
             data = {
                 "guild_id": guild.id,
                 "guild_name": guild.name,
                 "member_count": guild.member_count,
-                "owner_id": guild.owner_id,
+                "owner_id": owner_id,
                 "timestamp": datetime.utcnow()
             }
             collection31.insert_one(data)
             enregistrés += 1
 
         await interaction.followup.send(
-            f"✅ {enregistrés} serveur(s) enregistré(s). 🗂️ {déjà} déjà présent(s).",
+            f"✅ {enregistrés} serveur(s) enregistré(s).\n🗂️ {déjà} déjà présent(s).\n⚠️ {erreurs} erreur(s) lors du fetch des owners.",
             ephemeral=True
         )
-
 # Commande slash
 @bot.tree.command(name="enregistrer-serveur", description="Enregistre les infos des serveurs (réservé à Isey).")
 async def enregistrer_serveur(interaction: discord.Interaction):
@@ -5233,6 +5242,38 @@ async def enregistrer_serveur(interaction: discord.Interaction):
         return
 
     await interaction.response.send_modal(EnregistrerServeurModal(interaction))
+
+class ResetServeurModal(ui.Modal, title="⚠️ Réinitialisation requise"):
+    code = ui.TextInput(label="Code de vérification", placeholder="Entre le code fourni", required=True)
+
+    def __init__(self, interaction: discord.Interaction):
+        super().__init__()
+        self.interaction = interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != VERIFICATION_CODE:
+            await interaction.response.send_message("❌ Code incorrect. Réinitialisation annulée.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        try:
+            result = collection31.delete_many({})
+            await interaction.followup.send(
+                f"✅ Réinitialisation terminée.\n🗑️ {result.deleted_count} document(s) supprimé(s) de la collection.",
+                ephemeral=True
+            )
+        except Exception as e:
+            await interaction.followup.send(f"❌ Erreur lors de la suppression : {e}", ephemeral=True)
+
+# Commande slash
+@bot.tree.command(name="reset-serveur", description="Réinitialise complètement la collection (réservé à Isey).")
+async def reset_serveur(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Seul Isey peut utiliser cette commande.", ephemeral=True)
+        return
+
+    await interaction.response.send_modal(ResetServeurModal(interaction))
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
