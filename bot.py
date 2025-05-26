@@ -1578,6 +1578,41 @@ async def total_premium(interaction: discord.Interaction):
 
     except Exception as e:
         await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
+@bot.tree.command(name="reset-premium", description="Réinitialise tous les serveurs en non-premium (réservé à Isey)")
+async def reset_premium(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Vous n'avez pas l'autorisation d'utiliser cette commande.", ephemeral=True)
+        return
+
+    await interaction.response.defer(thinking=True)
+
+    try:
+        reset_servers = []
+
+        for guild in bot.guilds:
+            result = collection2.update_one(
+                {"guild_id": guild.id},
+                {"$set": {
+                    "is_premium": False,
+                    "guild_name": guild.name
+                }},
+                upsert=True
+            )
+            reset_servers.append(f"- {guild.name} (`{guild.id}`)")
+
+        server_list = "\n".join(reset_servers) or "Aucun serveur trouvé."
+
+        embed = discord.Embed(
+            title=f"🔧 Tous les serveurs ont été réinitialisés en non-Premium ({len(reset_servers)})",
+            description=server_list,
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=f"Commande exécutée par {interaction.user.name}")
+
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        await interaction.followup.send(f"❌ Une erreur est survenue : {str(e)}", ephemeral=True)
 
 @bot.tree.command(name="viewpremium", description="Voir les serveurs ayant activé le Premium")
 async def viewpremium(interaction: discord.Interaction):
