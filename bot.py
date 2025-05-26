@@ -488,7 +488,7 @@ async def on_message(message):
         # 🚫 1. Blacklist : ignore tous les messages sauf si mot sensible
         blacklisted = collection25.find_one({"user_id": user_id})
         if blacklisted:
-            for word in sensitive_words:
+            for word in sensitive_categories:
                 if re.search(rf"\b{re.escape(word)}\b", message.content, re.IGNORECASE):
                     print(f"🚨 Mot sensible détecté (blacklisté) dans le message de {message.author}: {word}")
                     asyncio.create_task(send_alert_to_admin(message, word))
