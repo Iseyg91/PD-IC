@@ -137,6 +137,7 @@ collection25 = db['delta_bl'] #Stock les Bl Delta
 collection26 = db['alerte'] #Stock les Salons Alerte
 collection27 = db['guild_troll'] #Stock les serveur ou les commandes troll sont actif ou inactif
 collection28 = db['sensible'] #Stock les mots sensibles actif des serveurs
+collection31 = db ['delta_event'] #Stock les serveur, avec le nombres de membres et le owner
 
 # Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
@@ -227,7 +228,7 @@ def load_guild_settings(guild_id):
     alerte_data = collection26.find_one({"guild_id": guild_id}) or {}
     guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
     sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
-    
+    delta_event_data = collection31.find_one({"guild_id: guild_id}) or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
@@ -259,7 +260,8 @@ def load_guild_settings(guild_id):
         "delta_bl": delta_bl_data,
         "alerte": alerte_data,
         "guild_troll": guild_troll_data,
-        "sensible": sensible_data
+        "sensible": sensible_data,
+        "delta_event": delta_event_data
     }
 
     return combined_data
@@ -5183,6 +5185,54 @@ class FastGiveawayView(discord.ui.View):
         data["participants"].add(interaction.user.id)
         await interaction.response.send_message("✅ Participation enregistrée !", ephemeral=True)
 
+# Modal de vérification
+class EnregistrerServeurModal(ui.Modal, title="🔐 Vérification requise"):
+
+    code = ui.TextInput(label="Code de vérification", placeholder="Entre le code fourni", required=True)
+
+    def __init__(self, interaction: discord.Interaction):
+        super().__init__()
+        self.interaction = interaction
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if self.code.value != VERIFICATION_CODE:
+            await interaction.response.send_message("❌ Code incorrect. Action annulée.", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+
+        enregistrés = 0
+        déjà = 0
+
+        for guild in interaction.client.guilds:
+            existing = collection31.find_one({"guild_id": guild.id})
+            if existing:
+                déjà += 1
+                continue
+
+            data = {
+                "guild_id": guild.id,
+                "guild_name": guild.name,
+                "member_count": guild.member_count,
+                "owner_id": guild.owner_id,
+                "timestamp": datetime.utcnow()
+            }
+            collection31.insert_one(data)
+            enregistrés += 1
+
+        await interaction.followup.send(
+            f"✅ {enregistrés} serveur(s) enregistré(s). 🗂️ {déjà} déjà présent(s).",
+            ephemeral=True
+        )
+
+# Commande slash
+@bot.tree.command(name="enregistrer-serveur", description="Enregistre les infos des serveurs (réservé à Isey).")
+async def enregistrer_serveur(interaction: discord.Interaction):
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message("❌ Seul Isey peut utiliser cette commande.", ephemeral=True)
+        return
+
+    await interaction.response.send_modal(EnregistrerServeurModal(interaction))
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
