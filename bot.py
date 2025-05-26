@@ -228,7 +228,7 @@ def load_guild_settings(guild_id):
     alerte_data = collection26.find_one({"guild_id": guild_id}) or {}
     guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
     sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
-    delta_event_data = collection31.find_one({"guild_id: guild_id}) or {}
+    delta_event_data = collection31.find_one({"guild_id": guild_id}) or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
