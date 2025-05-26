@@ -37,6 +37,7 @@ VERIFICATION_CODE = os.environ['VERIFICATION_CODE']
 intents = discord.Intents.all()
 start_time = time.time()
 client = discord.Client(intents=intents)
+status_message = None  # Pour stocker le message envoyé
 
 #Configuration du Bot:
 # --- ID Owner Bot ---
@@ -356,6 +357,39 @@ async def update_bot_presence():
     status = random.choice(status_types)
 
     await bot.change_presence(activity=activity, status=status)
+@tasks.loop(minutes=2)
+async def update_status_embed():
+    global status_message
+    channel = bot.get_channel(CHANNEL_ID)
+    if channel is None:
+        print("Salon introuvable.")
+        return
+
+    # Supprime l'ancien message
+    try:
+        if status_message:
+            await status_message.delete()
+    except discord.NotFound:
+        pass
+
+    # Calcul des infos
+    total_members = sum(guild.member_count for guild in bot.guilds)
+    uptime = datetime.utcnow() - start_time
+    ping = round(bot.latency * 1000)
+
+    embed = discord.Embed(
+        title="📊 Statut du Bot",
+        color=discord.Color.blue(),
+        timestamp=datetime.utcnow()
+    )
+    embed.add_field(name="🖥️ Serveurs", value=str(len(bot.guilds)))
+    embed.add_field(name="👥 Membres totaux", value=str(total_members))
+    embed.add_field(name="⏱️ Uptime", value=str(timedelta(seconds=int(uptime.total_seconds()))))
+    embed.add_field(name="📡 Latence", value=f"{ping} ms")
+    embed.set_footer(text=f"Mis à jour toutes les 2 minutes")
+
+    # Envoie le nouveau message
+    status_message = await channel.send(embed=embed)
 
 # Événement quand le bot est prêt
 @bot.event
@@ -368,6 +402,7 @@ async def on_ready():
     update_stats.start()
     urgence_ping_loop.start()
     update_bot_presence.start()
+    update_status_embed.start()
 
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
