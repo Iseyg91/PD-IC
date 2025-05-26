@@ -379,23 +379,36 @@ async def update_status_embed():
 
     # Détermination du statut du bot selon la latence
     if ping <= 100:
-        status = "<a:actif:1376677757081358427> Tout est bon !"
+        status = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
+        color = discord.Color.green()
     elif ping <= 200:
-        status = "<a:bof:1376677733710692382> Moitié"
+        status = "<a:bof:1376677733710692382> **Performance moyenne.**"
+        color = discord.Color.orange()
     else:
-        status = "<a:inactif:1376677787158577242> Catastrophique"
+        status = "<a:inactif:1376677787158577242> **Problème de latence détecté !**"
+        color = discord.Color.red()
+
+    # Formater l'uptime joliment
+    up = timedelta(seconds=int(uptime.total_seconds()))
+    days, remainder = divmod(up.total_seconds(), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
     embed = discord.Embed(
-        title="📊 Statut du Bot",
+        title="📡 Statut de Project : Delta",
         description=status,
-        color=discord.Color.blurple(),
+        color=color,
         timestamp=datetime.utcnow()
     )
-    embed.add_field(name="🖥️ Serveurs", value=f"`{len(bot.guilds)}`", inline=True)
-    embed.add_field(name="👥 Membres", value=f"`{total_members}`", inline=True)
-    embed.add_field(name="📡 Latence", value=f"`{ping} ms`", inline=True)
-    embed.add_field(name="⏱️ Uptime", value=f"`{timedelta(seconds=int(uptime.total_seconds()))}`", inline=False)
-    embed.set_footer(text="⏳ Mis à jour toutes les 2 minutes")
+
+    embed.add_field(name="🌐 Serveurs connectés", value=f"**`{len(bot.guilds):,}`**", inline=True)
+    embed.add_field(name="👥 Membres total", value=f"**`{total_members:,}`**", inline=True)
+    embed.add_field(name="📶 Latence", value=f"**`{ping} ms`**", inline=True)
+    embed.add_field(name="⏳ Uptime", value=f"**`{uptime_str}`**", inline=False)
+
+    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    embed.set_footer(text="🔄 Mis à jour toutes les 2 minutes • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
 
     status_message = await channel.send(embed=embed)
 
