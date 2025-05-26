@@ -377,19 +377,28 @@ async def update_status_embed():
     uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
 
+    # Détermination du statut du bot selon la latence
+    if ping <= 100:
+        status = "<a:actif:1376677757081358427> Tout est bon !"
+    elif ping <= 200:
+        status = "<a:bof:1376677733710692382> Moitié"
+    else:
+        status = "<a:inactif:1376677787158577242> Catastrophique"
+
     embed = discord.Embed(
         title="📊 Statut du Bot",
-        color=discord.Color.blue(),
+        description=status,
+        color=discord.Color.blurple(),
         timestamp=datetime.utcnow()
     )
-    embed.add_field(name="🖥️ Serveurs", value=str(len(bot.guilds)))
-    embed.add_field(name="👥 Membres totaux", value=str(total_members))
-    embed.add_field(name="⏱️ Uptime", value=str(timedelta(seconds=int(uptime.total_seconds()))))
-    embed.add_field(name="📡 Latence", value=f"{ping} ms")
-    embed.set_footer(text=f"Mis à jour toutes les 2 minutes")
+    embed.add_field(name="🖥️ Serveurs", value=f"`{len(bot.guilds)}`", inline=True)
+    embed.add_field(name="👥 Membres", value=f"`{total_members}`", inline=True)
+    embed.add_field(name="📡 Latence", value=f"`{ping} ms`", inline=True)
+    embed.add_field(name="⏱️ Uptime", value=f"`{timedelta(seconds=int(uptime.total_seconds()))}`", inline=False)
+    embed.set_footer(text="⏳ Mis à jour toutes les 2 minutes")
 
     status_message = await channel.send(embed=embed)
-    
+
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
