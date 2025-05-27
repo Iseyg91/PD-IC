@@ -490,7 +490,8 @@ async def update_status_embed():
             )
 
         await msg.clear_reactions()
-        await msg.add_reaction(status["emoji"][-1])  # Ajoute juste l'emoji unicode réactif (si nécessaire)
+        emoji_obj = discord.PartialEmoji.from_str(status["emoji"])
+        await msg.add_reaction(emoji_obj)
 
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
