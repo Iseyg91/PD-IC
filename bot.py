@@ -33,7 +33,7 @@ from discord.ui import View, Select
 import uuid
 # Matplotlib (à mettre AVANT plt)
 import matplotlib
-matplotlib.use("Agg")  # Utilisation d’un backend non interactif
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from io import BytesIO
 
@@ -371,10 +371,11 @@ async def update_bot_presence():
 matplotlib.use("Agg")  # Utilisation backend non interactif
 
 ping_history = []
+critical_ping_counter = 0  # Compteur pour détection de ping critique consécutif
 
 @tasks.loop(minutes=2)
 async def update_status_embed():
-    global ping_history
+    global ping_history, critical_ping_counter
 
     channel = bot.get_channel(STATUT_ID)
     if channel is None:
@@ -391,39 +392,50 @@ async def update_status_embed():
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
-    # Statut
+    # Statut dynamique
     if ping <= 120:
-        status_text = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
-        status_color = discord.Color.green()
-        status_emoji = "🟢"
-        graph_color = "#00FF00"
+        status = {
+            "emoji": "<a:actif:1376677757081358427>",
+            "text": "**Tout fonctionne parfaitement !**",
+            "color": discord.Color.green(),
+            "graph": "#00FF00",
+        }
+        critical_ping_counter = 0
     elif ping <= 200:
-        status_text = "<a:bof:1376677733710692382> **Performance moyenne.**"
-        status_color = discord.Color.orange()
-        status_emoji = "🟠"
-        graph_color = "#FFA500"
+        status = {
+            "emoji": "<a:bof:1376677733710692382>",
+            "text": "**Performance moyenne.**",
+            "color": discord.Color.orange(),
+            "graph": "#FFA500",
+        }
+        critical_ping_counter = 0
     else:
-        status_text = "<a:inactif:1376677787158577242> **Problème de latence détecté !**"
-        status_color = discord.Color.red()
-        status_emoji = "🔴"
-        graph_color = "#FF0000"
+        status = {
+            "emoji": "<a:inactif:1376677787158577242>",
+            "text": "**Problème de latence détecté !**",
+            "color": discord.Color.red(),
+            "graph": "#FF0000",
+        }
+        critical_ping_counter += 1
+
+    alert_triggered = critical_ping_counter >= 3
 
     # Historique du ping
     ping_history.append(ping)
     if len(ping_history) > 10:
         ping_history.pop(0)
 
-    # Uptime formaté
+    # Format uptime
     up = timedelta(seconds=int(uptime.total_seconds()))
     days, remainder = divmod(up.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # Générer le graphique
+    # Graphique
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(ping_history, marker='o', color=graph_color, linewidth=2)
+    ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
     ax.set_facecolor("black")
     fig.patch.set_facecolor("black")
     ax.set_title("Évolution du ping", color='white')
@@ -439,11 +451,11 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    # Créer l'embed
+    # Embed
     embed = discord.Embed(
-        title="📡 Statut de Project : Delta",
-        description=status_text,
-        color=status_color,
+        title="📱 Statut de Project : Delta",
+        description=status["emoji"] + " " + status["text"],
+        color=status["color"],
         timestamp=datetime.utcnow()
     )
     embed.set_thumbnail(url=bot.user.display_avatar.url)
@@ -460,9 +472,11 @@ async def update_status_embed():
         inline=False
     )
 
-    embed.set_footer(text="🔄 Mis à jour toutes les 2 min • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
+    embed.set_footer(
+        text="🔄 Mis à jour toutes les 2 min • Merci d'utiliser Delta !",
+        icon_url=bot.user.display_avatar.url
+    )
 
-    # Envoi ou édition
     try:
         if message_id:
             msg = await channel.fetch_message(message_id)
@@ -474,9 +488,9 @@ async def update_status_embed():
                 {"$set": {"message_id": msg.id}},
                 upsert=True
             )
-        # Réagir avec l’emoji
+
         await msg.clear_reactions()
-        await msg.add_reaction(status_emoji)
+        await msg.add_reaction(status["emoji"][-1])  # Ajoute juste l'emoji unicode réactif (si nécessaire)
 
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
@@ -487,8 +501,18 @@ async def update_status_embed():
             upsert=True
         )
 
-    # Renommer le salon dynamiquement
-    new_name = f"︱{status_emoji}・𝖲tatut"
+    # Ping critique si besoin
+    if alert_triggered:
+        mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
+        await channel.send(
+            content=f"{mention_roles} ⚠️ **Latence critique détectée**\n"
+                    f"Le bot dépasse les `200ms` de ping depuis 3 cycles consécutifs.\n"
+                    f"Merci de vérifier votre hébergement ou l'API Discord.",
+            allowed_mentions=discord.AllowedMentions(roles=True)
+        )
+
+    # Renommage du salon
+    new_name = f"\uff5c{status['emoji'][-1]}\uff5cᵟtatut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
