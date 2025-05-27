@@ -377,6 +377,24 @@ matplotlib.use("Agg")
 ping_history = []
 critical_ping_counter = 0
 
+@tasks.loop(minutes=2)
+async def envoyer_ping():
+    channel = bot.get_channel(ID_CANAL)
+    if channel:
+        embed = Embed(
+            title="<:dev_white_snoway:1376909968141451274> Project : Delta — Système de Présence Actif",
+            description=(
+                "<a:actif:1376677757081358427> **Le bot est actuellement en ligne et fonctionne parfaitement.**\n\n"
+                "<:Signal_Bar_Green:1376912206427590706> Un signal automatique est émis toutes les **2 minutes** afin d'assurer :\n"
+                "<a:fleche3:1376557416216268921> Un *suivi en temps réel* du statut du bot\n"
+                "<a:fleche3:1376557416216268921> Une *surveillance continue* de son bon fonctionnement\n\n"
+                "<:yao_whitefleche:1376912431573504090> Ce système permet une **réactivité maximale** en cas de panne ou d’interruption."
+            ),
+            color=0xffffff
+        )
+        embed.set_footer(text="Système automatique de surveillance — Project : Delta")
+        await channel.send(embed=embed)
+
 async def update_status_embed():
     global ping_history, critical_ping_counter
 
@@ -461,7 +479,6 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    ping_emoji = "🟢" if ping <= 115 else "🟠" if ping <= 200 else "🔴"
     embed = discord.Embed(
         title="Statut de Project : Delta",
         description=status["emoji"] + f" Statut : {status['text']}",
@@ -481,7 +498,6 @@ async def update_status_embed():
         value=f"Python : {platform.python_version()}\nDiscord.py : {discord.__version__}",
         inline=False
     )
-
     embed.set_footer(
         text="🔁 Actualisation automatique • Merci de faire confiance à Delta.",
         icon_url=bot.user.display_avatar.url
@@ -499,11 +515,11 @@ async def update_status_embed():
                 upsert=True
             )
         await msg.clear_reactions()
-        emoji_obj = discord.PartialEmoji.from_str(status["emoji"])
-        await msg.add_reaction(emoji_obj)
+        await msg.add_reaction(discord.PartialEmoji.from_str(status["emoji"]))
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
 
+    # Gestion des alertes critiques
     if alert_triggered:
         alert_doc = collection32.find_one({"_id": "critical_alert"})
         if not alert_doc:
@@ -534,8 +550,7 @@ async def update_status_embed():
                 {"$set": {"message_id": alert_msg.id}},
                 upsert=True
             )
-
-    if not alert_triggered:
+    else:
         alert_doc = collection32.find_one({"_id": "critical_alert"})
         if alert_doc and "message_id" in alert_doc:
             try:
@@ -547,6 +562,7 @@ async def update_status_embed():
                 print("Permissions insuffisantes pour supprimer le message d'alerte.")
             collection32.delete_one({"_id": "critical_alert"})
 
+    # Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
@@ -554,11 +570,10 @@ async def update_status_embed():
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
 
+    # Mise à jour du message de mise à jour
     now = datetime.now(ZoneInfo("Europe/Paris"))
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
-    update_text = (
-        f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** {last_update_str}\n"
-    )
+    update_text = f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** {last_update_str}\n"
 
     update_data = collection32.find_one({"_id": "update_info"})
     update_message_id = update_data.get("message_id") if update_data else None
@@ -577,8 +592,6 @@ async def update_status_embed():
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi du message de mise à jour :", e)
 
-
-# 🔁 Boucle de statut toutes les 5 à 20 minutes
 async def update_status_embed_loop():
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -586,24 +599,6 @@ async def update_status_embed_loop():
         wait_time = random.randint(5, 20)
         print(f"[Statut] Prochaine mise à jour dans {wait_time} minutes.")
         await asyncio.sleep(wait_time * 60)
-
-@tasks.loop(minutes=2)
-async def envoyer_ping():
-    channel = bot.get_channel(ID_CANAL)
-    if channel:
-        embed = Embed(
-            title="<:dev_white_snoway:1376909968141451274> Project : Delta — Système de Présence Actif",
-            description=(
-                "<a:actif:1376677757081358427> **Le bot est actuellement en ligne et fonctionne parfaitement.**\n\n"
-                "<:Signal_Bar_Green:1376912206427590706> Un signal automatique est émis toutes les **2 minutes** afin d'assurer :\n"
-                "<a:fleche3:1376557416216268921> Un *suivi en temps réel* du statut du bot\n"
-                "<a:fleche3:1376557416216268921> Une *surveillance continue* de son bon fonctionnement\n\n"
-                "<:yao_whitefleche:1376912431573504090> Ce système permet une **réactivité maximale** en cas de panne ou d’interruption."
-            ),
-            color=0xffffff
-        )
-        embed.set_footer(text="Système automatique de surveillance — Project : Delta")
-        await channel.send(embed=embed)
 
 # Événement quand le bot est prêt
 @bot.event
