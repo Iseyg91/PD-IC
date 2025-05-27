@@ -393,6 +393,7 @@ async def update_status_embed():
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
+    # État du bot selon la latence
     if ping <= 115:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
@@ -440,25 +441,17 @@ async def update_status_embed():
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # Amélioration du graphique
+    # 🎨 Graphique
     fig, ax = plt.subplots(figsize=(6, 3))
-    x = list(range(len(ping_history)))
-    y = ping_history
-    ax.plot(x, y, marker='o', color=status["graph"], linewidth=2, label='Ping')
-    ax.fill_between(x, y, color=status["graph"], alpha=0.2)
-    for i, value in enumerate(y):
-        ax.text(i, value + 3, f"{value}ms", ha='center', va='bottom', fontsize=8, color='black')
-
+    ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
     ax.set_facecolor("white")
     fig.patch.set_facecolor("white")
-    ax.set_title("📶 Historique de la latence", fontsize=14, color='black', weight='bold')
-    ax.set_xlabel("Cycle de mise à jour", color='black')
+    ax.set_title("📶 Historique de la latence", fontsize=14, color='black')
+    ax.set_xlabel("Mise à jour", color='black')
     ax.set_ylabel("Ping (ms)", color='black')
     ax.tick_params(axis='x', colors='black')
     ax.tick_params(axis='y', colors='black')
-    ax.set_ylim(0, max(y) + 50)
-    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
-    ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.6)
+    ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
     for spine in ['top', 'right']:
         ax.spines[spine].set_visible(False)
     for spine in ['left', 'bottom']:
@@ -470,6 +463,8 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
+    # 📜 Embed principal
+    ping_emoji = "🟢" if ping <= 115 else "🟠" if ping <= 200 else "🔴"
     embed = discord.Embed(
         title="Statut de Project : Delta",
         description=status["emoji"] + f" Statut : {status['text']}",
@@ -478,16 +473,18 @@ async def update_status_embed():
     )
     embed.set_thumbnail(url=bot.user.display_avatar.url)
     embed.set_image(url="attachment://ping_graph.png")
-    embed.add_field(name="🌐 Réseau", value=f"`{len(bot.guilds):,} serveurs`\n`{total_members:,} membres`", inline=True)
-    embed.add_field(name="📶 Latence", value=f"{status['channel_emoji']} `{ping} ms`", inline=True)
-    embed.add_field(name="🕰 Uptime", value=f"`{uptime_str}`", inline=True)
-    embed.add_field(name="📊 Stabilité", value=f"`{stability}`", inline=True)
-    embed.add_field(name="💻 Commandes", value=f"`{total_commands}`", inline=True)
+
+    embed.add_field(name="🌐 Réseau", value=f"{len(bot.guilds):,} serveurs\n{total_members:,} membres", inline=True)
+    embed.add_field(name="📶 Latence", value=f"{ping_emoji} {ping} ms", inline=True)
+    embed.add_field(name="🕰 Uptime", value=f"{uptime_str}", inline=True)
+    embed.add_field(name="📊 Stabilité", value=f"{stability}", inline=True)
+    embed.add_field(name="💻 Commandes", value=f"{total_commands}", inline=True)
     embed.add_field(
         name="⚙️ Versions",
-        value=f"Python : `{platform.python_version()}`\nDiscord.py : `{discord.__version__}`",
+        value=f"Python : {platform.python_version()}\nDiscord.py : {discord.__version__}",
         inline=False
     )
+
     embed.set_footer(
         text="🔁 Actualisation automatique • Merci de faire confiance à Delta.",
         icon_url=bot.user.display_avatar.url
@@ -499,39 +496,51 @@ async def update_status_embed():
             await msg.edit(embed=embed, attachments=[file])
         else:
             msg = await channel.send(embed=embed, file=file)
-            collection32.update_one({"_id": "statut_embed"}, {"$set": {"message_id": msg.id}}, upsert=True)
+            collection32.update_one(
+                {"_id": "statut_embed"},
+                {"$set": {"message_id": msg.id}},
+                upsert=True
+            )
+
         await msg.clear_reactions()
         emoji_obj = discord.PartialEmoji.from_str(status["emoji"])
         await msg.add_reaction(emoji_obj)
+
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
         msg = await channel.send(embed=embed, file=file)
-        collection32.update_one({"_id": "statut_embed"}, {"$set": {"message_id": msg.id}}, upsert=True)
+        collection32.update_one(
+            {"_id": "statut_embed"},
+            {"$set": {"message_id": msg.id}},
+            upsert=True
+        )
 
+    # 🚨 Alerte ping critique
     if alert_triggered:
         mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
         alert_embed = discord.Embed(
             title="🚨 ALERTE DE LATENCE CRITIQUE 🚨",
             description=(
                 f"{status['emoji']} **Ping moyen anormalement élevé depuis 3 cycles consécutifs !**\n\n"
-                f"📶 **Ping actuel :** `{ping}ms`\n"
+                f"📶 **Ping actuel :** {ping}ms\n"
                 "🛠️ **Action recommandée :** Vérifiez l'état de l'hébergement ou les services Discord.\n\n"
                 "⚠️ **Veuillez limiter l'utilisation du bot pendant cette période** afin d'éviter d'aggraver les performances."
             ),
-            color=discord.Color.from_rgb(255, 45, 45),
+            color=discord.Color.from_rgb(255, 45, 45),  # Rouge plus stylisé
             timestamp=datetime.utcnow()
         )
         alert_embed.set_footer(
             text="Surveillance automatique du système - Project : Delta",
-            icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"
+            icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"  # Icône optionnelle d’alerte
         )
-        alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")
+        alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")  # Une icône d'alerte, facultative
         await channel.send(
             content=mention_roles,
             embed=alert_embed,
             allowed_mentions=discord.AllowedMentions(roles=True)
         )
 
+    # 📂 Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
@@ -539,13 +548,17 @@ async def update_status_embed():
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
 
+
+    # 🕒 Message secondaire : heure de mise à jour
     now = datetime.now(ZoneInfo("Europe/Paris"))
     next_update = now + timedelta(minutes=5)
+
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
     next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
+
     update_text = (
-        f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** `{last_update_str}`\n"
-        f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** `{next_update_str}`"
+        f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** {last_update_str}\n"
+        f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** {next_update_str}"
     )
 
     update_data = collection32.find_one({"_id": "update_info"})
@@ -557,11 +570,19 @@ async def update_status_embed():
             await update_msg.edit(content=update_text)
         else:
             update_msg = await channel.send(content=update_text)
-            collection32.update_one({"_id": "update_info"}, {"$set": {"message_id": update_msg.id}}, upsert=True)
+            collection32.update_one(
+                {"_id": "update_info"},
+                {"$set": {"message_id": update_msg.id}},
+                upsert=True
+            )
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi du message de mise à jour :", e)
         update_msg = await channel.send(content=update_text)
-        collection32.update_one({"_id": "update_info"}, {"$set": {"message_id": update_msg.id}}, upsert=True)
+        collection32.update_one(
+            {"_id": "update_info"},
+            {"$set": {"message_id": update_msg.id}},
+            upsert=True
+        )
 
 # Événement quand le bot est prêt
 @bot.event
