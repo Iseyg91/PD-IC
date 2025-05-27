@@ -31,6 +31,7 @@ from typing import Optional
 from discord import app_commands, Interaction, Embed, SelectOption
 from discord.ui import View, Select
 import uuid
+from zoneinfo import ZoneInfo
 # Matplotlib (à mettre AVANT plt)
 import matplotlib
 matplotlib.use("Agg")
@@ -519,17 +520,17 @@ async def update_status_embed():
             print("Permissions insuffisantes pour renommer le salon.")
 
     # 🕒 Message secondaire : date de dernière et prochaine update
-    now = datetime.utcnow()
+    now = datetime.now(ZoneInfo("Europe/Paris"))
     next_update = now + timedelta(minutes=2)
-
-    last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S UTC")
-    next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S UTC")
-
+    
+    last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
+    next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
+    
     update_text = (
         f"<a:heart_d:1376837986381205535>**Dernière mise à jour :** `{last_update_str}`\n"
         f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** `{next_update_str}`"
     )
-
+    
     update_data = collection32.find_one({"_id": "update_info"})
     update_message_id = update_data.get("message_id") if update_data else None
 
