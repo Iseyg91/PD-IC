@@ -368,10 +368,10 @@ async def update_bot_presence():
     await bot.change_presence(activity=activity, status=status)
     
 
-matplotlib.use("Agg")  # Backend non interactif pour matplotlib
+matplotlib.use("Agg")
 
 ping_history = []
-critical_ping_counter = 0  # Pour surveiller les pings critiques
+critical_ping_counter = 0
 
 @tasks.loop(minutes=2)
 async def update_status_embed():
@@ -382,17 +382,14 @@ async def update_status_embed():
         print("Salon introuvable.")
         return
 
-    # Récupération du message enregistré
     statut_data = collection32.find_one({"_id": "statut_embed"})
     message_id = statut_data.get("message_id") if statut_data else None
 
-    # Statistiques du bot
     total_members = sum(g.member_count for g in bot.guilds)
     uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
-    # Détermination du statut selon le ping
     if ping <= 115:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
@@ -423,19 +420,17 @@ async def update_status_embed():
 
     alert_triggered = critical_ping_counter >= 3
 
-    # Historique du ping (limité à 10 entrées)
     ping_history.append(ping)
     if len(ping_history) > 10:
         ping_history.pop(0)
 
-    # Format de l'uptime
     up = timedelta(seconds=int(uptime.total_seconds()))
     days, remainder = divmod(up.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # Génération du graphique
+    # 🎨 Génération du graphique
     plt.style.use('dark_background')
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
@@ -454,7 +449,7 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    # Création de l'embed
+    # 🧾 Embed principal
     embed = discord.Embed(
         title="Statut de Project : Delta",
         description=status["emoji"] + " " + status["text"],
@@ -505,7 +500,7 @@ async def update_status_embed():
             upsert=True
         )
 
-    # Alerte en cas de ping critique
+    # 🚨 Alerte ping critique
     if alert_triggered:
         mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
         await channel.send(
@@ -515,13 +510,48 @@ async def update_status_embed():
             allowed_mentions=discord.AllowedMentions(roles=True)
         )
 
-    # 🔁 Mise à jour du nom du salon avec 🟢🟠🔴
+    # 📝 Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
+
+    # 🕒 Message secondaire : date de dernière et prochaine update
+    now = datetime.utcnow()
+    next_update = now + timedelta(minutes=2)
+
+    last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S UTC")
+    next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S UTC")
+
+    update_text = (
+        f"🕒 **Dernière mise à jour :** `{last_update_str}`\n"
+        f"⏭️ **Prochaine mise à jour :** `{next_update_str}`"
+    )
+
+    update_data = collection32.find_one({"_id": "update_info"})
+    update_message_id = update_data.get("message_id") if update_data else None
+
+    try:
+        if update_message_id:
+            update_msg = await channel.fetch_message(update_message_id)
+            await update_msg.edit(content=update_text)
+        else:
+            update_msg = await channel.send(content=update_text)
+            collection32.update_one(
+                {"_id": "update_info"},
+                {"$set": {"message_id": update_msg.id}},
+                upsert=True
+            )
+    except (discord.NotFound, discord.Forbidden) as e:
+        print("Erreur d'envoi du message de mise à jour :", e)
+        update_msg = await channel.send(content=update_text)
+        collection32.update_one(
+            {"_id": "update_info"},
+            {"$set": {"message_id": update_msg.id}},
+            upsert=True
+        )
 
 # Événement quand le bot est prêt
 @bot.event
