@@ -393,7 +393,7 @@ async def update_status_embed():
     total_commands = len(bot.commands)
 
     # Statut dynamique
-    if ping <= 120:
+    if ping <= 20:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
             "text": "**Tout fonctionne parfaitement !**",
@@ -401,7 +401,7 @@ async def update_status_embed():
             "graph": "#00FF00",
         }
         critical_ping_counter = 0
-    elif ping <= 200:
+    elif ping <= 50:
         status = {
             "emoji": "<a:bof:1376677733710692382>",
             "text": "**Performance moyenne.**",
@@ -453,7 +453,7 @@ async def update_status_embed():
 
     # Embed
     embed = discord.Embed(
-        title="📱 Statut de Project : Delta",
+        title="Statut de Project : Delta",
         description=status["emoji"] + " " + status["text"],
         color=status["color"],
         timestamp=datetime.utcnow()
@@ -512,8 +512,8 @@ async def update_status_embed():
             allowed_mentions=discord.AllowedMentions(roles=True)
         )
 
-    # Renommage du salon
-    new_name = f"\uff5c{status['emoji'][-1]}\uff5cᵟtatut"
+    # Nom du salon
+    new_name = f"︱{status['emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
