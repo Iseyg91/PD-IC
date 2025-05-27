@@ -374,7 +374,7 @@ matplotlib.use("Agg")
 ping_history = []
 critical_ping_counter = 0
 
-@tasks.loop(seconds=30)
+@tasks.loop(minutes=5)
 async def update_status_embed():
     global ping_history, critical_ping_counter
 
@@ -472,7 +472,7 @@ async def update_status_embed():
     )
 
     embed.set_footer(
-        text="🔄 Mis à jour toutes les 30 sec • Merci d'utiliser Delta !",
+        text="🔄 Mis à jour toutes les 5 min • Merci d'utiliser Delta !",
         icon_url=bot.user.display_avatar.url
     )
 
