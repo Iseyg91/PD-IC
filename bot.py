@@ -539,12 +539,13 @@ async def update_status_embed():
         await channel.send(content=mention_roles, embed=alert_embed, allowed_mentions=discord.AllowedMentions(roles=True))
 
     # 📂 Mise à jour du nom du salon
-    new_name = f"］{status['channel_emoji']} ･ Statut"
+    new_name = f"︱{status['channel_emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
+
 
     # 🕒 Message secondaire : heure de mise à jour
     now = datetime.now(ZoneInfo("Europe/Paris"))
