@@ -430,18 +430,18 @@ async def update_status_embed():
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # 🎨 Génération du graphique
-    plt.style.use('dark_background')
+# 🎨 Génération du graphique
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
-    ax.set_facecolor("black")
-    fig.patch.set_facecolor("black")
-    ax.set_title("Évolution du ping", color='white')
-    ax.set_xlabel("Mise à jour", color='white')
-    ax.set_ylabel("Ping (ms)", color='white')
-    ax.tick_params(axis='x', colors='white')
-    ax.tick_params(axis='y', colors='white')
+    ax.set_facecolor("white")  # Fond du graphique
+    fig.patch.set_facecolor("white")  # Fond autour du graphique
+    ax.set_title("Évolution du ping", color='black')
+    ax.set_xlabel("Mise à jour", color='black')
+    ax.set_ylabel("Ping (ms)", color='black')
+    ax.tick_params(axis='x', colors='black')
+    ax.tick_params(axis='y', colors='black')
     ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
+
 
     buf = BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
