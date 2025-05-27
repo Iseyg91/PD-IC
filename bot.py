@@ -602,7 +602,7 @@ async def on_ready():
     urgence_ping_loop.start()
     update_bot_presence.start()
     update_status_embed.start()
-    send_heartbeat.start()
+    envoyer_ping.start()
 
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
