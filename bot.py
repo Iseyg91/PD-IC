@@ -332,7 +332,7 @@ async def update_stats():
         except Exception as e:
             print(f"⚠️ Erreur lors de la mise à jour des stats : {e}")
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=5)
 async def urgence_ping_loop():
     await bot.wait_until_ready()  # S'assure que le bot est connecté et prêt
 
