@@ -369,7 +369,15 @@ async def update_bot_presence():
     await bot.change_presence(activity=activity, status=status)
     
 
+import matplotlib
 matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+from io import BytesIO
+import discord
+from discord.ext import tasks
+import platform
 
 ping_history = []
 critical_ping_counter = 0
@@ -391,6 +399,7 @@ async def update_status_embed():
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
+    # État du bot selon la latence
     if ping <= 115:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
@@ -425,24 +434,34 @@ async def update_status_embed():
     if len(ping_history) > 10:
         ping_history.pop(0)
 
+    avg_ping = round(sum(ping_history) / len(ping_history))
+    stability = (
+        "🟢 Excellente" if avg_ping <= 115 else
+        "🟠 Moyenne" if avg_ping <= 200 else
+        "🔴 Mauvaise"
+    )
+
     up = timedelta(seconds=int(uptime.total_seconds()))
     days, remainder = divmod(up.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-# 🎨 Génération du graphique
+    # 🎨 Graphique
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
-    ax.set_facecolor("white")  # Fond du graphique
-    fig.patch.set_facecolor("white")  # Fond autour du graphique
-    ax.set_title("Évolution du ping", color='black')
+    ax.set_facecolor("white")
+    fig.patch.set_facecolor("white")
+    ax.set_title("📶 Historique de la latence", fontsize=14, color='black')
     ax.set_xlabel("Mise à jour", color='black')
     ax.set_ylabel("Ping (ms)", color='black')
     ax.tick_params(axis='x', colors='black')
     ax.tick_params(axis='y', colors='black')
     ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
-
+    for spine in ['top', 'right']:
+        ax.spines[spine].set_visible(False)
+    for spine in ['left', 'bottom']:
+        ax.spines[spine].set_color('#CCCCCC')
 
     buf = BytesIO()
     plt.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
@@ -450,20 +469,21 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    # 🧾 Embed principal
+    # 📜 Embed principal
+    ping_emoji = "🟢" if ping <= 115 else "🟠" if ping <= 200 else "🔴"
     embed = discord.Embed(
         title="Statut de Project : Delta",
-        description=status["emoji"] + " " + status["text"],
+        description=status["emoji"] + f" Statut : {status['text']}",
         color=status["color"],
         timestamp=datetime.utcnow()
     )
     embed.set_thumbnail(url=bot.user.display_avatar.url)
     embed.set_image(url="attachment://ping_graph.png")
 
-    embed.add_field(name="🌐 Serveurs", value=f"`{len(bot.guilds):,}`", inline=True)
-    embed.add_field(name="👥 Membres totaux", value=f"`{total_members:,}`", inline=True)
-    embed.add_field(name="📶 Latence", value=f"`{ping} ms`", inline=True)
-    embed.add_field(name="⏳ Uptime", value=f"`{uptime_str}`", inline=True)
+    embed.add_field(name="🌐 Réseau", value=f"`{len(bot.guilds):,} serveurs`\n`{total_members:,} membres`", inline=True)
+    embed.add_field(name="📶 Latence", value=f"{ping_emoji} `{ping} ms`", inline=True)
+    embed.add_field(name="🕰 Uptime", value=f"`{uptime_str}`", inline=True)
+    embed.add_field(name="📊 Stabilité", value=f"`{stability}`", inline=True)
     embed.add_field(name="💻 Commandes", value=f"`{total_commands}`", inline=True)
     embed.add_field(
         name="⚙️ Versions",
@@ -472,7 +492,7 @@ async def update_status_embed():
     )
 
     embed.set_footer(
-        text="🔄 Mis à jour toutes les 2 min • Merci d'utiliser Delta !",
+        text="🔁 Actualisation automatique • Merci de faire confiance à Delta.",
         icon_url=bot.user.display_avatar.url
     )
 
@@ -504,34 +524,40 @@ async def update_status_embed():
     # 🚨 Alerte ping critique
     if alert_triggered:
         mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
-        await channel.send(
-            content=f"{mention_roles} ⚠️ **Latence critique détectée**\n"
-                    f"Le bot dépasse les `200ms` de ping depuis 3 cycles consécutifs.\n"
-                    f"Merci de vérifier votre hébergement ou l'API Discord.\n"
-                    f"En attendant, merci d'utiliser le bot au minimum pour éviter toute surcharge.",
-            allowed_mentions=discord.AllowedMentions(roles=True)
+        alert_embed = discord.Embed(
+            title="🚨 ALERTE DE LATENCE 🚨",
+            description=(
+                f"{status['emoji']} **Ping moyen trop élevé depuis 3 cycles !**\n"
+                f"Actuellement : `{ping}ms`\n"
+                "Merci de vérifier le statut de l'hébergement ou des API Discord.\n"
+                "**Merci d'utiliser le bot au minimum pendant cette période.**"
+            ),
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
         )
+        alert_embed.set_footer(text="Impact sur les performances du bot.")
+        await channel.send(content=mention_roles, embed=alert_embed, allowed_mentions=discord.AllowedMentions(roles=True))
 
-    # 📝 Mise à jour du nom du salon
-    new_name = f"︱{status['channel_emoji']}・𝖲tatut"
+    # 📂 Mise à jour du nom du salon
+    new_name = f"］{status['channel_emoji']} ･ Statut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
 
-    # 🕒 Message secondaire : date de dernière et prochaine update
+    # 🕒 Message secondaire : heure de mise à jour
     now = datetime.now(ZoneInfo("Europe/Paris"))
     next_update = now + timedelta(minutes=2)
-    
+
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
     next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
-    
+
     update_text = (
-        f"<a:heart_d:1376837986381205535>**Dernière mise à jour :** `{last_update_str}`\n"
+        f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** `{last_update_str}`\n"
         f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** `{next_update_str}`"
     )
-    
+
     update_data = collection32.find_one({"_id": "update_info"})
     update_message_id = update_data.get("message_id") if update_data else None
 
