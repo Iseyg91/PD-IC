@@ -393,7 +393,7 @@ async def update_status_embed():
     total_commands = len(bot.commands)
 
     # Détermination du statut selon le ping
-    if ping <= 20:
+    if ping <= 115:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
             "text": "**Tout fonctionne parfaitement !**",
@@ -402,7 +402,7 @@ async def update_status_embed():
             "channel_emoji": "🟢"
         }
         critical_ping_counter = 0
-    elif ping <= 50:
+    elif ping <= 200:
         status = {
             "emoji": "<a:bof:1376677733710692382>",
             "text": "**Performance moyenne.**",
