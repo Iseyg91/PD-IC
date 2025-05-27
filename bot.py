@@ -31,6 +31,8 @@ from typing import Optional
 from discord import app_commands, Interaction, Embed, SelectOption
 from discord.ui import View, Select
 import uuid
+import matplotlib.pyplot as plt
+from io import BytesIO
 
 token = os.environ['ETHERYA']
 VERIFICATION_CODE = os.environ['VERIFICATION_CODE']
@@ -363,24 +365,41 @@ async def update_bot_presence():
     await bot.change_presence(activity=activity, status=status)
     
 
+ping_history = []
+
 @tasks.loop(minutes=2)
 async def update_status_embed():
+    global ping_history
+
     channel = bot.get_channel(STATUT_ID)
     if channel is None:
         print("Salon introuvable.")
         return
 
-    # Récupérer ou créer le document dans la collection
+    # Données
     statut_data = collection32.find_one({"_id": "statut_embed"})
     message_id = statut_data.get("message_id") if statut_data else None
 
-    # Calculs
     total_members = sum(g.member_count for g in bot.guilds)
+    unique_users = len(set(user.id for g in bot.guilds for user in g.members))
     uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
+    total_commands = len(bot.commands)
 
-    # Statut
-    if ping <= 100:
+    # Stocker l’historique du ping
+    ping_history.append(ping)
+    if len(ping_history) > 10:
+        ping_history.pop(0)
+
+    # Uptime formaté
+    up = timedelta(seconds=int(uptime.total_seconds()))
+    days, remainder = divmod(up.total_seconds(), 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
+
+    # Statut visuel
+    if ping <= 120:
         status = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
         color = discord.Color.green()
         emoji = "🟢"
@@ -393,48 +412,62 @@ async def update_status_embed():
         color = discord.Color.red()
         emoji = "🔴"
 
-    # Format uptime
-    up = timedelta(seconds=int(uptime.total_seconds()))
-    days, remainder = divmod(up.total_seconds(), 86400)
-    hours, remainder = divmod(remainder, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
+    # Génération du graphique
+    plt.figure(figsize=(6, 3))
+    plt.plot(ping_history, marker='o', color='skyblue')
+    plt.title("Évolution de la latence")
+    plt.xlabel("Mise à jour")
+    plt.ylabel("Ping (ms)")
+    plt.grid(True)
+    buf = BytesIO()
+    plt.savefig(buf, format='png')
+    buf.seek(0)
+    file = discord.File(buf, filename="ping_graph.png")
+    plt.close()
 
     # Création de l'embed
     embed = discord.Embed(
-        title="📡 Statut de Project : Delta",
+        title="Statut de Project : Delta",
         description=status,
         color=color,
         timestamp=datetime.utcnow()
     )
-    embed.add_field(name="🌐 Serveurs connectés", value=f"**`{len(bot.guilds):,}`**", inline=True)
-    embed.add_field(name="👥 Membres total", value=f"**`{total_members:,}`**", inline=True)
-    embed.add_field(name="📶 Latence", value=f"**`{ping} ms`**", inline=True)
-    embed.add_field(name="⏳ Uptime", value=f"**`{uptime_str}`**", inline=False)
     embed.set_thumbnail(url=bot.user.display_avatar.url)
-    embed.set_footer(text="🔄 Mis à jour toutes les 2 minutes • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
+    embed.set_image(url="attachment://ping_graph.png")
 
-    # Gérer le message (édition ou envoi)
+    embed.add_field(name="🌐 Serveurs", value=f"`{len(bot.guilds):,}`", inline=True)
+    embed.add_field(name="👥 Membres", value=f"`{total_members:,}`", inline=True)
+    embed.add_field(name="👤 Utilisateurs uniques", value=f"`{unique_users:,}`", inline=True)
+
+    embed.add_field(name="📶 Ping", value=f"`{ping} ms`", inline=True)
+    embed.add_field(name="⏳ Uptime", value=f"`{uptime_str}`", inline=True)
+    embed.add_field(name="💻 Commandes", value=f"`{total_commands}`", inline=True)
+
+    embed.add_field(name="⚙️ Versions", value=f"Python: `{platform.python_version()}`\nDiscord.py: `{discord.__version__}`", inline=False)
+
+    embed.set_footer(text="🔄 Mise à jour toutes les 2 min • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
+
+    # Envoi / édition du message
     try:
         if message_id:
             msg = await channel.fetch_message(message_id)
-            await msg.edit(embed=embed)
+            await msg.edit(embed=embed, attachments=[file])
         else:
-            msg = await channel.send(embed=embed)
+            msg = await channel.send(embed=embed, file=file)
             collection32.update_one(
                 {"_id": "statut_embed"},
                 {"$set": {"message_id": msg.id}},
                 upsert=True
             )
     except (discord.NotFound, discord.Forbidden):
-        msg = await channel.send(embed=embed)
+        msg = await channel.send(embed=embed, file=file)
         collection32.update_one(
             {"_id": "statut_embed"},
             {"$set": {"message_id": msg.id}},
             upsert=True
         )
 
-    # 🔁 Renommer dynamiquement le salon
+    # Renommer le salon
     new_name = f"︱{emoji}・𝖲tatut"
     if channel.name != new_name:
         try:
