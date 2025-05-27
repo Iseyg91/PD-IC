@@ -526,7 +526,7 @@ async def update_status_embed():
     next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S UTC")
 
     update_text = (
-        f"<a:Timer30:1376836885548109824>**Dernière mise à jour :** `{last_update_str}`\n"
+        f"<a:heart_d:1269078865905713226>**Dernière mise à jour :** `{last_update_str}`\n"
         f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** `{next_update_str}`"
     )
 
