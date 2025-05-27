@@ -589,14 +589,19 @@ async def update_status_embed():
 async def envoyer_ping():
     channel = bot.get_channel(ID_CANAL)
     if channel:
-        await channel.send(
-            "<:dev_white_snoway:1376909968141451274> | __**Project : Delta — Système de Présence Actif**__\n\n"
-            "<a:actif:1376677757081358427> Le bot est actuellement **en ligne** et fonctionne **parfaitement**.\n"
-            "<:Signal_Bar_Green:1376912206427590706>Un signal automatique est émis **toutes les 2 minutes** afin de garantir :\n"
-            "<a:fleche3:1376557416216268921>  un *suivi en temps réel* de son statut\n"
-            "<a:fleche3:1376557416216268921> une *surveillance continue* de son bon fonctionnement\n\n"
-            "<:yao_whitefleche:1376912431573504090> Ce système permet une réactivité maximale en cas de panne ou d’interruption."
+        embed = Embed(
+            title="<:dev_white_snoway:1376909968141451274> Project : Delta — Système de Présence Actif",
+            description=(
+                "<a:actif:1376677757081358427> **Le bot est actuellement en ligne et fonctionne parfaitement.**\n\n"
+                "<:Signal_Bar_Green:1376912206427590706> Un signal automatique est émis toutes les **2 minutes** afin d'assurer :\n"
+                "<a:fleche3:1376557416216268921> Un *suivi en temps réel* du statut du bot\n"
+                "<a:fleche3:1376557416216268921> Une *surveillance continue* de son bon fonctionnement\n\n"
+                "<:yao_whitefleche:1376912431573504090> Ce système permet une **réactivité maximale** en cas de panne ou d’interruption."
+            ),
+            color=0xffffff
         )
+        embed.set_footer(text="Système automatique de surveillance — Project : Delta")
+        await channel.send(embed=embed)
 
 # Événement quand le bot est prêt
 @bot.event
