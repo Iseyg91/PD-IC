@@ -368,16 +368,7 @@ async def update_bot_presence():
 
     await bot.change_presence(activity=activity, status=status)
     
-
-import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
-from io import BytesIO
-import discord
-from discord.ext import tasks
-import platform
 
 ping_history = []
 critical_ping_counter = 0
@@ -521,30 +512,30 @@ async def update_status_embed():
             upsert=True
         )
 
-# 🚨 Alerte ping critique
-if alert_triggered:
-    mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
-    alert_embed = discord.Embed(
-        title="🚨 ALERTE DE LATENCE CRITIQUE 🚨",
-        description=(
-            f"{status['emoji']} **Ping moyen anormalement élevé depuis 3 cycles consécutifs !**\n\n"
-            f"📶 **Ping actuel :** `{ping}ms`\n"
-            "🛠️ **Action recommandée :** Vérifiez l'état de l'hébergement ou les services Discord.\n\n"
-            "⚠️ **Veuillez limiter l'utilisation du bot pendant cette période** afin d'éviter d'aggraver les performances."
-        ),
-        color=discord.Color.from_rgb(255, 45, 45),  # Rouge plus stylisé
-        timestamp=datetime.utcnow()
-    )
-    alert_embed.set_footer(
-        text="Surveillance automatique du système - Project : Delta",
-        icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"  # Icône optionnelle d’alerte
-    )
-    alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")  # Une icône d'alerte, facultative
-    await channel.send(
-        content=mention_roles,
-        embed=alert_embed,
-        allowed_mentions=discord.AllowedMentions(roles=True)
-    )
+    # 🚨 Alerte ping critique
+    if alert_triggered:
+        mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
+        alert_embed = discord.Embed(
+            title="🚨 ALERTE DE LATENCE CRITIQUE 🚨",
+            description=(
+                f"{status['emoji']} **Ping moyen anormalement élevé depuis 3 cycles consécutifs !**\n\n"
+                f"📶 **Ping actuel :** `{ping}ms`\n"
+                "🛠️ **Action recommandée :** Vérifiez l'état de l'hébergement ou les services Discord.\n\n"
+                "⚠️ **Veuillez limiter l'utilisation du bot pendant cette période** afin d'éviter d'aggraver les performances."
+            ),
+            color=discord.Color.from_rgb(255, 45, 45),  # Rouge plus stylisé
+            timestamp=datetime.utcnow()
+        )
+        alert_embed.set_footer(
+            text="Surveillance automatique du système - Project : Delta",
+            icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"  # Icône optionnelle d’alerte
+        )
+        alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")  # Une icône d'alerte, facultative
+        await channel.send(
+            content=mention_roles,
+            embed=alert_embed,
+            allowed_mentions=discord.AllowedMentions(roles=True)
+        )
 
     # 📂 Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
