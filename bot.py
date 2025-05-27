@@ -140,6 +140,7 @@ collection26 = db['alerte'] #Stock les Salons Alerte
 collection27 = db['guild_troll'] #Stock les serveur ou les commandes troll sont actif ou inactif
 collection28 = db['sensible'] #Stock les mots sensibles actif des serveurs
 collection31 = db ['delta_event'] #Stock les serveur, avec le nombres de membres et le owner
+collection32 = db['delta_statut']
 
 # Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
@@ -231,6 +232,7 @@ def load_guild_settings(guild_id):
     guild_troll_data = collection27.find_one({"guild_id": guild_id}) or {}
     sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
     delta_event_data = collection31.find_one({"guild_id": guild_id}) or {}
+    delta_statut_data = collection32.find_one({"guild_id": guild_id}) or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
@@ -263,7 +265,8 @@ def load_guild_settings(guild_id):
         "alerte": alerte_data,
         "guild_troll": guild_troll_data,
         "sensible": sensible_data,
-        "delta_event": delta_event_data
+        "delta_event": delta_event_data,
+        "delta_statut": delta_statut_data
     }
 
     return combined_data
@@ -359,58 +362,85 @@ async def update_bot_presence():
 
     await bot.change_presence(activity=activity, status=status)
     
+
 @tasks.loop(minutes=2)
 async def update_status_embed():
-    global status_message
     channel = bot.get_channel(STATUT_ID)
     if channel is None:
         print("Salon introuvable.")
         return
 
-    try:
-        if status_message:
-            await status_message.delete()
-    except discord.NotFound:
-        pass
+    # Récupérer ou créer le document dans la collection
+    statut_data = collection32.find_one({"_id": "statut_embed"})
+    message_id = statut_data.get("message_id") if statut_data else None
 
-    total_members = sum(guild.member_count for guild in bot.guilds)
+    # Calculs
+    total_members = sum(g.member_count for g in bot.guilds)
     uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
 
-    # Détermination du statut du bot selon la latence
+    # Statut
     if ping <= 100:
         status = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
         color = discord.Color.green()
+        emoji = "🟢"
     elif ping <= 200:
         status = "<a:bof:1376677733710692382> **Performance moyenne.**"
         color = discord.Color.orange()
+        emoji = "🟠"
     else:
         status = "<a:inactif:1376677787158577242> **Problème de latence détecté !**"
         color = discord.Color.red()
+        emoji = "🔴"
 
-    # Formater l'uptime joliment
+    # Format uptime
     up = timedelta(seconds=int(uptime.total_seconds()))
     days, remainder = divmod(up.total_seconds(), 86400)
     hours, remainder = divmod(remainder, 3600)
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
+    # Création de l'embed
     embed = discord.Embed(
         title="📡 Statut de Project : Delta",
         description=status,
         color=color,
         timestamp=datetime.utcnow()
     )
-
     embed.add_field(name="🌐 Serveurs connectés", value=f"**`{len(bot.guilds):,}`**", inline=True)
     embed.add_field(name="👥 Membres total", value=f"**`{total_members:,}`**", inline=True)
     embed.add_field(name="📶 Latence", value=f"**`{ping} ms`**", inline=True)
     embed.add_field(name="⏳ Uptime", value=f"**`{uptime_str}`**", inline=False)
-
     embed.set_thumbnail(url=bot.user.display_avatar.url)
     embed.set_footer(text="🔄 Mis à jour toutes les 2 minutes • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
 
-    status_message = await channel.send(embed=embed)
+    # Gérer le message (édition ou envoi)
+    try:
+        if message_id:
+            msg = await channel.fetch_message(message_id)
+            await msg.edit(embed=embed)
+        else:
+            msg = await channel.send(embed=embed)
+            collection32.update_one(
+                {"_id": "statut_embed"},
+                {"$set": {"message_id": msg.id}},
+                upsert=True
+            )
+    except (discord.NotFound, discord.Forbidden):
+        msg = await channel.send(embed=embed)
+        collection32.update_one(
+            {"_id": "statut_embed"},
+            {"$set": {"message_id": msg.id}},
+            upsert=True
+        )
+
+    # 🔁 Renommer dynamiquement le salon
+    new_name = f"︱{emoji}・𝖲tatut"
+    if channel.name != new_name:
+        try:
+            await channel.edit(name=new_name)
+        except discord.Forbidden:
+            print("Permissions insuffisantes pour renommer le salon.")
 
 # Événement quand le bot est prêt
 @bot.event
