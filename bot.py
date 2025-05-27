@@ -589,7 +589,11 @@ async def update_status_embed():
 async def envoyer_ping():
     channel = bot.get_channel(ID_CANAL)
     if channel:
-        await channel.send("✅ Ping de présence automatique.")
+        await channel.send(
+            "<:dev_white_snoway:1376909968141451274>| **Project : Delta — Système de Présence Actif**\n"
+            "Le bot est actuellement **en ligne** et fonctionne correctement.\n"
+            "<a:fleche3:1376557416216268921> Ce signal automatique est émis toutes les 2 minutes pour assurer un **suivi en temps réel** et une **surveillance continue** de son activité."
+        )
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
