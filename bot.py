@@ -33,6 +33,7 @@ from discord.ui import View, Select
 import uuid
 import matplotlib.pyplot as plt
 from io import BytesIO
+import platform
 
 token = os.environ['ETHERYA']
 VERIFICATION_CODE = os.environ['VERIFICATION_CODE']
@@ -365,6 +366,8 @@ async def update_bot_presence():
     await bot.change_presence(activity=activity, status=status)
     
 
+matplotlib.use("Agg")  # Utilisation backend non interactif
+
 ping_history = []
 
 @tasks.loop(minutes=2)
@@ -376,17 +379,34 @@ async def update_status_embed():
         print("Salon introuvable.")
         return
 
-    # Données
+    # Récupérer le message
     statut_data = collection32.find_one({"_id": "statut_embed"})
     message_id = statut_data.get("message_id") if statut_data else None
 
+    # Calculs
     total_members = sum(g.member_count for g in bot.guilds)
-    unique_users = len(set(user.id for g in bot.guilds for user in g.members))
     uptime = datetime.utcnow() - datetime.utcfromtimestamp(bot.uptime)
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
-    # Stocker l’historique du ping
+    # Statut
+    if ping <= 120:
+        status_text = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
+        status_color = discord.Color.green()
+        status_emoji = "🟢"
+        graph_color = "#00FF00"
+    elif ping <= 200:
+        status_text = "<a:bof:1376677733710692382> **Performance moyenne.**"
+        status_color = discord.Color.orange()
+        status_emoji = "🟠"
+        graph_color = "#FFA500"
+    else:
+        status_text = "<a:inactif:1376677787158577242> **Problème de latence détecté !**"
+        status_color = discord.Color.red()
+        status_emoji = "🔴"
+        graph_color = "#FF0000"
+
+    # Historique du ping
     ping_history.append(ping)
     if len(ping_history) > 10:
         ping_history.pop(0)
@@ -398,56 +418,49 @@ async def update_status_embed():
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # Statut visuel
-    if ping <= 120:
-        status = "<a:actif:1376677757081358427> **Tout fonctionne parfaitement !**"
-        color = discord.Color.green()
-        emoji = "🟢"
-    elif ping <= 200:
-        status = "<a:bof:1376677733710692382> **Performance moyenne.**"
-        color = discord.Color.orange()
-        emoji = "🟠"
-    else:
-        status = "<a:inactif:1376677787158577242> **Problème de latence détecté !**"
-        color = discord.Color.red()
-        emoji = "🔴"
+    # Générer le graphique
+    plt.style.use('dark_background')
+    fig, ax = plt.subplots(figsize=(6, 3))
+    ax.plot(ping_history, marker='o', color=graph_color, linewidth=2)
+    ax.set_facecolor("black")
+    fig.patch.set_facecolor("black")
+    ax.set_title("Évolution du ping", color='white')
+    ax.set_xlabel("Mise à jour", color='white')
+    ax.set_ylabel("Ping (ms)", color='white')
+    ax.tick_params(axis='x', colors='white')
+    ax.tick_params(axis='y', colors='white')
+    ax.grid(True, linestyle='--', linewidth=0.5, alpha=0.7)
 
-    # Génération du graphique
-    plt.figure(figsize=(6, 3))
-    plt.plot(ping_history, marker='o', color='skyblue')
-    plt.title("Évolution de la latence")
-    plt.xlabel("Mise à jour")
-    plt.ylabel("Ping (ms)")
-    plt.grid(True)
     buf = BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', bbox_inches='tight', facecolor=fig.get_facecolor())
     buf.seek(0)
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    # Création de l'embed
+    # Créer l'embed
     embed = discord.Embed(
-        title="Statut de Project : Delta",
-        description=status,
-        color=color,
+        title="📡 Statut de Project : Delta",
+        description=status_text,
+        color=status_color,
         timestamp=datetime.utcnow()
     )
     embed.set_thumbnail(url=bot.user.display_avatar.url)
     embed.set_image(url="attachment://ping_graph.png")
 
     embed.add_field(name="🌐 Serveurs", value=f"`{len(bot.guilds):,}`", inline=True)
-    embed.add_field(name="👥 Membres", value=f"`{total_members:,}`", inline=True)
-    embed.add_field(name="👤 Utilisateurs uniques", value=f"`{unique_users:,}`", inline=True)
-
-    embed.add_field(name="📶 Ping", value=f"`{ping} ms`", inline=True)
+    embed.add_field(name="👥 Membres totaux", value=f"`{total_members:,}`", inline=True)
+    embed.add_field(name="📶 Latence", value=f"`{ping} ms`", inline=True)
     embed.add_field(name="⏳ Uptime", value=f"`{uptime_str}`", inline=True)
     embed.add_field(name="💻 Commandes", value=f"`{total_commands}`", inline=True)
+    embed.add_field(
+        name="⚙️ Versions",
+        value=f"Python : `{platform.python_version()}`\nDiscord.py : `{discord.__version__}`",
+        inline=False
+    )
 
-    embed.add_field(name="⚙️ Versions", value=f"Python: `{platform.python_version()}`\nDiscord.py: `{discord.__version__}`", inline=False)
+    embed.set_footer(text="🔄 Mis à jour toutes les 2 min • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
 
-    embed.set_footer(text="🔄 Mise à jour toutes les 2 min • Merci d'utiliser Delta !", icon_url=bot.user.display_avatar.url)
-
-    # Envoi / édition du message
+    # Envoi ou édition
     try:
         if message_id:
             msg = await channel.fetch_message(message_id)
@@ -459,7 +472,12 @@ async def update_status_embed():
                 {"$set": {"message_id": msg.id}},
                 upsert=True
             )
-    except (discord.NotFound, discord.Forbidden):
+        # Réagir avec l’emoji
+        await msg.clear_reactions()
+        await msg.add_reaction(status_emoji)
+
+    except (discord.NotFound, discord.Forbidden) as e:
+        print("Erreur d'envoi ou de réaction :", e)
         msg = await channel.send(embed=embed, file=file)
         collection32.update_one(
             {"_id": "statut_embed"},
@@ -467,8 +485,8 @@ async def update_status_embed():
             upsert=True
         )
 
-    # Renommer le salon
-    new_name = f"︱{emoji}・𝖲tatut"
+    # Renommer le salon dynamiquement
+    new_name = f"︱{status_emoji}・𝖲tatut"
     if channel.name != new_name:
         try:
             await channel.edit(name=new_name)
