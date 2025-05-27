@@ -611,7 +611,6 @@ async def on_ready():
     update_stats.start()
     urgence_ping_loop.start()
     update_bot_presence.start()
-    update_status_embed.start()
     envoyer_ping.start()
     bot.loop.create_task(update_status_embed_loop())
 
