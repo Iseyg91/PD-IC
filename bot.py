@@ -382,7 +382,7 @@ import platform
 ping_history = []
 critical_ping_counter = 0
 
-@tasks.loop(minutes=2)
+@tasks.loop(minutes=5)
 async def update_status_embed():
     global ping_history, critical_ping_counter
 
@@ -549,7 +549,7 @@ async def update_status_embed():
 
     # 🕒 Message secondaire : heure de mise à jour
     now = datetime.now(ZoneInfo("Europe/Paris"))
-    next_update = now + timedelta(minutes=2)
+    next_update = now + timedelta(minutes=5)
 
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
     next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
