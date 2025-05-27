@@ -50,7 +50,7 @@ status_message = None  # Pour stocker le message envoyé
 #Configuration du Bot:
 # --- ID Owner Bot ---
 ISEY_ID = 792755123587645461
-CANAL_ID = 1376899306719547503
+ID_CANAL = 1376899306719547503
 
 # --- ID PROJECT : DELTA SERVER ---
 GUILD_ID = 1359963854200639498
@@ -588,7 +588,7 @@ async def update_status_embed():
 @tasks.loop(minutes=2)
 async def send_heartbeat():
     channel = bot.get_channel(ID_CANAL)
-    await channel.send("heartbeat|secret_hash")
+    await channel.send("Je suis la mon frère <@1375911404904775680>")
 
 # Événement quand le bot est prêt
 @bot.event
