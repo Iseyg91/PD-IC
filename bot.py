@@ -395,7 +395,7 @@ async def update_status_embed():
     total_commands = len(bot.commands)
 
     # État du bot selon la latence
-    if ping <= 115:
+    if ping <= 5:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
             "text": "**Tout fonctionne parfaitement !**",
@@ -404,7 +404,7 @@ async def update_status_embed():
             "channel_emoji": "🟢"
         }
         critical_ping_counter = 0
-    elif ping <= 200:
+    elif ping <= 20:
         status = {
             "emoji": "<a:bof:1376677733710692382>",
             "text": "**Performance moyenne.**",
@@ -464,7 +464,6 @@ async def update_status_embed():
     file = discord.File(buf, filename="ping_graph.png")
     plt.close()
 
-    # 📜 Embed principal
     ping_emoji = "🟢" if ping <= 115 else "🟠" if ping <= 200 else "🔴"
     embed = discord.Embed(
         title="Statut de Project : Delta",
@@ -502,44 +501,56 @@ async def update_status_embed():
                 {"$set": {"message_id": msg.id}},
                 upsert=True
             )
-
         await msg.clear_reactions()
         emoji_obj = discord.PartialEmoji.from_str(status["emoji"])
         await msg.add_reaction(emoji_obj)
-
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
-        msg = await channel.send(embed=embed, file=file)
-        collection32.update_one(
-            {"_id": "statut_embed"},
-            {"$set": {"message_id": msg.id}},
-            upsert=True
-        )
 
     # 🚨 Alerte ping critique
     if alert_triggered:
-        mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
-        alert_embed = discord.Embed(
-            title="🚨 ALERTE DE LATENCE CRITIQUE 🚨",
-            description=(
-                f"{status['emoji']} **Ping moyen anormalement élevé depuis 3 cycles consécutifs !**\n\n"
-                f"📶 **Ping actuel :** {ping}ms\n"
-                "🛠️ **Action recommandée :** Vérifiez l'état de l'hébergement ou les services Discord.\n\n"
-                "⚠️ **Veuillez limiter l'utilisation du bot pendant cette période** afin d'éviter d'aggraver les performances."
-            ),
-            color=discord.Color.from_rgb(255, 45, 45),  # Rouge plus stylisé
-            timestamp=datetime.utcnow()
-        )
-        alert_embed.set_footer(
-            text="Surveillance automatique du système - Project : Delta",
-            icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"  # Icône optionnelle d’alerte
-        )
-        alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")  # Une icône d'alerte, facultative
-        await channel.send(
-            content=mention_roles,
-            embed=alert_embed,
-            allowed_mentions=discord.AllowedMentions(roles=True)
-        )
+        alert_doc = collection32.find_one({"_id": "critical_alert"})
+        if not alert_doc:
+            mention_roles = "<@&1376821268447236248> <@&1361306900981092548>"
+            alert_embed = discord.Embed(
+                title="🚨 ALERTE DE LATENCE CRITIQUE 🚨",
+                description=(
+                    f"{status['emoji']} **Ping moyen anormalement élevé depuis 3 cycles consécutifs !**\n\n"
+                    f"📶 **Ping actuel :** {ping}ms\n"
+                    "🛠️ **Action recommandée :** Vérifiez l'état de l'hébergement ou les services Discord.\n\n"
+                    "⚠️ **Veuillez limiter l'utilisation du bot pendant cette période** afin d'éviter d'aggraver les performances."
+                ),
+                color=discord.Color.from_rgb(255, 45, 45),
+                timestamp=datetime.utcnow()
+            )
+            alert_embed.set_footer(
+                text="Surveillance automatique du système - Project : Delta",
+                icon_url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/t%C3%A9l%C3%A9chargement%20(11).png?raw=true"
+            )
+            alert_embed.set_thumbnail(url="https://www.saint-aignan-grandlieu.fr/fileadmin/Actualites/Alerte_-_Info/Alerte_info_image.jpg")
+            alert_msg = await channel.send(
+                content=mention_roles,
+                embed=alert_embed,
+                allowed_mentions=discord.AllowedMentions(roles=True)
+            )
+            collection32.update_one(
+                {"_id": "critical_alert"},
+                {"$set": {"message_id": alert_msg.id}},
+                upsert=True
+            )
+
+    # ✅ Suppression de l’alerte si la latence redevient normale
+    if not alert_triggered:
+        alert_doc = collection32.find_one({"_id": "critical_alert"})
+        if alert_doc and "message_id" in alert_doc:
+            try:
+                alert_msg = await channel.fetch_message(alert_doc["message_id"])
+                await alert_msg.delete()
+            except discord.NotFound:
+                print("Le message d'alerte n'existe plus.")
+            except discord.Forbidden:
+                print("Permissions insuffisantes pour supprimer le message d'alerte.")
+            collection32.delete_one({"_id": "critical_alert"})
 
     # 📂 Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
@@ -549,11 +560,9 @@ async def update_status_embed():
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
 
-
-    # 🕒 Message secondaire : heure de mise à jour
+    # 🕒 Mise à jour des heures
     now = datetime.now(ZoneInfo("Europe/Paris"))
     next_update = now + timedelta(minutes=5)
-
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
     next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
 
@@ -578,12 +587,6 @@ async def update_status_embed():
             )
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi du message de mise à jour :", e)
-        update_msg = await channel.send(content=update_text)
-        collection32.update_one(
-            {"_id": "update_info"},
-            {"$set": {"message_id": update_msg.id}},
-            upsert=True
-        )
 
 @tasks.loop(minutes=2)
 async def envoyer_ping():
