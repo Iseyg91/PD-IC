@@ -377,7 +377,6 @@ matplotlib.use("Agg")
 ping_history = []
 critical_ping_counter = 0
 
-@tasks.loop(minutes=5)
 async def update_status_embed():
     global ping_history, critical_ping_counter
 
@@ -394,8 +393,7 @@ async def update_status_embed():
     ping = round(bot.latency * 1000)
     total_commands = len(bot.commands)
 
-    # État du bot selon la latence
-    if ping <= 5:
+    if ping <= 115:
         status = {
             "emoji": "<a:actif:1376677757081358427>",
             "text": "**Tout fonctionne parfaitement !**",
@@ -404,7 +402,7 @@ async def update_status_embed():
             "channel_emoji": "🟢"
         }
         critical_ping_counter = 0
-    elif ping <= 20:
+    elif ping <= 200:
         status = {
             "emoji": "<a:bof:1376677733710692382>",
             "text": "**Performance moyenne.**",
@@ -442,7 +440,6 @@ async def update_status_embed():
     minutes, seconds = divmod(remainder, 60)
     uptime_str = f"{int(days)}j {int(hours)}h {int(minutes)}m {int(seconds)}s"
 
-    # 🎨 Graphique
     fig, ax = plt.subplots(figsize=(6, 3))
     ax.plot(ping_history, marker='o', color=status["graph"], linewidth=2)
     ax.set_facecolor("white")
@@ -475,7 +472,7 @@ async def update_status_embed():
     embed.set_image(url="attachment://ping_graph.png")
 
     embed.add_field(name="🌐 Réseau", value=f"{len(bot.guilds):,} serveurs\n{total_members:,} membres", inline=True)
-    embed.add_field(name="📶 Latence", value=f"{ping_emoji} {ping} ms", inline=True)
+    embed.add_field(name="📶 Latence", value=f"{ping} ms", inline=True)
     embed.add_field(name="🕰 Uptime", value=f"{uptime_str}", inline=True)
     embed.add_field(name="📊 Stabilité", value=f"{stability}", inline=True)
     embed.add_field(name="💻 Commandes", value=f"{total_commands}", inline=True)
@@ -507,7 +504,6 @@ async def update_status_embed():
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi ou de réaction :", e)
 
-    # 🚨 Alerte ping critique
     if alert_triggered:
         alert_doc = collection32.find_one({"_id": "critical_alert"})
         if not alert_doc:
@@ -539,7 +535,6 @@ async def update_status_embed():
                 upsert=True
             )
 
-    # ✅ Suppression de l’alerte si la latence redevient normale
     if not alert_triggered:
         alert_doc = collection32.find_one({"_id": "critical_alert"})
         if alert_doc and "message_id" in alert_doc:
@@ -552,7 +547,6 @@ async def update_status_embed():
                 print("Permissions insuffisantes pour supprimer le message d'alerte.")
             collection32.delete_one({"_id": "critical_alert"})
 
-    # 📂 Mise à jour du nom du salon
     new_name = f"︱{status['channel_emoji']}・𝖲tatut"
     if channel.name != new_name:
         try:
@@ -560,15 +554,10 @@ async def update_status_embed():
         except discord.Forbidden:
             print("Permissions insuffisantes pour renommer le salon.")
 
-    # 🕒 Mise à jour des heures
     now = datetime.now(ZoneInfo("Europe/Paris"))
-    next_update = now + timedelta(minutes=5)
     last_update_str = now.strftime("%d/%m/%Y à %H:%M:%S")
-    next_update_str = next_update.strftime("%d/%m/%Y à %H:%M:%S")
-
     update_text = (
         f"<a:heart_d:1376837986381205535> **Dernière mise à jour :** {last_update_str}\n"
-        f"<a:fleche3:1290077283100397672> **Prochaine mise à jour :** {next_update_str}"
     )
 
     update_data = collection32.find_one({"_id": "update_info"})
@@ -587,6 +576,16 @@ async def update_status_embed():
             )
     except (discord.NotFound, discord.Forbidden) as e:
         print("Erreur d'envoi du message de mise à jour :", e)
+
+
+# 🔁 Boucle de statut toutes les 5 à 20 minutes
+async def update_status_embed_loop():
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        await update_status_embed()
+        wait_time = random.randint(5, 20)
+        print(f"[Statut] Prochaine mise à jour dans {wait_time} minutes.")
+        await asyncio.sleep(wait_time * 60)
 
 @tasks.loop(minutes=2)
 async def envoyer_ping():
@@ -619,6 +618,7 @@ async def on_ready():
     update_bot_presence.start()
     update_status_embed.start()
     envoyer_ping.start()
+    bot.loop.create_task(update_status_embed_loop())
 
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
