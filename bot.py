@@ -507,7 +507,8 @@ async def update_status_embed():
         await channel.send(
             content=f"{mention_roles} ⚠️ **Latence critique détectée**\n"
                     f"Le bot dépasse les `200ms` de ping depuis 3 cycles consécutifs.\n"
-                    f"Merci de vérifier votre hébergement ou l'API Discord.",
+                    f"Merci de vérifier votre hébergement ou l'API Discord.\n"
+                    f"En attendant, merci d'utiliser le bot au minimum pour éviter toute surcharge.",
             allowed_mentions=discord.AllowedMentions(roles=True)
         )
 
