@@ -1,39 +1,36 @@
+import discord
+from discord.ext import commands, tasks
+from discord import app_commands, Embed, ButtonStyle, ui
+from discord.ui import Button, View, Select, Modal, TextInput, button
+from discord.ui import Modal, TextInput, Button, View
+from discord.utils import get
+from discord import TextStyle
+from functools import wraps
 import os
+from discord import app_commands, Interaction, TextChannel, Role
 import io
-import sys
-import re
-import time
-import math
-import uuid
 import random
 import asyncio
-import traceback
+import time
+import re
 import subprocess
-import platform
-import psutil
-import pytz
+import sys
+import math
+import traceback
+from keep_alive import keep_alive
 from datetime import datetime, timedelta, timezone
 from collections import defaultdict, deque
-from typing import Optional
-
-import discord
-from discord import (
-    app_commands, Interaction, TextStyle, TextChannel,
-    Role, Embed, SelectOption
-)
-from discord.ext import commands, tasks
-from discord.utils import get
-from discord.ui import (
-    Button, View, Select, Modal, TextInput
-)
-
-from keep_alive import keep_alive
-
-# MongoDB
 import pymongo
 from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
-
+import psutil
+import pytz
+import platform
+from discord.ui import Select, View
+from typing import Optional
+from discord import app_commands, Interaction, Embed, SelectOption
+from discord.ui import View, Select
+import uuid
 # Matplotlib (à mettre AVANT plt)
 import matplotlib
 matplotlib.use("Agg")  # Utilisation d’un backend non interactif
