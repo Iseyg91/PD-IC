@@ -586,10 +586,10 @@ async def update_status_embed():
         )
 
 @tasks.loop(minutes=2)
-async def send_heartbeat():
+async def envoyer_ping():
     channel = bot.get_channel(ID_CANAL)
-    await channel.send("Je suis la mon frère <@1375911404904775680>")
-
+    if channel:
+        await channel.send("✅ Ping de présence automatique.")
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
