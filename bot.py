@@ -591,7 +591,7 @@ async def envoyer_ping():
     if channel:
         await channel.send(
             "<:dev_white_snoway:1376909968141451274> | __**Project : Delta — Système de Présence Actif**__\n\n"
-            "<a:actif:1376677757081358427>e Le bot est actuellement **en ligne** et fonctionne **parfaitement**.\n"
+            "<a:actif:1376677757081358427> Le bot est actuellement **en ligne** et fonctionne **parfaitement**.\n"
             "<:Signal_Bar_Green:1376912206427590706>Un signal automatique est émis **toutes les 2 minutes** afin de garantir :\n"
             "<a:fleche3:1376557416216268921>  un *suivi en temps réel* de son statut\n"
             "<a:fleche3:1376557416216268921> une *surveillance continue* de son bon fonctionnement\n\n"
