@@ -5642,11 +5642,17 @@ async def presentation(ctx):
             "Merci d’être là avec nous <a:Heart:1353412261888135228>\n"
             "**– L’équipe Project : Delta**"
         ),
-        color=discord.Color.purple()  # Tu peux mettre une autre couleur hex si tu préfères
+        color=discord.Color.purple()
     )
-    embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/uriifs3A2F2FM2F91f68b3b-528b-47fb-a810-fa202d513477.png?raw=true")  # Mets ici l'URL de ta bannière
+
+    embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/uriifs3A2F2FM2F91f68b3b-528b-47fb-a810-fa202d513477.png?raw=true")
+    embed.set_footer(
+        text="Project : Delta – L’avenir de ton serveur commence ici",
+        icon_url=ctx.author.display_avatar.url
+    )
 
     await ctx.send(embed=embed)
+
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
