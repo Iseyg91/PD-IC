@@ -4800,7 +4800,7 @@ async def activate_troll_error(interaction: discord.Interaction, error):
 
 @bot.tree.command(name="desactivate-troll", description="Désactive les commandes troll pour ce serveur")
 @app_commands.checks.has_permissions(administrator=True)
-async def deactivate_troll(interaction: discord.Interaction):
+async def desactivate_troll(interaction: discord.Interaction):
     guild_id = interaction.guild.id
     guild_name = interaction.guild.name
 
@@ -4817,7 +4817,7 @@ async def deactivate_troll(interaction: discord.Interaction):
 
 # Gestion des erreurs si l'utilisateur n'a pas les permissions
 @desactivate_troll.error
-async def deactivate_troll_error(interaction: discord.Interaction, error):
+async def desactivate_troll_error(interaction: discord.Interaction, error):
     if isinstance(error, app_commands.errors.MissingPermissions):
         await interaction.response.send_message("🚫 Vous devez être **administrateur** pour utiliser cette commande.", ephemeral=True)
     else:
