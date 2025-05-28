@@ -5653,6 +5653,49 @@ async def presentation(ctx):
 
     await ctx.send(embed=embed)
 
+@bot.command(name="regle-event")
+async def regle_event(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("🚫 Cette commande est réservée à ISEY uniquement.")
+
+    embed = discord.Embed(
+        title="📜 Règlement de l’Événement — L’Éveil de Project : Delta",
+        description=(
+            "Merci de participer à notre événement ! Pour garantir une compétition saine et équitable, nous vous demandons de respecter les règles suivantes :\n\n"
+
+            "**1. Interdiction stricte des doubles comptes**\n"
+            "Créer ou utiliser plusieurs comptes pour augmenter ses chances ou ses points est **formellement interdit**.\n"
+            "**Sanction : disqualification immédiate.**\n\n"
+
+            "**2. Pas de fraude dans le système de points**\n"
+            "Tenter de tricher ou de contourner les règles entraînera une exclusion de l’événement. Exemples interdits :\n"
+            "- Ajouter, retirer et ré-ajouter le bot pour farm les points.\n"
+            "- Inviter un ami pour qu’il quitte et revienne juste après.\n"
+            "- Exploiter des scripts ou bots externes.\n\n"
+            "Nous avons un système de logs complet. Si vous trichez, **vous serez simplement sanctionnés – inutile de tenter le diable**.\n\n"
+
+            "**3. Exploitation de bugs ou failles**\n"
+            "Si vous découvrez un bug ou une faille dans le système de points ou les commandes du bot :\n"
+            "→ **Ne l’utilisez pas.**\n"
+            "→ **Signalez-la au staff immédiatement.**\n\n"
+            "**Une récompense vous sera attribuée** pour toute faille signalée **avant** d’être utilisée à mauvais escient.\n\n"
+
+            "**4. Respect du staff et des autres participants**\n"
+            "Le fair-play est essentiel. Les provocations, insultes ou comportements toxiques sont **interdits**.\n\n"
+            "Toute tentative de nuire à l'événement, directement ou indirectement, peut entraîner une **exclusion temporaire ou définitive**.\n\n"
+
+            "**🎯 Rappel :** Le but est de s’amuser, d’être actif, de découvrir le bot, et de repartir potentiellement avec des cadeaux ou des services !\n\n"
+            "En participant à l’événement, vous acceptez ce règlement dans son intégralité."
+        ),
+        color=discord.Color.gold()
+    )
+
+    embed.set_footer(
+        text="– L’équipe Project : Delta",
+        icon_url=ctx.author.display_avatar.url
+    )
+
+    await ctx.send(embed=embed)
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
