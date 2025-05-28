@@ -353,7 +353,7 @@ async def urgence_ping_loop():
             except Exception as e:
                 print(f"Erreur lors de l'envoi du message d'urgence : {e}")
 
-@tasks.loop(seconds=30)  # toutes les 30 secondes
+@tasks.loop(minutes=5)  # toutes les 30 secondes
 async def update_bot_presence():
     guild_count = len(bot.guilds)
     member_count = sum(guild.member_count for guild in bot.guilds)
