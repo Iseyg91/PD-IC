@@ -605,9 +605,10 @@ async def update_status_embed_loop():
 async def on_ready():
     print(f"✅ Le bot {bot.user} est maintenant connecté ! (ID: {bot.user.id})")
 
-    bot.uptime = time.time()
+    bot.add_view(InfoView())
 
     # Démarrer les tâches de fond
+    bot.uptime = time.time()
     update_stats.start()
     urgence_ping_loop.start()
     update_bot_presence.start()
@@ -5697,6 +5698,95 @@ async def regle_event(ctx):
     )
 
     await ctx.send(embed=embed)
+
+# === CLASSES DES BOUTONS ET VUES ===
+
+class InfoView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(PointSystemButton())
+        self.add_item(PriceServiceButton())
+
+class PointSystemButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Système de Gain de points",
+            style=discord.ButtonStyle.primary,
+            custom_id="pointsystem_btn"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(color=0x2ECC71)
+        embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/1.jpg?raw=true")
+
+        view = discord.ui.View(timeout=None)
+        view.add_item(ImageButton("Project : Delta", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/2.jpg?raw=true", "project_image_btn"))
+        view.add_item(ImageButton("Annonce", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/3.jpg?raw=true", "annonce_image_btn"))
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+class PriceServiceButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(
+            label="Prix des Services",
+            style=discord.ButtonStyle.secondary,
+            custom_id="price_service_btn"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="💰 Prix des Services",
+            description="Les prix varient selon le service demandé et sa complexité.",
+            color=0x3498DB
+        )
+
+        view = discord.ui.View(timeout=None)
+        view.add_item(ImageButton("Bot Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/4.jpg?raw=true", "img_botdiscord"))
+        view.add_item(ImageButton("Site Web", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/5.jpg?raw=true", "img_siteweb"))
+        view.add_item(ImageButton("Serveur Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/6.jpg?raw=true", "img_servdiscord"))
+        view.add_item(ImageButton("Prestations Annexes", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/7.jpg?raw=true", "img_annexe"))
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+class ImageButton(discord.ui.Button):
+    def __init__(self, label, image_url, custom_id):
+        super().__init__(label=label, style=discord.ButtonStyle.success, custom_id=custom_id)
+        self.image_url = image_url
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(color=0x95A5A6)
+        embed.set_image(url=self.image_url)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+# === COMMANDE POUR ENVOYER L'ÉVENT ===
+
+@bot.command()
+async def info(ctx):
+    if ctx.author.id != ISEY_ID:
+        return await ctx.send("❌ Tu n'es pas autorisé à utiliser cette commande.")
+
+    embed = discord.Embed(
+        title="**ÉVÉNEMENT SPÉCIAL — LANCEMENT OFFICIEL DE PROJECT : DELTA**",
+        description=(
+            "C’est officiel : **Project : Delta** est lancé ! <a:happyanime:1172809287089786940>\n"
+            "Pour marquer le coup, on vous a préparé un **événement unique** sur le serveur… et vous allez pouvoir **gagner plein de choses** ! <a:cadeau:1377232340702597212>\n\n"
+            "<a:fete:1377230403114635415>  **POURQUOI CET ÉVÉNEMENT ?**\n"
+            "Parce qu’on voulait faire plus que juste un lancement : on voulait **vous impliquer**, **vous remercier** et **vous faire kiffer** dès le début.\n"
+            "C’est l’occasion parfaite pour :\n\n"
+            "<a:fleche3:1376557416216268921>  Gagner des **récompenses** (roles exclusifs, services gratuits, pubs, boosts, etc.)\n"
+            "<a:fleche3:1376557416216268921> Obtenir des **points** à échanger contre des avantages\n"
+            "<a:fleche3:1376557416216268921> Découvrir les services proposés par Delta... **sans rien payer** pendant l’event !\n\n"
+            "<:time:1377361886428921866> **DURÉE DE L'ÉVÉNEMENT : FLEXIBLE**\n"
+            "Cet événement n’a **pas de fin fixée à l’avance**. Sa durée dépendra entièrement de **vous** <:Symbol_Down_Arrow2:1367233328398205110>\n\n"
+            "<a:fleche3:1376557416216268921>  *Si ça flop* → l’event sera écourté.\n"
+            "<a:fleche3:1376557416216268921> *Si c’est stable* → l’event continuera quelques jours.\n"
+            "<a:fleche3:1376557416216268921> *Si c’est un énorme succès* → on prolonge, ajoute des bonus, et peut-être des **récompenses surprises** <:sourire:1377362110165815296>\n\n"
+            "<:bravo:1377362203757383802>  En bref : **plus vous participez, plus ça dure, plus c’est cool.** À vous de jouer !"
+        ),
+        color=0xF1C40F
+    )
+
+    await ctx.send(embed=embed, view=InfoView())
 
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
