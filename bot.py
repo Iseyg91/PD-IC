@@ -5684,7 +5684,7 @@ async def regle_event(ctx):
             "Le fair-play est essentiel. Les provocations, insultes ou comportements toxiques sont **interdits**.\n\n"
             "Toute tentative de nuire à l'événement, directement ou indirectement, peut entraîner une **exclusion temporaire ou définitive**.\n\n"
 
-            "**🎯 Rappel :** Le but est de s’amuser, d’être actif, de découvrir le bot, et de repartir potentiellement avec des cadeaux ou des services !\n\n"
+            "**Rappel :** Le but est de s’amuser, d’être actif, de découvrir le bot, et de repartir potentiellement avec des cadeaux ou des services !\n\n"
             "En participant à l’événement, vous acceptez ce règlement dans son intégralité."
         ),
         color=discord.Color.gold()
