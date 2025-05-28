@@ -5598,46 +5598,51 @@ async def presentation(ctx):
         return await ctx.send("🚫 Cette commande est réservée à ISEY uniquement.")
 
     embed = discord.Embed(
-        title="🎉 Bienvenue sur le support officiel de Project : Delta ! 🎉",
+        title="**Bienvenue sur le support officiel de Project : Delta !**",
         description=(
-            "> 🔧 **Un bot complet pour gérer, protéger et animer votre serveur Discord.**\n"
-            "> 🎯 Simple, puissant, gratuit (Premium offert pendant la phase de test) !\n"
-            "\n---\n\n"
-            "## 🤖・**Project : Delta – Le Bot**\n\n"
-            "👮‍♂️ Anti-raid puissant – Ne laissez aucune attaque passer.\n"
-            "🕵️‍♀️ Détection automatique de mots sensibles – Modération intelligente.\n"
-            "⚙️ Outils de gestion simples et efficaces – Kick, ban, clear, logs, et plus.\n"
-            "🎉 Giveaways & commandes fun – Pour animer votre communauté avec style.\n\n"
-            "🛠️ **Fonctionnalités à venir :**\n"
-            "💾 Sauvegarde de serveur | 🎫 Tickets | 📑 Logs automatiques\n\n"
-            "🔥 **Offre actuelle** : Tous les serveurs qui ajoutent le bot ont un **statut Premium GRATUIT** pendant la phase de test !\n\n"
-            "➕ [Ajouter Project : Delta](https://discord.com/oauth2/authorize?client_id=1356693934012891176&permissions=8&integration_type=0&scope=bot)\n"
-            "\n---\n\n"
-            "## 🛡️・**Serveur Support**\n\n"
+            "> <:dev_white:1376909968141451274>  **Un bot complet pour gérer, protéger et animer votre serveur Discord.**\n"
+            "> <a:fete:1375944789035319470>  Simple, puissant, gratuit (Premium offert pendant la phase de test) !\n\n"
+
+            "## <:bot:1377223809832058971>・**Project : Delta – Le Bot**\n\n"
+            "<:shield:1377224699955773523>  Anti-raid puissant – Ne laissez aucune attaque passer.\n"
+            "<:Vocal:1361766779143061767>  Détection automatique de mots sensibles – Modération intelligente.\n"
+            "<:tools:1377227900037632060>  Outils de gestion simples et efficaces – Kick, ban, clear, logs, et plus.\n"
+            "<:member:1377228477131919370>  Giveaways & commandes fun – Pour animer votre communauté avec style.\n\n"
+
+            "<:files:1377229165572395079>  **Fonctionnalités à venir :**\n"
+            "<:uoad:1377229381784698932>  *Sauvegarde de serveur.*\n"
+            "<:ticket:1377229577880997918> *Tickets.*\n"
+            "<:delertle:1377229695086628884> *Logs.*\n"
+            "<a:recaptcha:1377230186545942609> *Captcha*\n\n"
+
+            "<a:fete:1377230403114635415> **Offre actuelle** : Tous les serveurs qui ajoutent le bot ont un **statut Premium GRATUIT** pendant la phase de test !\n\n"
+            "<:emoji_36:1361992348363653180>  [Ajouter Project : Delta](https://discord.com/oauth2/authorize?client_id=1356693934012891176&permissions=8&integration_type=0&scope=bot)\n\n"
+
+            "## <:support:1377230564070789201> ・**Serveur Support**\n\n"
             "Besoin d’aide ? Une question ? Une suggestion ?\n"
             "Tu es au bon endroit !\n\n"
-            "🗨️ Staff actif et à l’écoute\n"
-            "💡 Salons dédiés aux bugs et idées\n"
-            "🎁 Bonus pour les membres actifs et soutiens de Project : Delta\n"
-            "🎉 Événements réguliers & Giveaways à gogo !\n\n"
-            "🔗 [Rejoindre notre support (t’es déjà là !)](https://discord.gg/c5VkwStrTr)\n"
-            "\n---\n\n"
-            "## 📆・**Lancement Officiel : Samedi 31 Mai à 18h00**\n\n"
-            "🔥 Grand événement **“L’Éveil de Project : Delta”** avec **+10 giveaways** et des **services exclusifs à gagner** !\n\n"
-            "🎁 **Giveaways Classiques** (5 à 7) :\n"
-            "🏆 Jusqu’à des services *à vie* (bots, sites web, serveurs Discord)\n"
-            "🎯 Objectifs communautaires simples : membres, invites, ajout du bot...\n\n"
-            "⚡ **Giveaways Fast** (5 à 7) :\n"
-            "📦 Des récompenses instantanées, sans conditions !\n\n"
-            "🎫 Plus tu participes, plus tu gagnes.\n"
-            "🎯 Active-toi et cumule des **points** pour échanger contre **services gratuits** (voir salon dédié).\n"
-            "\n---\n\n"
-            "## 💬・**Rejoins l’aventure dès maintenant !**\n\n"
+            "<:Staff:1377230643678675015> *Staff actif et à l’écoute*\n"
+            "<:spare_bulb:1362002224599011429> *Salons dédiés aux bugs et idées*\n"
+            "<:pinkgift:1377230919970062366> *Bonus pour les membres actifs et soutiens de Project : Delta*\n"
+            "<a:fleche3:1290077283100397672> *Événements réguliers & Giveaways à gogo !*\n\n"
+            "<:link:1377231454219534376> [Rejoindre notre support (t’es déjà là)](https://discord.gg/c5VkwStrTr)\n\n"
+
+            "## <:Calendar:1338179661422661642> ・**Lancement Officiel : Vendredi 30 Mai à 18h00**\n\n"
+            "<a:fete:1375944789035319470>  Grand événement **“L’Éveil de Project : Delta”** avec **+10 giveaways** et des **services exclusifs à gagner** !\n\n"
+            "<a:Gift_Animation:1342041962542272594> **Giveaways Classiques** (5 à 7) :\n"
+            "<a:trophee:1289678773700268183> *Jusqu’à des services **à vie** (bots, sites web, serveurs Discord)*\n"
+            "<a:star:1377232131516010646> *Objectifs communautaires simples : membres, invites, ajout du bot...*\n\n"
+            "<a:cadeau:1377232340702597212>  **Giveaways Fast** (5 à 7) :\n"
+            "<a:check:1377232820715524156> *Des récompenses instantanées, sans conditions !*\n\n"
+            "<a:notif:1172810989088026675> *Plus tu participes, plus tu gagnes.*\n"
+            "<:hey:1376197207832924290> Active-toi et cumule des **points** pour échanger contre **services gratuits** (voir salon dédié).\n\n"
+
+            "## <a:heart:1376670580283146371> ・**Rejoins l’aventure dès maintenant !**\n\n"
             "🔗 [Ajouter le bot à ton serveur](https://discord.com/oauth2/authorize?client_id=1356693934012891176&permissions=8&integration_type=0&scope=bot)\n\n"
-            "Merci d’être là avec nous ❤️\n"
+            "Merci d’être là avec nous <a:Heart:1353412261888135228>\n"
             "**– L’équipe Project : Delta**"
         ),
-        color=discord.Color.purple()  # Tu peux changer la couleur ici
+        color=discord.Color.purple()  # Tu peux mettre une autre couleur hex si tu préfères
     )
 
     embed.set_thumbnail(url=bot.user.avatar.url)  # Photo de profil du bot à droite
