@@ -5690,8 +5690,9 @@ async def regle_event(ctx):
         color=discord.Color.gold()
     )
 
+    embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/uriifs3A2F2FM2F91f68b3b-528b-47fb-a810-fa202d513477.png?raw=true")
     embed.set_footer(
-        text="– L’équipe Project : Delta",
+        text="Project : Delta – L’avenir de ton serveur commence ici",
         icon_url=ctx.author.display_avatar.url
     )
 
