@@ -5659,7 +5659,7 @@ async def regle_event(ctx):
         return await ctx.send("🚫 Cette commande est réservée à ISEY uniquement.")
 
     embed = discord.Embed(
-        title="📜 Règlement de l’Événement — L’Éveil de Project : Delta",
+        title="Règlement de l’Événement — L’Éveil de Project : Delta",
         description=(
             "Merci de participer à notre événement ! Pour garantir une compétition saine et équitable, nous vous demandons de respecter les règles suivantes :\n\n"
 
