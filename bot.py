@@ -5716,7 +5716,7 @@ class PointSystemButton(discord.ui.Button):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(color=0x2ECC71)
+        embed = discord.Embed(color=0x1ABC9C)
         embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/1.jpg?raw=true")
 
         view = discord.ui.View(timeout=None)
@@ -5754,7 +5754,7 @@ class ImageButton(discord.ui.Button):
         self.image_url = image_url
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(color=0x95A5A6)
+        embed = discord.Embed(color=0x2C3E50)
         embed.set_image(url=self.image_url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -5783,7 +5783,7 @@ async def info(ctx):
             "<a:fleche3:1376557416216268921> *Si c’est un énorme succès* → on prolonge, ajoute des bonus, et peut-être des **récompenses surprises** <:sourire:1377362110165815296>\n\n"
             "<:bravo:1377362203757383802>  En bref : **plus vous participez, plus ça dure, plus c’est cool.** À vous de jouer !"
         ),
-        color=0xF1C40F
+        color=0x9B59B6
     )
 
     await ctx.send(embed=embed, view=InfoView())
