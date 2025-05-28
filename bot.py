@@ -5627,7 +5627,7 @@ async def presentation(ctx):
             "<a:fleche3:1290077283100397672> *Événements réguliers & Giveaways à gogo !*\n\n"
             "<:link:1377231454219534376> [Rejoindre notre support (t’es déjà là)](https://discord.gg/c5VkwStrTr)\n\n"
 
-            "## <:Calendar:1338179661422661642> ・**Lancement Officiel : Vendredi 30 Mai à 18h00**\n\n"
+            "## <:Calendar:1377251449456558080> ・**Lancement Officiel : Vendredi 30 Mai à 18h00**\n\n"
             "<a:fete:1375944789035319470>  Grand événement **“L’Éveil de Project : Delta”** avec **+10 giveaways** et des **services exclusifs à gagner** !\n\n"
             "<a:Gift_Animation:1342041962542272594> **Giveaways Classiques** (5 à 7) :\n"
             "<a:trophee:1289678773700268183> *Jusqu’à des services **à vie** (bots, sites web, serveurs Discord)*\n"
