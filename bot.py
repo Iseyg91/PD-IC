@@ -5699,6 +5699,8 @@ async def regle_event(ctx):
 
     await ctx.send(embed=embed)
 
+# === CLASSES DES BOUTONS ET VUES ===
+
 class InfoView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
@@ -5708,66 +5710,41 @@ class InfoView(discord.ui.View):
 class PointSystemButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="📊 Système de Points",
+            label="Système de Gain de points",
             style=discord.ButtonStyle.primary,
             custom_id="pointsystem_btn"
         )
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="🎯 Gagne des Points en Participant !",
-            description=(
-                "💡 **Comment ça marche ?**\n"
-                "Plus tu es actif, plus tu gagnes des **points** utilisables pour obtenir :\n"
-                "- 🎁 Des rôles exclusifs\n"
-                "- 🛠️ Des services gratuits (bot, site, etc.)\n"
-                "- 🚀 Des boosts ou pubs pour ton propre serveur\n\n"
-                "**🔄 Actions qui rapportent :**\n"
-                "• Participer aux jeux / concours\n"
-                "• Être actif dans les discussions\n"
-                "• Inviter des membres\n"
-                "• Utiliser les commandes du bot\n\n"
-                "> 🎉 Des *multiplicateurs x2/x3* peuvent apparaître aléatoirement pendant l'événement !"
-            ),
-            color=0x1ABC9C
-        )
+        embed = discord.Embed(color=0x2ECC71)
         embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/1.jpg?raw=true")
 
         view = discord.ui.View(timeout=None)
-        view.add_item(ImageButton("🎮 Project : Delta", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/2.jpg?raw=true", "project_image_btn"))
-        view.add_item(ImageButton("📢 Annonce Officielle", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/3.jpg?raw=true", "annonce_image_btn"))
+        view.add_item(ImageButton("Project : Delta", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/2.jpg?raw=true", "project_image_btn"))
+        view.add_item(ImageButton("Annonce", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/3.jpg?raw=true", "annonce_image_btn"))
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 class PriceServiceButton(discord.ui.Button):
     def __init__(self):
         super().__init__(
-            label="💸 Prix des Services",
+            label="Prix des Services",
             style=discord.ButtonStyle.secondary,
             custom_id="price_service_btn"
         )
 
     async def callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="🛠️ Tarifs & Services Project : Delta",
-            description=(
-                "🧾 **Tarifs indicatifs** selon la nature du service et sa complexité :\n\n"
-                "🔍 Chaque prestation est **personnalisable** selon ta demande !\n"
-                "Voici les catégories que tu peux explorer :\n"
-                "• 🤖 Création de bots personnalisés\n"
-                "• 🌐 Sites vitrines ou outils en ligne\n"
-                "• 🛡️ Serveurs Discord complets (setups, systèmes...)\n"
-                "• 🎨 Services annexes (design, fonctionnalités uniques, etc.)\n\n"
-                "> 💬 *Un devis peut toujours être discuté en ticket !*"
-            ),
-            color=0x9B59B6
+            title="💰 Prix des Services",
+            description="Les prix varient selon le service demandé et sa complexité.",
+            color=0x3498DB
         )
 
         view = discord.ui.View(timeout=None)
-        view.add_item(ImageButton("🤖 Bot Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/4.jpg?raw=true", "img_botdiscord"))
-        view.add_item(ImageButton("🌐 Site Web", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/5.jpg?raw=true", "img_siteweb"))
-        view.add_item(ImageButton("🛡️ Serveur Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/6.jpg?raw=true", "img_servdiscord"))
-        view.add_item(ImageButton("🎨 Prestations Annexes", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/7.jpg?raw=true", "img_annexe"))
+        view.add_item(ImageButton("Bot Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/4.jpg?raw=true", "img_botdiscord"))
+        view.add_item(ImageButton("Site Web", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/5.jpg?raw=true", "img_siteweb"))
+        view.add_item(ImageButton("Serveur Discord", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/6.jpg?raw=true", "img_servdiscord"))
+        view.add_item(ImageButton("Prestations Annexes", "https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20EVENT/7.jpg?raw=true", "img_annexe"))
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -5777,13 +5754,9 @@ class ImageButton(discord.ui.Button):
         self.image_url = image_url
 
     async def callback(self, interaction: discord.Interaction):
-        embed = discord.Embed(
-            title="📸 Aperçu",
-            color=0xE67E22
-        )
+        embed = discord.Embed(color=0x95A5A6)
         embed.set_image(url=self.image_url)
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 # === COMMANDE POUR ENVOYER L'ÉVENT ===
 
