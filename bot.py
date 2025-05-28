@@ -5641,7 +5641,7 @@ async def presentation(ctx):
     )
 
     embed.set_thumbnail(url=bot.user.avatar.url)  # Photo de profil du bot à droite
-    embed.set_image(url="https://cdn.discordapp.com/attachments/123456789/banner_project_delta.png")  # Mets ici l'URL de ta bannière
+    embed.set_image(url="https://github.com/Iseyg91/PD-IC/blob/main/IMAGES%20Delta/uriifs3A2F2FM2F91f68b3b-528b-47fb-a810-fa202d513477.png?raw=true")  # Mets ici l'URL de ta bannière
 
     await ctx.send(embed=embed)
 
