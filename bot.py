@@ -150,6 +150,7 @@ collection27 = db['guild_troll'] #Stock les serveur ou les commandes troll sont 
 collection28 = db['sensible'] #Stock les mots sensibles actif des serveurs
 collection31 = db ['delta_event'] #Stock les serveur, avec le nombres de membres et le owner
 collection32 = db['delta_statut']
+collection33 = db['ds_stats']
 
 # Fonction pour ajouter un serveur premium
 def add_premium_server(guild_id: int, guild_name: str):
@@ -242,6 +243,7 @@ def load_guild_settings(guild_id):
     sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
     delta_event_data = collection31.find_one({"guild_id": guild_id}) or {}
     delta_statut_data = collection32.find_one({"guild_id": guild_id}) or {}
+    ds_stats_data = collection33.find_one({"guild_id": guild_id}] or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
@@ -275,7 +277,8 @@ def load_guild_settings(guild_id):
         "guild_troll": guild_troll_data,
         "sensible": sensible_data,
         "delta_event": delta_event_data,
-        "delta_statut": delta_statut_data
+        "delta_statut": delta_statut_data,
+        "ds_stats": ds_stats_data
     }
 
     return combined_data
@@ -296,6 +299,8 @@ bot = commands.Bot(command_prefix=get_prefix, intents=intents, help_command=None
 GUILD_SETTINGS = {}
 
 #------------------------------------------------------------------------- Code Protection:
+# Compteur de commandes exécutées (exemple simple)
+command_count = 0
 # Dictionnaire en mémoire pour stocker les paramètres de protection par guild_id
 protection_settings = {}
 ban_times = {}  # Dictionnaire pour stocker les temps de bans
@@ -599,7 +604,27 @@ async def update_status_embed_loop():
         wait_time = random.randint(5, 20)
         print(f"[Statut] Prochaine mise à jour dans {wait_time} minutes.")
         await asyncio.sleep(wait_time * 60)
+        
+# Tâche de fond toutes les 2 minutes
+@tasks.loop(minutes=2)
+async def update_dashboard():
+    total_users = sum(guild.member_count for guild in bot.guilds)
 
+    stats = {
+        "_id": "global_stats",
+        "guild_count": len(bot.guilds),
+        "total_users": total_users,
+        "commands_executed_today": command_count,
+        "last_update": datetime.utcnow()
+    }
+
+    stats_collection.update_one(
+        {"_id": "global_stats"},
+        {"$set": stats},
+        upsert=True
+    )
+    print("📊 Statistiques mises à jour dans MongoDB.")
+    
 # Événement quand le bot est prêt
 @bot.event
 async def on_ready():
@@ -609,6 +634,7 @@ async def on_ready():
 
     # Démarrer les tâches de fond
     bot.uptime = time.time()
+    update_dashboard.start()
     update_stats.start()
     urgence_ping_loop.start()
     update_bot_presence.start()
@@ -965,6 +991,10 @@ async def send_alert_to_admin(message, detected_word):
         traceback.print_exc()
 
 #-------------------------------------------------------------------------- Bot Event:
+@bot.event
+async def on_command(ctx):
+    global command_count
+    command_count += 1
 # Nécessaire pour que le bouton fonctionne après redémarrage
 @bot.event
 async def setup_hook():
