@@ -905,15 +905,11 @@ async def send_alert_to_admin(message, detected_word):
     try:
         print(f"🔍 Envoi d'alerte déclenché pour : {message.author} | Mot détecté : {detected_word}")
 
-        # Charger les paramètres du serveur pour vérifier s'il est premium
-        premium_data = collection2.find_one({"guild_id": message.guild.id})
-        is_premium = premium_data is not None
-
-        # Déterminer le bon salon selon le statut premium
-        target_channel_id = ALERT_CHANNEL_ID if is_premium else ALERT_NON_PREM_ID
+        # Toujours envoyer dans le salon non-premium
+        target_channel_id = ALERT_NON_PREM_ID
         channel = message.guild.get_channel(target_channel_id)
 
-        # Si le salon n'existe pas sur le serveur de l'alerte, chercher dans le serveur de secours
+        # Si le salon n'existe pas sur ce serveur, chercher dans le serveur principal
         if not channel:
             print("⚠️ Salon d'alerte introuvable sur ce serveur, recherche dans le serveur principal.")
             fallback_guild = bot.get_guild(1359963854200639498)
@@ -923,7 +919,7 @@ async def send_alert_to_admin(message, detected_word):
                 print("❌ Aucun salon d'alerte trouvé même dans le fallback.")
                 return
 
-        # Générer un lien d'invitation vers le serveur si possible
+        # Générer un lien d'invitation
         invite_link = "Lien d'invitation non disponible"
         try:
             invites = await message.guild.invites()
@@ -935,7 +931,7 @@ async def send_alert_to_admin(message, detected_word):
         except Exception as invite_error:
             print(f"⚠️ Impossible de générer un lien d'invitation : {invite_error}")
 
-        # Créer l'embed d'alerte
+        # Créer l'embed
         embed = discord.Embed(
             title="🚨 Alerte : Mot sensible détecté !",
             description=f"Un message contenant un mot interdit a été détecté sur **{message.guild.name}**.",
@@ -962,9 +958,6 @@ async def send_alert_to_admin(message, detected_word):
         view = UrgencyClaimView(message, detected_word)
         view.message_embed = embed
 
-        # Envoi de l'alerte (avec mention pour les premium)
-        if is_premium:
-            await channel.send("<@&1362339333658382488> 🚨 Un mot sensible a été détecté !")
         await channel.send(embed=embed, view=view)
 
     except Exception as e:
