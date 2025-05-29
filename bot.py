@@ -243,7 +243,7 @@ def load_guild_settings(guild_id):
     sensible_data = collection28.find_one({"guild_id": guild_id}) or {}
     delta_event_data = collection31.find_one({"guild_id": guild_id}) or {}
     delta_statut_data = collection32.find_one({"guild_id": guild_id}) or {}
-    ds_stats_data = collection33.find_one({"guild_id": guild_id}] or {}
+    ds_stats_data = collection33.find_one({"guild_id": guild_id}) or {}
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
 
