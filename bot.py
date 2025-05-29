@@ -618,7 +618,7 @@ async def update_dashboard():
         "last_update": datetime.utcnow()
     }
 
-    stats_collection.update_one(
+    stats_collection33.update_one(
         {"_id": "global_stats"},
         {"$set": stats},
         upsert=True
