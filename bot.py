@@ -2047,8 +2047,6 @@ Personnalisez votre serveur **facilement** gr\u00e2ce aux options ci-dessous.
             embed.add_field(name="\ud83d\udc51 Propri\u00e9taire :", value=format_mention(self.guild_data.get('owner', 'Non d\u00e9fini'), "user"), inline=False)
             embed.add_field(name="\ud83d\udee1\ufe0f R\u00f4le Admin :", value=format_mention(self.guild_data.get('admin_role', 'Non d\u00e9fini'), "role"), inline=False)
             embed.add_field(name="\ud83d\udc65 R\u00f4le Staff :", value=format_mention(self.guild_data.get('staff_role', 'Non d\u00e9fini'), "role"), inline=False)
-            embed.add_field(name="\ud83d\udea8 Salon Sanctions :", value=format_mention(self.guild_data.get('sanctions_channel', 'Non d\u00e9fini'), "channel"), inline=False)
-
             self.clear_items()
             self.add_item(InfoSelect(self))
             self.add_item(ReturnButton(self))
@@ -2120,7 +2118,6 @@ class InfoSelect(Select):
             discord.SelectOption(label="\ud83d\udc51 Propri\u00e9taire", value="owner"),
             discord.SelectOption(label="\ud83d\udee1\ufe0f R\u00f4le Admin", value="admin_role"),
             discord.SelectOption(label="\ud83d\udc65 R\u00f4le Staff", value="staff_role"),
-            discord.SelectOption(label="\ud83d\udea8 Salon Sanctions", value="sanctions_channel"),
         ]
         super().__init__(placeholder="\ud83c\udf9b\ufe0f S\u00e9lectionnez un param\u00e8tre \u00e0 modifier", options=options)
         self.view_ctx = view
@@ -2168,8 +2165,6 @@ class InfoSelect(Select):
             new_value = response.mentions[0].id
         elif param in ["admin_role", "staff_role"] and response.role_mentions:
             new_value = response.role_mentions[0].id
-        elif param == "sanctions_channel" and response.channel_mentions:
-            new_value = response.channel_mentions[0].id
 
         if not new_value:
             embed_error = discord.Embed(
@@ -2197,6 +2192,7 @@ class InfoSelect(Select):
         )
         await interaction.followup.send(embed=embed_success, ephemeral=True)
         print(f"[InfoSelect] {param} modifi\u00e9 avec : {new_value}")
+
 @bot.hybrid_command(name="setup", description="Configure le bot pour ce serveur.")
 async def setup(ctx):
     print("[Setup] Commande 'setup' appelée.")
