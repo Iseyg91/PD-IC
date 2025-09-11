@@ -839,7 +839,7 @@ async def remove_glace_roles():
     role_id = 1365063792513515570
 
     for user_data in users_to_unfreeze:
-        guild = bot.get_guild(VOTRE_GUILD_ID)  # Remplace par l'ID de ton serveur
+        guild = bot.get_guild(1034007767050104892)  # Remplace par l'ID de ton serveur
         member = guild.get_member(user_data["user_id"])
         if member:
             role = guild.get_role(role_id)
