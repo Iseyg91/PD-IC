@@ -143,7 +143,7 @@ def create_embed(title, description, color=discord.Color.blue(), footer_text="")
 mongo_uri = os.getenv("MONGO_DB")  # URI de connexion à MongoDB
 print("Mongo URI :", mongo_uri)  # Cela affichera l'URI de connexion (assure-toi de ne pas laisser cela en prod)
 client = MongoClient(mongo_uri)
-db = client['Cass-Eco2']
+db = client['ETHERYA']
 
 # Collections
 collection = db['ether_eco']  #Stock les Bal
