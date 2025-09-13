@@ -1974,7 +1974,12 @@ async def slut(ctx: commands.Context):
         if time_diff < timedelta(minutes=30):
             remaining = timedelta(minutes=30) - time_diff
             minutes_left = int(remaining.total_seconds() // 60)
-            return await ctx.send(f"<:classic_x_mark:1362711858829725729> Tu dois encore patienter **{minutes_left} minutes** avant de retenter une nouvelle aventure sexy.")
+    
+            embed = discord.Embed(
+                description=f"<:classic_x_mark:1362711858829725729> Tu dois encore patienter **{minutes_left} minutes** avant de retenter une nouvelle aventure sexy.",
+                color=discord.Color.red()
+            )
+            return await ctx.send(embed=embed)
 
     # Déterminer le résultat
     outcome = random.choice(["gain", "loss"])
@@ -2071,7 +2076,12 @@ async def crime(ctx: commands.Context):
         if time_diff < timedelta(minutes=30):
             remaining = timedelta(minutes=30) - time_diff
             minutes_left = int(remaining.total_seconds() // 60)
-            return await ctx.send(f"<:classic_x_mark:1362711858829725729> Tu dois attendre encore **{minutes_left} minutes** avant de pouvoir recommencer.")
+    
+            embed = discord.Embed(
+                description=f"<:classic_x_mark:1362711858829725729> Tu dois attendre encore **{minutes_left} minutes** avant de pouvoir recommencer.",
+                color=discord.Color.red()
+            )
+            return await ctx.send(embed=embed)
 
     outcome = random.choice(["gain", "loss"])
     
@@ -2089,7 +2099,6 @@ async def crime(ctx: commands.Context):
         messages = [
             f"Tu as braqué une banque sans te faire repérer et gagné **{gain_amount} <:ecoEther:1341862366249357374>**.",
             f"Tu as volé une mallette pleine de billets ! Gain : **{gain_amount} <:ecoEther:1341862366249357374>**.",
-            # Autres messages pour les gains
         ]
         message = random.choice(messages)
 
@@ -2103,7 +2112,6 @@ async def crime(ctx: commands.Context):
         await log_eco_channel(bot, guild_id, user, "Gain après crime", gain_amount, balance_before, balance_after)
 
         embed = discord.Embed(
-            title="💸 Tu as réussi ton crime !",
             description=message,
             color=discord.Color.green()
         )
@@ -2112,7 +2120,6 @@ async def crime(ctx: commands.Context):
         messages = [
             f"Tu t’es fait attraper par la police et tu perds **{loss_amount} <:ecoEther:1341862366249357374>** en caution.",
             f"Ton complice t’a trahi et s’est enfui avec **{loss_amount} <:ecoEther:1341862366249357374>**.",
-            # Autres messages pour les pertes
         ]
         message = random.choice(messages)
 
@@ -2126,7 +2133,6 @@ async def crime(ctx: commands.Context):
         await log_eco_channel(bot, guild_id, user, "Perte après crime", -loss_amount, balance_before, balance_after)
 
         embed = discord.Embed(
-            title=user.name,
             description=message,
             color=discord.Color.red()
         )
