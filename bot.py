@@ -692,32 +692,10 @@ async def on_error(event, *args, **kwargs):
     except Exception:
         pass
 
-# Ton on_message reste pratiquement pareil
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    await enregistrer_message_jour(message.author.id, message.content)
-    # Gestion des partenariats dans un salon spécifique
-    if message.channel.id == partnership_channel_id:
-        rank, partnerships = get_user_partner_info(message.author.id)
-
-        await message.channel.send("<@&1355157749994098860>")
-
-        embed = discord.Embed(
-            title="Merci du partenariat 🤝",
-            description=f"{message.author.mention}\nTu es rank **{rank}**\nTu as effectué **{partnerships}** partenariats.",
-            color=discord.Color.green()
-        )
-        embed.set_footer(
-            text="Partenariat réalisé",
-            icon_url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2024-09-28_211041.png?raw=true"
-        )
-        embed.set_image(
-            url="https://github.com/Iseyg91/KNSKS-ET/blob/main/Images_GITHUB/Capture_decran_2025-02-15_231405.png?raw=true"
-        )
-        await message.channel.send(embed=embed)
 
     # Générer un montant aléatoire entre 5 et 20 coins pour l'utilisateur
     coins_to_add = random.randint(5, 20)
