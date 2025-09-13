@@ -570,11 +570,6 @@ COLLECT_ROLES_CONFIG = [
     }
 ]
 
-# --- Tâche quotidienne à minuit ---
-@tasks.loop(hours=24)
-async def task_annonce_jour():
-    await annoncer_message_du_jour()
-
 # --- Boucle auto-collecte (optimisée) ---
 @tasks.loop(minutes=15)
 async def auto_collect_loop():
@@ -667,54 +662,6 @@ async def update_top_roles():
                 if member.id not in [u["user_id"] for u in top_users]:
                     await member.remove_roles(role)
                     print(f"Retiré {role.name} de {member.display_name}")
-# --- Boucle suppression des rôles Bourrasque ---
-@tasks.loop(minutes=10)
-async def remove_bourrasque_roles():
-    now = datetime.utcnow()
-    expired = collection54.find({"end_time": {"$lte": now}})
-
-    for doc in expired:
-        guild = bot.get_guild(doc["guild_id"])
-        member = guild.get_member(doc["user_id"])
-        role = guild.get_role(doc["role_id"])
-
-        if member and role:
-            try:
-                await member.remove_roles(role)
-                print(f"✅ Rôle retiré de {member.display_name}")
-            except Exception as e:
-                print(f"❌ Erreur lors du retrait du rôle: {e}")
-
-        # Supprime l'entrée après retrait
-        collection54.delete_one({"_id": doc["_id"]})
-
-# --- Boucle suppression des rôles de gel économique ---
-@tasks.loop(minutes=30)
-async def remove_glace_roles():
-    now = datetime.utcnow()
-    users_to_unfreeze = collection43.find({"remove_at": {"$lte": now}})
-    role_id = 1365063792513515570
-
-    for user_data in users_to_unfreeze:
-        guild = bot.get_guild(1034007767050104892)  # Remplace par l'ID de ton serveur
-        member = guild.get_member(user_data["user_id"])
-        if member:
-            role = guild.get_role(role_id)
-            if role in member.roles:
-                await member.remove_roles(role, reason="Fin du gel économique")
-        collection43.delete_one({"user_id": user_data["user_id"]})
-
-# --- Boucle réinitialisation des primes et honneurs ---
-@tasks.loop(hours=168)
-async def reset_bounties_and_honor():
-    collection37.update_many({}, {"$set": {"bounty": 50}})
-    collection38.update_many({}, {"$set": {"honor": 50}})
-    await redistribute_roles()
-
-async def redistribute_roles():
-    # Logique pour réattribuer les rôles en fonction de la prime ou de l'honneur
-    pass
-
 # --- Initialisation au démarrage ---
 @bot.event
 async def on_ready():
@@ -743,18 +690,10 @@ async def on_ready():
 
 # --- Démarrer les tâches en arrière-plan ---
 async def start_background_tasks():
-    if not task_annonce_jour.is_running():
-        task_annonce_jour.start()
     if not auto_collect_loop.is_running():
         auto_collect_loop.start()
     if not update_top_roles.is_running():
         update_top_roles.start()
-    if not reset_bounties_and_honor.is_running():
-        reset_bounties_and_honor.start()
-    if not remove_glace_roles.is_running():
-        remove_glace_roles.start()
-    if not remove_bourrasque_roles.is_running():
-        remove_bourrasque_roles.start()
 
 # --- Gestion globale des erreurs ---
 @bot.event
@@ -769,45 +708,6 @@ async def on_error(event, *args, **kwargs):
         await args[0].response.send_message(embed=embed)
     except Exception:
         pass
-
-# Fonction pour enregistrer un message du joueur dans la base de données
-async def enregistrer_message_jour(user_id, message):
-    date_aujourdhui = datetime.utcnow().strftime('%Y-%m-%d')
-    collection.update_one(
-        {"user_id": user_id, "date": date_aujourdhui},
-        {"$push": {"messages": message}},  # <- On utilise $push pour accumuler les messages
-        upsert=True
-    )
-
-# Fonction pour envoyer un message à 00h00
-async def annoncer_message_du_jour():
-    await bot.wait_until_ready()  # On s'assure que le bot est prêt
-    while not bot.is_closed():
-        now = datetime.utcnow()
-        # Calculer combien de secondes jusqu'à minuit
-        next_run = (datetime.combine(now + timedelta(days=1), datetime.min.time()) - now).total_seconds()
-        await asyncio.sleep(next_run)
-
-        date_aujourdhui = datetime.utcnow().strftime('%Y-%m-%d')
-        messages = collection.find({"date": date_aujourdhui})
-
-        channel = bot.get_channel(1365746881048612876)  # ID du salon
-
-        for msg in messages:
-            user_id = msg["user_id"]
-            user = bot.get_user(user_id)
-            if user:
-                content = f"Le <@&1355903910635770098> est ||<@{user.id}>||, félicitations à lui."
-                message_annonce = await channel.send(content)
-                await message_annonce.add_reaction("<:chat:1362467870348410900>")
-                await retirer_role(user)
-
-# Fonction pour retirer le rôle à 23h59 (peut être aussi améliorée avec une tâche programmée si besoin)
-async def retirer_role(user):
-    role = discord.utils.get(user.guild.roles, id=1355903910635770098)  # ID du rôle à retirer
-    if role:
-        await user.remove_roles(role)
-        print(f"Rôle retiré de {user.name} à 23h59.")
 
 # Ton on_message reste pratiquement pareil
 @bot.event
