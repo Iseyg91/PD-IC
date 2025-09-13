@@ -2044,11 +2044,10 @@ async def slut(ctx: commands.Context):
 
     # Embed
     embed = discord.Embed(
-        title=user.name,  # juste le pseudo (username)
         description=message,
         color=discord.Color.blue() if outcome == "gain" else discord.Color.dark_red()
     )
-    embed.set_author(name=user.name, icon_url=user.avatar.url)  # pseudo + pp à gauche
+    embed.set_author(name=user.display_name, icon_url=user.avatar.url)
 
     await ctx.send(embed=embed)
 
