@@ -14,6 +14,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
 from typing import Optional, List
+import discord.ui as ui
 
 import discord
 from discord import Embed, Interaction, ButtonStyle, TextStyle
