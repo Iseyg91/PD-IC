@@ -1522,7 +1522,7 @@ async def deposit(ctx: commands.Context, amount: str):
         description=f"<:Check:1362710665663615147> Tu as déposé <:ecoEther:1341862366249357374> **{int(deposit_amount):,}** dans ta banque !",
         color=discord.Color.green()
     )
-    embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+    embed.set_author(name=interaction.user.name, icon_url=interaction.user.avatar.url)
 
     await ctx.send(embed=embed)
 
@@ -1554,7 +1554,7 @@ async def withdraw(ctx: commands.Context, amount: str):
                 description="❌ Montant invalide. Utilise un nombre positif ou `all`.",
                 color=discord.Color.red()
             )
-            embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+            embed.set_author(name=interaction.user.name, icon_url=interaction.user.avatar.url)
             return await ctx.send(embed=embed)
 
         withdrawn_amount = int(amount)
@@ -1811,7 +1811,7 @@ async def pay(ctx: commands.Context, user: discord.User, amount: str):
                 ),
                 color=discord.Color.red()
             )
-            embed.set_author(name=sender.display_name, icon_url=sender.display_avatar.url)
+            embed.set_author(name=sender.user_name, icon_url=sender.display_avatar.url)
             return await ctx.send(embed=embed)
 
     # Mise à jour des soldes
@@ -1885,7 +1885,7 @@ async def work(ctx: commands.Context):
                 description=f"<:classic_x_mark:1362711858829725729> {user.mention}, tu dois attendre **{minutes_left} minutes** avant de pouvoir retravailler.",
                 color=discord.Color.red()
             )
-            embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+            embed.set_author(name=user.user_name, icon_url=user.display_avatar.url)
             return await ctx.send(embed=embed)
 
     # Gain aléatoire
@@ -2044,11 +2044,11 @@ async def slut(ctx: commands.Context):
 
     # Embed
     embed = discord.Embed(
-        title="💋 Résultat de ta prestation",
+        title=user.name,  # juste le pseudo (username)
         description=message,
         color=discord.Color.blue() if outcome == "gain" else discord.Color.dark_red()
     )
-    embed.set_footer(text=f"Aventure tentée par {user}", icon_url=user.display_avatar.url)
+    embed.set_author(name=user.name, icon_url=user.avatar.url)  # pseudo + pp à gauche
 
     await ctx.send(embed=embed)
 
@@ -2126,7 +2126,7 @@ async def crime(ctx: commands.Context):
         await log_eco_channel(bot, guild_id, user, "Perte après crime", -loss_amount, balance_before, balance_after)
 
         embed = discord.Embed(
-            title="🚨 Échec du crime !",
+            title=user.name,
             description=message,
             color=discord.Color.red()
         )
@@ -2136,7 +2136,8 @@ async def crime(ctx: commands.Context):
         {"$set": {"last_crime_time": now}},
         upsert=True
     )
-
+    
+    embed.set_author(name=user.name, icon_url=user.avatar.url)  # pseudo + pp à gauche
     embed.set_footer(text=f"Action effectuée par {user}", icon_url=user.display_avatar.url)
     await ctx.send(embed=embed)
 
