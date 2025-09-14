@@ -5728,6 +5728,102 @@ async def power_buy(interaction: discord.Interaction, power_name: str):
     )
     await interaction.response.send_message(embed=embed)
 
+# ----------- AUTOCOMPLÉTION DES POUVOIRS -----------
+async def power_autocomplete(interaction: discord.Interaction, current: str):
+    results = []
+    powers = list(collection34.find().limit(100))  # Charger les 100 premiers pouvoirs
+
+    for power in powers:
+        title = power.get("title", "Sans nom")
+        if current.lower() in title.lower():
+            results.append(app_commands.Choice(name=title, value=title))
+
+    return results[:25]  # Discord limite à 25
+
+# ----------- COMMANDE INFO SUR UN POUVOIR -----------
+@bot.tree.command(name="power-info", description="Affiche toutes les informations d'un pouvoir de la boutique")
+@app_commands.describe(name="Nom du pouvoir à consulter")
+@app_commands.autocomplete(name=power_autocomplete)
+async def power_info(interaction: discord.Interaction, name: str):
+    # On cherche le pouvoir
+    power = collection34.find_one({"title": name})
+
+    if not power:
+        embed = discord.Embed(
+            title="❌ Pouvoir introuvable",
+            description="Aucun pouvoir trouvé avec ce nom.",
+            color=discord.Color.red()
+        )
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Prix formaté
+    price = power.get("price", 0)
+    formatted_price = f"{price:,}".replace(",", " ")
+    emoji_price = power.get("emoji_price", "<:ecoEther:1341862366249357374>")
+
+    # Embed principal
+    embed = discord.Embed(
+        title=f" Détails du pouvoir : {power['title']}",
+        color=discord.Color.purple()
+    )
+    embed.set_author(name=interaction.user.name, icon_url=interaction.user.avatar.url)
+
+    embed.add_field(name="**Nom du pouvoir**", value=power['title'], inline=False)
+    embed.add_field(name="**Description**", value=power.get("description", "Aucune description."), inline=False)
+    embed.add_field(name="ID", value=str(power.get("id", "N/A")), inline=True)
+    embed.add_field(name="Prix", value=f"{formatted_price} {emoji_price}", inline=True)
+
+    # Stock
+    quantity = power.get("quantity", "Indisponible")
+    if quantity == -1:
+        quantity = "Illimité"
+    embed.add_field(name="Quantité", value=str(quantity), inline=True)
+
+    # Rôle associé
+    role_id = power.get("role_id")
+    if role_id:
+        role = discord.utils.get(interaction.guild.roles, id=role_id)
+        if role:
+            embed.add_field(name="Rôle attribué", value=f"<@&{role.id}> ({role.name})", inline=False)
+        else:
+            embed.add_field(name="Rôle attribué", value=f"<@&{role_id}> (Introuvable)", inline=False)
+
+    # Prérequis
+    requirements = power.get("requirements")
+    if requirements:
+        req_message = []
+        if "roles" in requirements:
+            for role_id in requirements["roles"]:
+                role = discord.utils.get(interaction.guild.roles, id=role_id)
+                if role:
+                    req_message.append(f"• Rôle requis : <@&{role_id}> ({role.name})")
+                else:
+                    req_message.append(f"• Rôle requis : <@&{role_id}> (Introuvable)")
+
+        if "items" in requirements:
+            for required_item_id in requirements["items"]:
+                req_message.append(f"• Item requis : ID {required_item_id}")
+
+        embed.add_field(
+            name="Prérequis",
+            value="\n".join(req_message) if req_message else "Aucun prérequis",
+            inline=False
+        )
+    else:
+        embed.add_field(name="Prérequis", value="Aucun prérequis", inline=False)
+
+    # Emoji miniature
+    emoji = power.get("emoji")
+    if emoji:
+        try:
+            emoji_id = emoji.split(":")[2].split(">")[0]
+            embed.set_thumbnail(url=f"https://cdn.discordapp.com/emojis/{emoji_id}.png")
+        except Exception as e:
+            print(f"Erreur lors de l'extraction de l'emoji : {e}")
+
+    embed.set_footer(text="🛒 Etherya • Détails du pouvoir")
+
+    await interaction.response.send_message(embed=embed)
 
 #-------------------------------------------------------- Badges
 
