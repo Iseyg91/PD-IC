@@ -336,121 +336,9 @@ COLLECT_ROLES_CONFIG = [
         "target": "bank"
     },
     {
-        "role_id": 1365683057591582811, #Roi des Pirates
-        "amount": 12500,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365683477868970204, #Amiral en Chef
-        "amount": 15000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365682989996052520, #Yonko
-        "amount": 5000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365683407023243304, #Commandant
-        "amount": 7500,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365682918243958826, #Corsaires
-        "amount": 3000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365683324831531049, #Lieutenant
-        "amount": 5000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365682795501977610, #Pirates
-        "amount": 1000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365683175019516054, #Matelot
-        "amount": 2000,
-        "cooldown": 43200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365698043684327424, #Haki de l'armement Inferieur
-        "amount": 5000,
-        "cooldown": 7200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365389381246124084, #Haki de l'Armement Avancé
-        "amount": 10000,
-        "cooldown": 7200,
-        "auto": False,
-        "target": "bank"
-    },
-    {
         "role_id": 1363969965572755537, #Nen Maudit
         "percent": -20,
         "cooldown": 7200,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365313255471579297, #Soumsi a Nika
-        "percent": -10,
-        "cooldown": 86400,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365313257279062067, #Gol Gol no Mi
-        "percent": 3,
-        "cooldown": 86400,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365313261129568297, #Gear Second
-        "percent": 5,
-        "cooldown": 3600,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365312301900501063, #Nika Collect
-        "percent": 500,
-        "cooldown": 3600,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365313287964725290, #Soumis Bourrasque Devastatrice
-        "percent": -50,
-        "cooldown": 3600,
-        "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1365312292069048443, #Tonnere Divin
-        "percent": -70,
-        "cooldown": 86400,
         "auto": True,
         "target": "bank"
     },
@@ -473,13 +361,6 @@ COLLECT_ROLES_CONFIG = [
         "percent": 1,
         "cooldown": 3600,
         "auto": True,
-        "target": "bank"
-    },
-    {
-        "role_id": 1363948445282341135, #Mode Ermite
-        "amount": 5000,
-        "cooldown": 7200,
-        "auto": False,
         "target": "bank"
     },
     {
@@ -4608,25 +4489,65 @@ async def divin(ctx):
 #----------------------------------------------- ITEMS
 ITEMS = [
     {
-        "id": 66,
-        "emoji": "<:exorciste:1363602480792994003>",
-        "title": "Appel à un exorciste | 𝕊𝕆𝕀ℕ",
-        "description": "Permet de retirer le nen que quelqu'un nous a posé grâce à un exorciste !",
+        "id": 975,
+        "emoji": "<:Ten:1416766394162221190>",
+        "title": "Ten",
+        "description": "Enveloppe son corps d'une couche de nen ",
         "price": 50000,
         "emoji_price": "<:ecoEther:1341862366249357374>",
         "quantity": 5,
         "tradeable": True,
         "usable": True,
-        "use_effect": "Retire le rôle, faite !!heal",
+        "use_effect": "Donne un anti-rob de 2min (Cooldown 6h)",
         "requirements": {},
-        "role_id": 1363873859912335400,
-        "role_duration": 3600,
+        "role_id": 1416767589090332672,
         "remove_after_purchase": {
             "roles": False,
             "items": False
         },
-        "used": True,
-        "remove_role_after_use": True
+        "used": True
+    },
+    {
+        "id": 495,
+        "emoji": "<:Zetsu:1416766410838900736>",
+        "title": "Zetsu",
+        "description": "Retire toutes aura autour de son corps ",
+        "price": 50000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 5,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Empêche de se prendre des attaques pendant 10min (Cooldown 1j) ",
+        "requirements": {
+            "roles": [1416768766682857512]
+        },
+        "role_id": 1416769210326974495,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
+    },
+    {
+        "id": 369,
+        "emoji": "<:Ren:1416766428903768194>",
+        "title": "Ren",
+        "description": "Applique le ten en plus grande quantité",
+        "price": 150000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 5,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Effet en économie : Anti-rob de 1h (Cooldown 1j)",
+        "requirements": {
+            "roles": [1416770380575801467]
+        },
+        "role_id": 1416768766682857512,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
     },
     {
         "id": 7,
@@ -4640,7 +4561,7 @@ ITEMS = [
         "usable": True,
         "use_effect": "Donne le rôle licence hunter et donne accès au nen et au quêtes destiné au hunter",
         "requirements": {},
-        "role_id": 1363817603713339512,
+        "role_id": 1416768766682857512,
         "remove_after_purchase": {
             "roles": False,
             "items": False
@@ -4650,9 +4571,9 @@ ITEMS = [
     {
         "id": 15,
         "emoji": "<:nen:1363607663010775300>",
-        "title": "Nen | ℝ𝕆𝕃𝕃",
-        "description": "Cet objet vous permet d’utiliser le Nen (attribué aléatoirement) à votre guise. Chaque technique repose sur un serment.\n— Renforcement : +renforcement donne un anti-rob de 24h (1 semaine de cooldown).\n— Émission : +emission @user maudit un joueur et lui inflige un collect de -20% (1 semaine de cooldown).\n— Manipulation : +manipulation accorde un collect de 1% toutes les 4h pendant 24h (cooldown : 1 semaine).\n— Matérialisation : +materialisation génère un objet aléatoire de la boutique (cooldown : 2 semaines).\n— Transformation : +transformation foudroie la banque d’un joueur, retirant 25% (cooldown : 2 semaines).\n— Spécialisation : donne accès à tout.",
-        "price": 500000,
+        "title": "Hatsu | ℝ𝕆𝕃𝕃",
+        "description": "Cette objet vous permet de roll un type de Hatsu: **Renforcement, Emission, Manipulation, Matérialisation, Transformation, Spécialisation",
+        "price": 100000,
         "emoji_price": "<:ecoEther:1341862366249357374>",
         "quantity": 2,
         "tradeable": True,
@@ -4661,145 +4582,12 @@ ITEMS = [
         "requirements": {
             "items": [7]
         },
-        "role_id": 1363928528587984998,
+        "role_id": 1416771686904369256,
         "remove_after_purchase": {
             "roles": False,
             "items": False
         },
         "used": True
-    },
-    {
-        "id": 202,
-        "emoji": "<:bc1s1:1364217784439144488>",
-        "title": "Boule de Cristal n°1",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 197,
-        "emoji": "<:bc2s1:1364224502996930642>",
-        "title": "Boule de Cristal n°2",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 425,
-        "emoji": "<:bc3s1:1364224526476640306>",
-        "title": "Boule de Cristal n°3",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 736,
-        "emoji": "<:bc4s1:1364224543937396746>",
-        "title": "Boule de Cristal n°4",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 872,
-        "emoji": "<:bc5s1:1364224573306048522>",
-        "title": "Boule de Cristal n°5",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 964,
-        "emoji": "<:bc6s1:1364224591488221276>",
-        "title": "Boule de Cristal n°6",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
-    },
-    {
-        "id": 987,
-        "emoji": "<:bc7s1:1364224611536994315>",
-        "title": "Boule de Cristal n°7",
-        "description": "Une sphère mystérieuse et brillante, sans utilité apparente pour l'instant, mais qui semble receler un pouvoir caché en attente d'être découvert.",
-        "price": 0,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 0,
-        "tradeable": True,
-        "usable": False,
-        "use_effect": "???",
-        "requirements": {},  # Aucun requirement
-        "role_id": None,  # Aucun rôle à donner
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": False
     },
 ]
 
