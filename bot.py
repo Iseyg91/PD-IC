@@ -180,6 +180,7 @@ collection30 = db['ether_quetes'] #Stock les quetes
 collection31 = db['inventory_collect'] #Stock les items de quetes
 collection32 = db['collect_items'] #Stock les items collector
 collection33 = db['ether_ticket']
+collection34 = db['ether_pouvoir']
 
 # Fonction pour vérifier si l'utilisateur possède un item (fictif, à adapter à ta DB)
 async def check_user_has_item(user: discord.Member, item_id: int):
@@ -258,6 +259,7 @@ def load_guild_settings(guild_id):
     inventory_collect_data = collection31.find_one({"guild_id": guild_id}) or {}
     collect_items_data = collection32.find_one({"guild_id": guild_id}) or {}   
     ether_ticket_data = collection33.find_one({"guild_id": guild_id}) or {}
+    ether_pouvoir = collection34.find_one({"guild_id": guild_id}) or {}
     
     # Débogage : Afficher les données de setup
     print(f"Setup data for guild {guild_id}: {setup_data}")
@@ -295,7 +297,8 @@ def load_guild_settings(guild_id):
         "ether_quetes": ether_quetes_data,
         "inventory_collect": inventory_collect_data,
         "collect_items": collect_items_data,       
-        "ether_ticket": ether_ticket_data
+        "ether_ticket": ether_ticket_data,
+        "ether_pouvoir": ether_pouvoir_data
     }
     return combined_data
 
@@ -5533,6 +5536,101 @@ async def delete_item(interaction: discord.Interaction, item_id: str):
         return await interaction.response.send_message("❌ Aucun item trouvé avec cet ID.", ephemeral=True)
 
     return await interaction.response.send_message(f"🗑️ L'item avec l'ID `{item_id}` a été supprimé de la boutique.", ephemeral=True)
+
+#-------------------------------------------------------- Power
+
+#----------------------------------------------- POUVOIRS
+POWERS = [
+    {
+        "id": 101,
+        "emoji": "<:PowerAura:150000000000000001>",
+        "title": "Aura Boost",
+        "description": "Augmente la puissance de vos attaques de 10% pendant 1h.",
+        "price": 75000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 5,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Active l'augmentation de puissance automatiquement.",
+        "requirements": {},
+        "role_id": 150000000000000001,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
+    },
+]
+
+# Fonction pour insérer les pouvoirs dans MongoDB
+def insert_powers_into_db():
+    for power in POWERS:
+        if not collection34.find_one({"id": power["id"]}):
+            collection34.insert_one(power)
+
+# Fonction pour créer l'embed de la boutique
+def get_power_embed(page: int, items_per_page=10):
+    start = page * items_per_page
+    end = start + items_per_page
+    powers = POWERS[start:end]
+
+    embed = discord.Embed(title="⚡ Boutique de Pouvoirs", color=discord.Color.purple())
+
+    for power in powers:
+        formatted_price = f"{power['price']:,}".replace(",", " ")
+        name_line = f"ID: {power['id']} | {formatted_price} {power['emoji_price']} - {power['title']} {power['emoji']}"
+        embed.add_field(name=name_line, value=power["description"], inline=False)
+
+    total_pages = (len(POWERS) - 1) // items_per_page + 1
+    embed.set_footer(text=f"Page {page + 1}/{total_pages}")
+    return embed
+
+# Vue pour les boutons de navigation (idem que ton Paginator)
+class PowerPaginator(discord.ui.View):
+    def __init__(self, user: discord.User):
+        super().__init__(timeout=60)
+        self.page = 0
+        self.user = user
+
+    async def update(self, interaction: discord.Interaction):
+        embed = get_power_embed(self.page)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="◀️", style=discord.ButtonStyle.secondary)
+    async def previous(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.user:
+            embed = discord.Embed(
+                title="❌ Erreur",
+                description="Tu n'as pas la permission de naviguer dans ce menu.",
+                color=discord.Color.red()
+            )
+            return await interaction.response.edit_message(embed=embed, view=self)
+        if self.page > 0:
+            self.page -= 1
+            await self.update(interaction)
+
+    @discord.ui.button(label="▶️", style=discord.ButtonStyle.secondary)
+    async def next(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user != self.user:
+            embed = discord.Embed(
+                title="❌ Erreur",
+                description="Tu n'as pas la permission de naviguer dans ce menu.",
+                color=discord.Color.red()
+            )
+            return await interaction.response.edit_message(embed=embed, view=self)
+        if (self.page + 1) * 10 < len(POWERS):
+            self.page += 1
+            await self.update(interaction)
+
+# Commande slash pour afficher la boutique de pouvoirs
+@bot.tree.command(name="power-store", description="Affiche la boutique de pouvoirs")
+async def power_store(interaction: discord.Interaction):
+    embed = get_power_embed(0)
+    view = PowerPaginator(user=interaction.user)
+    await interaction.response.send_message(embed=embed, view=view)
+
+# Appel de la fonction pour insérer les pouvoirs dans la DB au démarrage
+insert_powers_into_db()
 
 #-------------------------------------------------------- Badges
 
