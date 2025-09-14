@@ -47,38 +47,34 @@ ISEY_ID = 792755123587645461
 # Définir GUILD_ID
 GUILD_ID = 1034007767050104892
 
-# --- ID Etherya Partenariats ---
-partnership_channel_id = 1355158081855688745
-ROLE_ID = 1355157749994098860
-
 # --- ID Etherya ---
-BOUNTY_CHANNEL_ID = 1355298449829920950
 ETHERYA_SERVER_ID = 1034007767050104892
 AUTORIZED_SERVER_ID = 1034007767050104892
 WELCOME_CHANNEL_ID = 1355198748296351854
 
 # --- ID Etherya Pouvoir ---
 # -- Heal (Appel de l'exorciste) --
-HEAL_ID = 1363873859912335400
-MALUS_ROLE_ID = 1363969965572755537
+HEAL_ID = 1416752768214896640
+MALUS_ROLE_ID = 1416752771553562687
 # -- Benediction --
-BENEDICTION_ROLE_ID = 1364294230343684137
+BENEDICTION_ROLE_ID = 1416752766889492590
 # -- Divin --
-DIVIN_ROLE_ID = 1367567412886765589
+DIVIN_ROLE_ID = 1416752767263051827
 
 # --- ID Etherya Nen ---
 # Rôle autorisé à utiliser le Nen
-PERMISSION_ROLE_ID = 1363928528587984998
+PERMISSION_ROLE_ID = 1416752518314332190
 # ID de l'item requis
 LICENSE_ITEM_ID = 7
+
 # Roles par type de Nen
 nen_roles = {
-    "renforcement": 1363306813688381681,
-    "emission": 1363817609916584057,
-    "manipulation": 1363817536348749875,
-    "materialisation": 1363817636793810966,
-    "transformation": 1363817619529924740,
-    "specialisation": 1363817593252876368,
+    "renforcement": 1416754201173954680,
+    "emission": 1416754203925155881,
+    "manipulation": 1416753631356649585,
+    "materialisation": 1416754207436046466,
+    "transformation": 1416753723706708091,
+    "specialisation": 1416754072316280919,
 }
 
 # Chances de drop en %
@@ -91,18 +87,22 @@ nen_drop_rates = [
     ("specialisation", 0.5),
 ]
 # -- Materialisation --
-MATERIALISATION_IDS = [1363817636793810966, 1363817593252876368]
+MATERIALISATION_IDS = [1416754207436046466, 1416754072316280919]
+
 # IDs d'items interdits à la matérialisation
 ITEMS_INTERDITS = [202, 197, 425, 736, 872, 964, 987]
+
 # -- Manipulation --
-MANIPULATION_ROLE_ID = 1363974710739861676
-AUTHORIZED_MANI_IDS = [1363817593252876368, 1363817536348749875]
+MANIPULATION_ROLE_ID = 1404919388997423185
+AUTHORIZED_MANI_IDS = [1416753631356649585, 1416754072316280919]
+
 # -- Emission --
-EMISSION_IDS = [1363817593252876368, 1363817609916584057]
-TARGET_ROLE_ID = 1363969965572755537 
+EMISSION_IDS = [1416754203925155881, 1416754072316280919]
+TARGET_ROLE_ID = 1416757110766829608
+
 # -- Renforcement --
-RENFORCEMENT_IDS = [1363306813688381681, 1363817593252876368]
-RENFORCEMENT_ROLE_ID = 1363306813688381681 
+RENFORCEMENT_IDS = [1416754201173954680, 1416754072316280919]
+RENFORCEMENT_ROLE_ID = 1416757102910771300 
 
 # -- ID TICKET --
 TRANSCRIPT_CHANNEL_ID = 1355158107956707498
@@ -4245,7 +4245,7 @@ async def manipulation(ctx):
 
     # Vérifie si l'utilisateur a l'un des rôles autorisés
     if not any(role.id in AUTHORIZED_MANI_IDS for role in user.roles):
-        return await ctx.send("⛔ Tu n'as pas accès à cette commande.")
+        return await ctx.send("Tu n'as pas accès à cette commande.")
 
     # Vérifie le cooldown en DB
     cooldown_data = collection26.find_one({"user_id": user.id})
@@ -4266,7 +4266,7 @@ async def manipulation(ctx):
 
     # Embed avec image
     embed = discord.Embed(
-        title="🧠 Manipulation Activée",
+        title="Manipulation Activée",
         description="Tu gagnes un **collect de 1%** toutes les 4h pendant 24h.",
         color=discord.Color.blue(),
         timestamp=now
