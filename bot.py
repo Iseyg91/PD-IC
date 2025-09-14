@@ -4160,7 +4160,7 @@ async def renforcement(ctx):
 
     # Embed joli avec image
     embed = discord.Embed(
-        title="💪 Renforcement Activé",
+        title="Renforcement Activé",
         description=f"Tu as reçu le rôle **{role.name}** pour 24h.",
         color=discord.Color.green(),
         timestamp=now
@@ -4220,7 +4220,7 @@ async def emission(ctx, member: discord.Member):
 
     # Embed stylé avec image
     embed = discord.Embed(
-        title="🌑 Emission : Technique Maudite",
+        title="Emission : Technique Maudite",
         description=f"{member.mention} a été maudit pendant 24h.\nIl subira un malus de **-20%** sur ses collect !",
         color=discord.Color.dark_purple(),
         timestamp=now
@@ -4316,7 +4316,7 @@ async def materialisation(ctx):
             hours, remainder = divmod(remaining.total_seconds(), 3600)
             minutes = remainder // 60
             embed = discord.Embed(
-                title="⏳ Cooldown actif",
+                title="Cooldown actif",
                 description=f"Tu dois encore attendre **{int(hours)}h {int(minutes)}m** avant de matérialiser un item.",
                 color=discord.Color.orange()
             )
@@ -4388,7 +4388,7 @@ async def materialisation(ctx):
 )
 async def transformation(ctx: commands.Context, target: discord.User):
     # Vérifier si l'utilisateur a un des rôles autorisés
-    if not any(role.id in [1363817593252876368, 1363817619529924740] for role in ctx.author.roles):
+    if not any(role.id in [1416753723706708091, 1416754072316280919] for role in ctx.author.roles):
         return await ctx.send("Désolé, tu n'as pas le rôle nécessaire pour utiliser cette commande.")
 
     # Vérifier si l'utilisateur cible est valide
@@ -4441,7 +4441,7 @@ async def transformation(ctx: commands.Context, target: discord.User):
 
     # Embed stylé avec image
     embed = discord.Embed(
-        title="⚡ Transformation : Aura en Éclair",
+        title="Transformation : Aura en Éclair",
         description=f"Tu as transformé ton aura en éclair et foudroyé la banque de {target.display_name}, lui retirant {bank_loss:.2f} d'Ether.",
         color=discord.Color.blue(),
         timestamp=datetime.utcnow()
