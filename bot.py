@@ -5543,17 +5543,19 @@ async def delete_item(interaction: discord.Interaction, item_id: str):
 POWERS = [
     {
         "id": 101,
-        "emoji": "<:PowerAura:150000000000000001>",
-        "title": "Aura Boost",
-        "description": "Augmente la puissance de vos attaques de 10% pendant 1h.",
-        "price": 75000,
+        "emoji": "<:Jajaken:1416782096546009088>",
+        "title": "Jajaken",
+        "description": "+jajanken @user (cooldown 24h) permet d'attaquer la banque de quelqu'un en lui faisant une de ces 3 attaques choisi au hasard lors de la commande",
+        "price": 100000,
         "emoji_price": "<:ecoEther:1341862366249357374>",
         "quantity": 5,
         "tradeable": True,
         "usable": True,
-        "use_effect": "Active l'augmentation de puissance automatiquement.",
-        "requirements": {},
-        "role_id": 150000000000000001,
+        "use_effect": "Pierre 33% : Attaque l'ennemie et lui retire 25% de sa banque (En contrepartie il perd 10% de la sienne),Feuille 33% : Attaque l'ennemie à longue portée et retire 10% de sa banque (Pas de contrepartie), Ciseau 33% : Tranche la banque de son adversaire et lui retire 5% toutes les 10min (retire max 20% de la banque choisi) (Possible à retirer grâce à un objet de soin)",
+      "requirements": {
+            "roles": [1416754201173954680]
+        },
+        "role_id": 1416782225206411324,
         "remove_after_purchase": {
             "roles": False,
             "items": False
@@ -5574,7 +5576,7 @@ def get_power_embed(page: int, items_per_page=10):
     end = start + items_per_page
     powers = POWERS[start:end]
 
-    embed = discord.Embed(title="⚡ Boutique de Pouvoirs", color=discord.Color.purple())
+    embed = discord.Embed(title="Boutique de Pouvoirs", color=discord.Color.purple())
 
     for power in powers:
         formatted_price = f"{power['price']:,}".replace(",", " ")
@@ -5631,6 +5633,101 @@ async def power_store(interaction: discord.Interaction):
 
 # Appel de la fonction pour insérer les pouvoirs dans la DB au démarrage
 insert_powers_into_db()
+
+# ----------- AUTOCOMPLÉTION DES POUVOIRS -----------
+async def power_autocomplete(interaction: discord.Interaction, current: str):
+    results = []
+    for power in POWERS:
+        if current.lower() in power["title"].lower():
+            results.append(app_commands.Choice(name=power["title"], value=power["title"]))
+
+    return results[:25]
+
+# ----------- COMMANDE D'ACHAT DE POUVOIR -----------
+@bot.tree.command(name="power-buy", description="Achète un pouvoir et reçois le rôle associé.")
+@app_commands.describe(power_name="Nom du pouvoir à acheter")
+@app_commands.autocomplete(power_name=power_autocomplete)
+async def power_buy(interaction: discord.Interaction, power_name: str):
+    user_id = interaction.user.id
+    guild_id = interaction.guild.id
+
+    # Récupérer le pouvoir dans la boutique
+    power = collection34.find_one({"title": power_name})
+    if not power:
+        embed = discord.Embed(
+            title="<:classic_x_mark:1362711858829725729> Pouvoir introuvable",
+            description="Aucun pouvoir avec ce nom n'a été trouvé dans la boutique.",
+            color=discord.Color.red()
+        )
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Vérifier stock
+    if power.get("quantity", 0) <= 0:
+        embed = discord.Embed(
+            title="<:classic_x_mark:1362711858829725729> Stock épuisé",
+            description="Ce pouvoir n'est plus disponible dans la boutique.",
+            color=discord.Color.red()
+        )
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Vérifier requirements
+    valid, message = await check_requirements(interaction.user, power.get("requirements", {}))
+    if not valid:
+        embed = discord.Embed(
+            title="<:classic_x_mark:1362711858829725729> Prérequis non remplis",
+            description=message,
+            color=discord.Color.red()
+        )
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Vérifier l'argent
+    user_data = collection.find_one({"user_id": user_id, "guild_id": guild_id}) or {"cash": 0}
+    total_price = int(power["price"])
+
+    if user_data.get("cash", 0) < total_price:
+        embed = discord.Embed(
+            title="<:classic_x_mark:1362711858829725729> Fonds insuffisants",
+            description=f"Tu n'as pas assez de <:ecoEther:1341862366249357374> pour acheter ce pouvoir.\nPrix : **{total_price:,}**",
+            color=discord.Color.red()
+        )
+        return await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # Retirer l'argent
+    collection.update_one(
+        {"user_id": user_id, "guild_id": guild_id},
+        {"$inc": {"cash": -total_price}},
+        upsert=True
+    )
+
+    # Donner le rôle associé
+    if power.get("role_id"):
+        role = discord.utils.get(interaction.guild.roles, id=power["role_id"])
+        if role:
+            await interaction.user.add_roles(role)
+        else:
+            return await interaction.response.send_message(
+                f"⚠️ Le rôle configuré pour ce pouvoir est introuvable dans le serveur.",
+                ephemeral=True
+            )
+
+    # Diminuer le stock
+    collection34.update_one(
+        {"id": power["id"]},
+        {"$inc": {"quantity": -1}}
+    )
+
+    # Confirmation
+    embed = discord.Embed(
+        title="<:Check:1362710665663615147> Achat effectué",
+        description=(
+            f"Tu as acheté **{power['title']}** {power.get('emoji', '')} "
+            f"pour **{total_price:,}** {power.get('emoji_price', '')}.\n"
+            f"Le rôle <@&{power['role_id']}> t’a été attribué !"
+        ),
+        color=discord.Color.green()
+    )
+    await interaction.response.send_message(embed=embed)
+
 
 #-------------------------------------------------------- Badges
 
