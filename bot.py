@@ -4572,7 +4572,7 @@ ITEMS = [
         "id": 15,
         "emoji": "<:nen:1363607663010775300>",
         "title": "Hatsu | ℝ𝕆𝕃𝕃",
-        "description": "Cette objet vous permet de roll un type de Hatsu: **Renforcement, Emission, Manipulation, Matérialisation, Transformation, Spécialisation",
+        "description": "Cette objet vous permet de roll un type de Hatsu: **Renforcement, Emission, Manipulation, Matérialisation, Transformation, Spécialisation**",
         "price": 100000,
         "emoji_price": "<:ecoEther:1341862366249357374>",
         "quantity": 2,
