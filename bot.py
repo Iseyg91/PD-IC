@@ -7141,7 +7141,7 @@ async def jajanken(ctx: commands.Context, user: discord.User):
             f"{attacker.mention} attaque à distance {defender.mention} et lui retire **10%** de sa banque "
             f"(`-{stolen}`)."
         )
-        image_url = "https://tenor.com/uSFXXEorPh.gif"
+        image_url = "https://media1.tenor.com/m/A-Rlg_GdM0kAAAAd/hxh-hunter-x-hunter.gif"
 
     elif attack == "Ciseau":
         stolen = int(defender_bank * 0.20)
@@ -7154,7 +7154,7 @@ async def jajanken(ctx: commands.Context, user: discord.User):
             f"{attacker.mention} tranche la banque de {defender.mention} et lui inflige un malus "
             f"(jusqu'à `-20%`), soit `{stolen}` retirés."
         )
-        image_url = "https://tenor.com/qnhAQRAUSEk.gif"
+        image_url = "https://media1.tenor.com/m/vNOfkaWIV04AAAAd/gon-scissors.gif"
 
     # Mise à jour cooldown
     jajanken_cd[attacker.id] = now
@@ -7240,7 +7240,6 @@ async def impact(ctx: commands.Context, user: discord.User):
     if ctx.guild is None:
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
-    # Vérification du rôle
     if IMPACT_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Big Bang Impact !")
 
@@ -7248,7 +7247,6 @@ async def impact(ctx: commands.Context, user: discord.User):
     defender = user
     now = time.time()
 
-    # Vérification du cooldown
     if attacker.id in impact_cd and now - impact_cd[attacker.id] < IMPACT_COOLDOWN:
         remaining = int(IMPACT_COOLDOWN - (now - impact_cd[attacker.id]))
         days, rem = divmod(remaining, 86400)
@@ -7262,26 +7260,29 @@ async def impact(ctx: commands.Context, user: discord.User):
     if not channel or not role:
         return await ctx.send("Salon ou rôle introuvable !")
 
-    # Boucle pour attribuer overwrite aux membres du rôle
     for member in role.members:
         if member.id not in (attacker.id, defender.id):
             await channel.set_permissions(member, send_messages=False, mention_everyone=False)
 
-    # Assure que l'auteur et la cible peuvent parler
     await channel.set_permissions(attacker, send_messages=True, mention_everyone=True)
     await channel.set_permissions(defender, send_messages=True, mention_everyone=True)
 
     impact_cd[attacker.id] = now
 
-    await ctx.send(f"💥 {attacker.mention} a déclenché **Big Bang Impact** ! L'économie est bloquée pour 1h !")
+    # Création de l'embed avec image
+    embed = discord.Embed(
+        title="💥 Big Bang Impact !",
+        description=f"{attacker.mention} a déclenché **Big Bang Impact** ! L'économie est bloquée pour 1h !",
+        color=discord.Color.red()
+    )
+    embed.set_image(url="https://i.makeagif.com/media/7-18-2016/668AVv.gif")  # Remplace par l'URL de ton image
+    await ctx.send(embed=embed)
 
-    # Tâche pour remettre les permissions après 1h
     async def reset_permissions():
-        await discord.utils.sleep_until(time.time() + IMPACT_DURATION)  # sleep 1h
+        await discord.utils.sleep_until(time.time() + IMPACT_DURATION)
         for member in role.members:
             if member.id not in (attacker.id, defender.id):
                 await channel.set_permissions(member, overwrite=None)
-        # Remet permissions par défaut pour l'auteur et la cible
         await channel.set_permissions(attacker, overwrite=None)
         await channel.set_permissions(defender, overwrite=None)
         await channel.send("✅ Big Bang Impact est terminé, l'économie est débloquée !")
