@@ -591,8 +591,8 @@ async def start_background_tasks():
         auto_collect_loop.start()
     if not update_top_roles.is_running():
         update_top_roles.start()
-    if not increase_ripper_charge_loop.is_running():
-        increase_ripper_charge.start()
+    if not increase_ripper_charge.is_running():
+        increase_ripper_charge.start()  
 
 # --- Gestion globale des erreurs ---
 @bot.event
