@@ -7075,7 +7075,7 @@ async def jajanken(ctx: commands.Context, user: discord.User):
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
     # Vérification du rôle
-    if JAJANKEN_ROLE_ID not in [role.id for role in ctx.author.roles]:
+    if JAJANKEN_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Jajanken !")
 
     attacker = ctx.author
@@ -7176,7 +7176,7 @@ async def ripper(ctx: commands.Context, user: discord.User):
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
     # Vérification du rôle
-    if RIPPER_ROLE_ID not in [role.id for role in ctx.author.roles]:
+    if RIPPER_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Ripper Cyclotron !")
 
     attacker = ctx.author
@@ -7241,7 +7241,7 @@ async def impact(ctx: commands.Context, user: discord.User):
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
     # Vérification du rôle
-    if IMPACT_ROLE_ID not in [role.id for role in ctx.author.roles]:
+    if IMPACT_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Big Bang Impact !")
 
     attacker = ctx.author
