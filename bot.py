@@ -7065,6 +7065,7 @@ async def transfer_ticket(interaction: discord.Interaction, member: discord.Memb
 #-------------------------------------------------------------Nen:
 #Renforcement:
 
+
 @bot.hybrid_command(
     name="jajanken",
     description="Attaque la banque d'un joueur avec le Jajanken (cooldown 24h)."
@@ -7073,8 +7074,8 @@ async def jajanken(ctx: commands.Context, user: discord.User):
     if ctx.guild is None:
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
-    # Vérification de l'ID
-    if ctx.author.id != JAJANKEN_ID:
+    # Vérification du rôle
+    if JAJANKEN_ROLE_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Jajanken !")
 
     attacker = ctx.author
@@ -7127,7 +7128,7 @@ async def jajanken(ctx: commands.Context, user: discord.User):
             f"{attacker.mention} a frappé {defender.mention} et lui a retiré **25%** de sa banque "
             f"(`-{stolen}`), mais a perdu **10%** de la sienne (`-{penalty}`)."
         )
-        image_url = "https://64.media.tumblr.com/75d4c4fa5e934c6085cb04b9648a86a4/tumblr_mtqtkc7JZp1r5zfj8o1_500.gif"  # mets ton lien
+        image_url = "https://64.media.tumblr.com/75d4c4fa5e934c6085cb04b9648a86a4/tumblr_mtqtkc7JZp1r5zfj8o1_500.gif"
 
     elif attack == "Feuille":
         stolen = int(defender_bank * 0.10)
@@ -7140,10 +7141,10 @@ async def jajanken(ctx: commands.Context, user: discord.User):
             f"{attacker.mention} attaque à distance {defender.mention} et lui retire **10%** de sa banque "
             f"(`-{stolen}`)."
         )
-        image_url = "https://tenor.com/uSFXXEorPh.gif"  # mets ton lien
+        image_url = "https://tenor.com/uSFXXEorPh.gif"
 
     elif attack == "Ciseau":
-        stolen = int(defender_bank * 0.20)  # simplifié en -20% direct
+        stolen = int(defender_bank * 0.20)
         defender_bank -= stolen
 
         collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
@@ -7153,7 +7154,7 @@ async def jajanken(ctx: commands.Context, user: discord.User):
             f"{attacker.mention} tranche la banque de {defender.mention} et lui inflige un malus "
             f"(jusqu'à `-20%`), soit `{stolen}` retirés."
         )
-        image_url = "https://tenor.com/qnhAQRAUSEk.gif"  # mets ton lien
+        image_url = "https://tenor.com/qnhAQRAUSEk.gif"
 
     # Mise à jour cooldown
     jajanken_cd[attacker.id] = now
@@ -7174,8 +7175,8 @@ async def ripper(ctx: commands.Context, user: discord.User):
     if ctx.guild is None:
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
-    # Restriction à RIPPER_ID
-    if ctx.author.id != RIPPER_ID:
+    # Vérification du rôle
+    if RIPPER_ROLE_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Ripper Cyclotron !")
 
     attacker = ctx.author
@@ -7227,7 +7228,7 @@ async def ripper(ctx: commands.Context, user: discord.User):
     )
     embed.set_author(name=attacker.display_name, icon_url=attacker.display_avatar.url)
     embed.set_footer(text="Maximum 100% de puissance")
-    embed.set_image(url="https://pa1.aminoapps.com/6798/5f1868b0738c98110cfd4c73245898d8a16b8efd_00.gif")  # ← ton image ici
+    embed.set_image(url="https://pa1.aminoapps.com/6798/5f1868b0738c98110cfd4c73245898d8a16b8efd_00.gif")
 
     await ctx.send(embed=embed)
 
@@ -7238,6 +7239,10 @@ async def ripper(ctx: commands.Context, user: discord.User):
 async def impact(ctx: commands.Context, user: discord.User):
     if ctx.guild is None:
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Vérification du rôle
+    if IMPACT_ROLE_ID not in [role.id for role in ctx.author.roles]:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Big Bang Impact !")
 
     attacker = ctx.author
     defender = user
