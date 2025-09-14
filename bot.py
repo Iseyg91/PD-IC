@@ -61,6 +61,24 @@ BENEDICTION_ROLE_ID = 1416752766889492590
 # -- Divin --
 DIVIN_ROLE_ID = 1416752767263051827
 
+# --- ID POUVOIR NEN ---
+# --Nen Renforcement --
+# -Jajaken-
+JAJANKEN_ID = 1416782225206411324
+# -CD-
+jajanken_cd = {}
+# - Ripper-
+RIPPER_ID = 1416785922208436395  # ton ID ici
+# -CD-
+ripper_data = {}
+# -Big-
+IMPACT_ROLE_ID = 1355190216188497951  # rôle bloqué
+IMPACT_CHANNEL_ID = 1364531840144244819  # salon où l'économie est bloquée
+IMPACT_DURATION = 3600  # 1h en secondes
+IMPACT_COOLDOWN = 7 * 24 * 3600  # 1 semaine en secondes
+# -CD-
+impact_cd = {}
+
 # --- ID Etherya Nen ---
 # Rôle autorisé à utiliser le Nen
 PERMISSION_ROLE_ID = 1416752518314332190
@@ -530,6 +548,17 @@ async def update_top_roles():
                 if member.id not in [u["user_id"] for u in top_users]:
                     await member.remove_roles(role)
                     print(f"Retiré {role.name} de {member.display_name}")
+
+# Task loop pour augmenter la charge toutes les heures
+@tasks.loop(hours=1)
+async def increase_ripper_charge():
+    now = time.time()
+    for uid, data in ripper_data.items():
+        if data["charge"] < 100:
+            ripper_data[uid]["charge"] = min(data["charge"] + 1, 100)
+            ripper_data[uid]["last_update"] = now
+
+
 # --- Initialisation au démarrage ---
 @bot.event
 async def on_ready():
@@ -562,6 +591,8 @@ async def start_background_tasks():
         auto_collect_loop.start()
     if not update_top_roles.is_running():
         update_top_roles.start()
+    if not ncrease_ripper_charge_loop.is_running():
+        increase_ripper_charge.start()
 
 # --- Gestion globale des erreurs ---
 @bot.event
@@ -5562,6 +5593,48 @@ POWERS = [
         },
         "used": True
     },
+        {
+        "id": 754,
+        "emoji": "<:RipperCyclotron:1416785425804169240>",
+        "title": "Ripper Cyclotron",
+        "description": "Toutes les heures l'utilisateur tourne son bras ce qui augmente la puissance du coups de 1%, quand l'utilisateur le veut il peut décharger son coup en l'envoyant sur la banque de quelqu'un de son choix (+ripper @user), cela retire le % de charge à la banque de la cible (Pas de cooldown) (Maximum 100% logique lol) ",
+        "price": 200000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 5,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Toutes les heures l'utilisateur tourne son bras ce qui augmente la puissance du coups de 1%, quand l'utilisateur le veut il peut décharger son coup en l'envoyant sur la banque de quelqu'un de son choix (+ripper @user), cela retire le % de charge à la banque de la cible (Pas de cooldown) (Maximum 100% logique lol) ",
+      "requirements": {
+            "roles": [1416754201173954680]
+        },
+        "role_id": 1416785922208436395,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
+    },
+            {
+        "id": 754,
+        "emoji": "<:BigBangImpact:1416785440157208758>",
+        "title": "Big Bang Impact",
+        "description": "+impact @user , bloque l'économie pour tout le monde sauf l'utilisateur et la cible pendant 1 heure (Cooldown 1 semaine) ",
+        "price": 200000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 5,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Toutes les heures l'utilisateur tourne son bras ce qui augmente la puissance du coups de 1%, quand l'utilisateur le veut il peut décharger son coup en l'envoyant sur la banque de quelqu'un de son choix (+ripper @user), cela retire le % de charge à la banque de la cible (Pas de cooldown) (Maximum 100% logique lol) ",
+      "requirements": {
+            "roles": [1416754201173954680]
+        },
+        "role_id": 1416786216786985110,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
+    },
 ]
 
 # Fonction pour insérer les pouvoirs dans MongoDB
@@ -6989,6 +7062,227 @@ async def transfer_ticket(interaction: discord.Interaction, member: discord.Memb
     except discord.Forbidden:
         await interaction.response.send_message("⚠️ Je n'ai pas pu envoyer un message privé à ce membre.")
 
+#-------------------------------------------------------------Nen:
+#Renforcement:
+
+@bot.hybrid_command(
+    name="jajanken",
+    description="Attaque la banque d'un joueur avec le Jajanken (cooldown 24h)."
+)
+async def jajanken(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Vérification de l'ID
+    if ctx.author.id != JAJANKEN_ID:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Jajanken !")
+
+    attacker = ctx.author
+    defender = user
+
+    if attacker.id == defender.id:
+        return await ctx.send("Tu ne peux pas utiliser cette commande sur toi-même.")
+
+    guild_id = ctx.guild.id
+    now = time.time()
+    cd_time = 24 * 3600  # 24h en secondes
+
+    # Vérification cooldown
+    if attacker.id in jajanken_cd and now - jajanken_cd[attacker.id] < cd_time:
+        remaining = int(cd_time - (now - jajanken_cd[attacker.id]))
+        hours, minutes = divmod(remaining // 60, 60)
+        return await ctx.send(f"⏳ Attends encore {hours}h {minutes}min avant de réutiliser cette commande.")
+
+    # Récupération ou création des données utilisateur
+    def get_or_create_user_data(guild_id: int, user_id: int):
+        data = collection.find_one({"guild_id": guild_id, "user_id": user_id})
+        if not data:
+            data = {"guild_id": guild_id, "user_id": user_id, "cash": 1500, "bank": 0}
+            collection.insert_one(data)
+        return data
+
+    attacker_data = get_or_create_user_data(guild_id, attacker.id)
+    defender_data = get_or_create_user_data(guild_id, defender.id)
+
+    attacker_bank = attacker_data.get("bank", 0)
+    defender_bank = defender_data.get("bank", 0)
+
+    # Choix aléatoire de l'attaque
+    attack = random.choice(["Pierre", "Feuille", "Ciseau"])
+    desc = ""
+    image_url = ""
+
+    if attack == "Pierre":
+        stolen = int(defender_bank * 0.25)
+        penalty = int(attacker_bank * 0.10)
+
+        defender_bank -= stolen
+        attacker_bank -= penalty
+
+        collection.update_one({"guild_id": guild_id, "user_id": attacker.id}, {"$set": {"bank": attacker_bank}})
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Pierre !**\n"
+            f"{attacker.mention} a frappé {defender.mention} et lui a retiré **25%** de sa banque "
+            f"(`-{stolen}`), mais a perdu **10%** de la sienne (`-{penalty}`)."
+        )
+        image_url = "https://64.media.tumblr.com/75d4c4fa5e934c6085cb04b9648a86a4/tumblr_mtqtkc7JZp1r5zfj8o1_500.gif"  # mets ton lien
+
+    elif attack == "Feuille":
+        stolen = int(defender_bank * 0.10)
+        defender_bank -= stolen
+
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Feuille !**\n"
+            f"{attacker.mention} attaque à distance {defender.mention} et lui retire **10%** de sa banque "
+            f"(`-{stolen}`)."
+        )
+        image_url = "https://tenor.com/uSFXXEorPh.gif"  # mets ton lien
+
+    elif attack == "Ciseau":
+        stolen = int(defender_bank * 0.20)  # simplifié en -20% direct
+        defender_bank -= stolen
+
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Ciseau !**\n"
+            f"{attacker.mention} tranche la banque de {defender.mention} et lui inflige un malus "
+            f"(jusqu'à `-20%`), soit `{stolen}` retirés."
+        )
+        image_url = "https://tenor.com/qnhAQRAUSEk.gif"  # mets ton lien
+
+    # Mise à jour cooldown
+    jajanken_cd[attacker.id] = now
+
+    # Embed résultat
+    embed = discord.Embed(title="Jajanken !", description=desc, color=discord.Color.red())
+    embed.set_author(name=attacker.display_name, icon_url=attacker.display_avatar.url)
+    embed.set_footer(text="Nen du Renforcement requis")
+    embed.set_image(url=image_url)
+
+    await ctx.send(embed=embed)
+
+@bot.hybrid_command(
+    name="ripper",
+    description="Décharge ton Ripper Cyclotron sur la banque d'un joueur."
+)
+async def ripper(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Restriction à RIPPER_ID
+    if ctx.author.id != RIPPER_ID:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Ripper Cyclotron !")
+
+    attacker = ctx.author
+    defender = user
+    guild_id = ctx.guild.id
+
+    if attacker.id == defender.id:
+        return await ctx.send("Tu ne peux pas utiliser Ripper Cyclotron sur toi-même.")
+
+    # Init si pas encore dans ripper_data
+    if attacker.id not in ripper_data:
+        ripper_data[attacker.id] = {"charge": 0, "last_update": time.time()}
+
+    charge = ripper_data[attacker.id]["charge"]
+
+    if charge <= 0:
+        return await ctx.send("Ton Ripper Cyclotron n'est pas chargé ! Attends au moins 1 heure.")
+
+    # Récupération/creation des données MongoDB
+    def get_or_create_user_data(guild_id: int, user_id: int):
+        data = collection.find_one({"guild_id": guild_id, "user_id": user_id})
+        if not data:
+            data = {"guild_id": guild_id, "user_id": user_id, "cash": 1500, "bank": 0}
+            collection.insert_one(data)
+        return data
+
+    defender_data = get_or_create_user_data(guild_id, defender.id)
+    defender_bank = defender_data.get("bank", 0)
+
+    # Calcul des dégâts
+    stolen = int(defender_bank * (charge / 100))
+    defender_bank -= stolen
+
+    # Update DB cible
+    collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+    # Reset charge
+    ripper_data[attacker.id]["charge"] = 0
+    ripper_data[attacker.id]["last_update"] = time.time()
+
+    # Embed résultat
+    embed = discord.Embed(
+        title="Ripper Cyclotron",
+        description=(
+            f"{attacker.mention} a déchargé son Ripper Cyclotron accumulé à **{charge}%** !\n"
+            f"{defender.mention} perd `{stolen}` de sa banque."
+        ),
+        color=discord.Color.purple()
+    )
+    embed.set_author(name=attacker.display_name, icon_url=attacker.display_avatar.url)
+    embed.set_footer(text="Maximum 100% de puissance")
+    embed.set_image(url="https://pa1.aminoapps.com/6798/5f1868b0738c98110cfd4c73245898d8a16b8efd_00.gif")  # ← ton image ici
+
+    await ctx.send(embed=embed)
+
+@bot.hybrid_command(
+    name="impact",
+    description="Déclenche Big Bang Impact, bloquant l'économie pour tout le monde sauf toi et la cible."
+)
+async def impact(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    attacker = ctx.author
+    defender = user
+    now = time.time()
+
+    # Vérification du cooldown
+    if attacker.id in impact_cd and now - impact_cd[attacker.id] < IMPACT_COOLDOWN:
+        remaining = int(IMPACT_COOLDOWN - (now - impact_cd[attacker.id]))
+        days, rem = divmod(remaining, 86400)
+        hours, rem = divmod(rem, 3600)
+        minutes, _ = divmod(rem, 60)
+        return await ctx.send(f"⏳ Tu dois encore attendre {days}j {hours}h {minutes}min avant de réutiliser Big Bang Impact.")
+
+    channel = ctx.guild.get_channel(IMPACT_CHANNEL_ID)
+    role = ctx.guild.get_role(IMPACT_ROLE_ID)
+
+    if not channel or not role:
+        return await ctx.send("Salon ou rôle introuvable !")
+
+    # Boucle pour attribuer overwrite aux membres du rôle
+    for member in role.members:
+        if member.id not in (attacker.id, defender.id):
+            await channel.set_permissions(member, send_messages=False, mention_everyone=False)
+
+    # Assure que l'auteur et la cible peuvent parler
+    await channel.set_permissions(attacker, send_messages=True, mention_everyone=True)
+    await channel.set_permissions(defender, send_messages=True, mention_everyone=True)
+
+    impact_cd[attacker.id] = now
+
+    await ctx.send(f"💥 {attacker.mention} a déclenché **Big Bang Impact** ! L'économie est bloquée pour 1h !")
+
+    # Tâche pour remettre les permissions après 1h
+    async def reset_permissions():
+        await discord.utils.sleep_until(time.time() + IMPACT_DURATION)  # sleep 1h
+        for member in role.members:
+            if member.id not in (attacker.id, defender.id):
+                await channel.set_permissions(member, overwrite=None)
+        # Remet permissions par défaut pour l'auteur et la cible
+        await channel.set_permissions(attacker, overwrite=None)
+        await channel.set_permissions(defender, overwrite=None)
+        await channel.send("✅ Big Bang Impact est terminé, l'économie est débloquée !")
+
+    bot.loop.create_task(reset_permissions())
+    
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
