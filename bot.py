@@ -4528,6 +4528,27 @@ ITEMS = [
         },
         "used": True
     },
+        {
+        "id": 15,
+        "emoji": "<:Nen:1416773832513028197>",
+        "title": "Hatsu | ℝ𝕆𝕃𝕃",
+        "description": "Cette objet vous permet de roll un type de Hatsu: **Renforcement, Emission, Manipulation, Matérialisation, Transformation, Spécialisation**",
+        "price": 100000,
+        "emoji_price": "<:ecoEther:1341862366249357374>",
+        "quantity": 2,
+        "tradeable": True,
+        "usable": True,
+        "use_effect": "Une fois le nen utilisé celui-ci vous attribue un nen aléatoirement avec la commande !!rollnen (avec 19.9% de chance pour chaque sauf la spécialisation qui est à 0.5%)",
+        "requirements": {
+            "items": [7]
+        },
+        "role_id": 1416771686904369256,
+        "remove_after_purchase": {
+            "roles": False,
+            "items": False
+        },
+        "used": True
+    },
     {
         "id": 369,
         "emoji": "<:Ren:1416766428903768194>",
@@ -4562,27 +4583,6 @@ ITEMS = [
         "use_effect": "Donne le rôle licence hunter et donne accès au nen et au quêtes destiné au hunter",
         "requirements": {},
         "role_id": 1416768766682857512,
-        "remove_after_purchase": {
-            "roles": False,
-            "items": False
-        },
-        "used": True
-    },
-    {
-        "id": 15,
-        "emoji": "<:Nen:1416773832513028197>",
-        "title": "Hatsu | ℝ𝕆𝕃𝕃",
-        "description": "Cette objet vous permet de roll un type de Hatsu: **Renforcement, Emission, Manipulation, Matérialisation, Transformation, Spécialisation**",
-        "price": 100000,
-        "emoji_price": "<:ecoEther:1341862366249357374>",
-        "quantity": 2,
-        "tradeable": True,
-        "usable": True,
-        "use_effect": "Une fois le nen utilisé celui-ci vous attribue un nen aléatoirement avec la commande !!rollnen (avec 19.9% de chance pour chaque sauf la spécialisation qui est à 0.5%)",
-        "requirements": {
-            "items": [7]
-        },
-        "role_id": 1416771686904369256,
         "remove_after_purchase": {
             "roles": False,
             "items": False
