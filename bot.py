@@ -175,10 +175,11 @@ collection26 = db['cd_manipulation'] #Stock les cd
 collection27 = db['cd_materialisation'] #Stock les cd
 collection28 = db['cd_transformation'] #Stock les cd
 collection29 = db['cd_specialisation'] #Stock les cd
+#A partir d'ici correction a faire dans les appel de collection
 collection30 = db['ether_quetes'] #Stock les quetes
 collection31 = db['inventory_collect'] #Stock les items de quetes
 collection32 = db['collect_items'] #Stock les items collector
-collection33 = db['ether_ticket'] 
+collection33 = db['ether_ticket']
 
 # Fonction pour vérifier si l'utilisateur possède un item (fictif, à adapter à ta DB)
 async def check_user_has_item(user: discord.Member, item_id: int):
@@ -4302,6 +4303,10 @@ async def materialisation(ctx):
     guild_id = ctx.guild.id
     now = datetime.utcnow()
 
+    # Vérifie si l'utilisateur a un rôle autorisé
+    if not any(role.id in MATERIALISATION_IDS for role in ctx.author.roles):
+        return await ctx.send("❌ Tu n’as pas le rôle requis pour utiliser la matérialisation.")
+
     # Vérifie le cooldown
     cd_doc = collection27.find_one({"user_id": user_id, "guild_id": guild_id})
     if cd_doc:
@@ -4320,7 +4325,7 @@ async def materialisation(ctx):
     # Récupère un item aléatoire de la boutique (en stock uniquement, et pas interdit)
     items = list(collection16.find({
         "quantity": {"$gt": 0},
-        "id": {"$in": MATERIALISATION_IDS, "$nin": ITEMS_INTERDITS}
+        "id": {"$nin": ITEMS_INTERDITS}
     }))
     
     if not items:
@@ -4369,13 +4374,12 @@ async def materialisation(ctx):
 
     # Message de confirmation avec image
     embed = discord.Embed(
-        title="✨ Matérialisation réussie",
+        title="Matérialisation réussie",
         description=f"Tu as matérialisé **{selected_item['emoji']} {selected_item['title']}** !",
         color=discord.Color.green()
     )
     embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/Materi.png?raw=true")
     await ctx.send(embed=embed)
-    
 #------------------------------------------ Transformation
 
 @bot.command(
