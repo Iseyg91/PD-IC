@@ -10,6 +10,7 @@ import logging
 import platform
 import traceback
 import subprocess
+from dotenv import load_dotenv
 from functools import wraps
 from datetime import datetime, timedelta
 from collections import defaultdict, deque
@@ -36,17 +37,24 @@ import numpy as np
 
 from keep_alive import keep_alive
 
+# Charger le fichier .env
+load_dotenv()  # <- important !
+
+# Récupérer le token
 token = os.environ['ETHERYA']
+
+# Config du bot
 intents = discord.Intents.all()
 start_time = time.time()
 bot = commands.Bot(command_prefix="!!", intents=intents, help_command=None)
+
 
 #Configuration du Bot:
 # --- ID Owner Bot ---
 ISEY_ID = 792755123587645461
 # Définir GUILD_ID
 GUILD_ID = 1034007767050104892
-
+PING_ROLE_ID = 1355190216188497951
 # --- ID Etherya ---
 ETHERYA_SERVER_ID = 1034007767050104892
 AUTORIZED_SERVER_ID = 1034007767050104892
@@ -76,8 +84,19 @@ IMPACT_ROLE_ID = 1355190216188497951  # rôle bloqué
 IMPACT_CHANNEL_ID = 1364531840144244819  # salon où l'économie est bloquée
 IMPACT_DURATION = 3600  # 1h en secondes
 IMPACT_COOLDOWN = 7 * 24 * 3600  # 1 semaine en secondes
+IMPACT_ID = 1416786216786985110
 # -CD-
 impact_cd = {}
+# -Banqueroute-
+BANQUEROUTE_ID = 1416821800091910144
+BANQUEROUTE_START = 1000
+BANQUEROUTE_INTERVAL = 120
+BANQUEROUTE_MULTIPLIER = 1.1
+BANQUEROUTE_LOCK_DURATION = 5 * 24 * 60 * 60  # 5 jours en secondes
+BANQUEROUTE_ROLE_ID = 1355190216188497951  # ID du rôle à retirer/remettre
+BANQUEROUTE_COOLDOWN = 604800  # 7 jours en secondes
+# -CD-
+banqueroute_data = {}
 
 # --- ID Etherya Nen ---
 # Rôle autorisé à utiliser le Nen
@@ -7232,6 +7251,7 @@ async def ripper(ctx: commands.Context, user: discord.User):
 
     await ctx.send(embed=embed)
 
+
 @bot.hybrid_command(
     name="impact",
     description="Déclenche Big Bang Impact, bloquant l'économie pour tout le monde sauf toi et la cible."
@@ -7240,6 +7260,7 @@ async def impact(ctx: commands.Context, user: discord.User):
     if ctx.guild is None:
         return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
 
+    # Vérification du rôle IMPACT_ID
     if IMPACT_ID not in [role.id for role in ctx.author.roles]:
         return await ctx.send("❌ Tu n'as pas la maîtrise du Big Bang Impact !")
 
@@ -7247,6 +7268,7 @@ async def impact(ctx: commands.Context, user: discord.User):
     defender = user
     now = time.time()
 
+    # Gestion du cooldown
     if attacker.id in impact_cd and now - impact_cd[attacker.id] < IMPACT_COOLDOWN:
         remaining = int(IMPACT_COOLDOWN - (now - impact_cd[attacker.id]))
         days, rem = divmod(remaining, 86400)
@@ -7260,35 +7282,230 @@ async def impact(ctx: commands.Context, user: discord.User):
     if not channel or not role:
         return await ctx.send("Salon ou rôle introuvable !")
 
-    for member in role.members:
-        if member.id not in (attacker.id, defender.id):
-            await channel.set_permissions(member, send_messages=False, mention_everyone=False)
-
-    await channel.set_permissions(attacker, send_messages=True, mention_everyone=True)
-    await channel.set_permissions(defender, send_messages=True, mention_everyone=True)
+    # Bloquer le rôle pour parler sauf l'attaquant et la cible
+    await channel.set_permissions(role, send_messages=False)
+    await channel.set_permissions(attacker, send_messages=True)
+    await channel.set_permissions(defender, send_messages=True)
 
     impact_cd[attacker.id] = now
 
-    # Création de l'embed avec image
     embed = discord.Embed(
         title="💥 Big Bang Impact !",
         description=f"{attacker.mention} a déclenché **Big Bang Impact** ! L'économie est bloquée pour 1h !",
         color=discord.Color.red()
     )
-    embed.set_image(url="https://i.makeagif.com/media/7-18-2016/668AVv.gif")  # Remplace par l'URL de ton image
+    embed.set_image(url="https://i.makeagif.com/media/7-18-2016/668AVv.gif")
     await ctx.send(embed=embed)
 
+    # Reset des permissions après la durée
     async def reset_permissions():
-        await discord.utils.sleep_until(time.time() + IMPACT_DURATION)
-        for member in role.members:
-            if member.id not in (attacker.id, defender.id):
-                await channel.set_permissions(member, overwrite=None)
+        await asyncio.sleep(IMPACT_DURATION)
+        await channel.set_permissions(role, overwrite=None)
         await channel.set_permissions(attacker, overwrite=None)
         await channel.set_permissions(defender, overwrite=None)
         await channel.send("✅ Big Bang Impact est terminé, l'économie est débloquée !")
 
     bot.loop.create_task(reset_permissions())
+
+@bot.hybrid_command(
+    name="banqueroute",
+    description="Lance une banqueroute sur un utilisateur."
+)
+@commands.cooldown(1, BANQUEROUTE_COOLDOWN, commands.BucketType.user)  # cooldown par utilisateur
+async def banqueroute(ctx: commands.Context, user: discord.User):
+    # Vérification du rôle de l'auteur
+    if not any(role.id == BANQUEROUTE_ID for role in ctx.author.roles):
+        embed = discord.Embed(
+            title="❌ Permission refusée",
+            description="Vous n'êtes pas autorisé à utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    target = ctx.guild.get_member(user.id)
+    if not target:
+        embed = discord.Embed(
+            title="❌ Utilisateur introuvable",
+            description="L'utilisateur n'est pas sur le serveur.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    if target.id in banqueroute_data and banqueroute_data[target.id]["active"]:
+        embed = discord.Embed(
+            title="⚠️ Banqueroute déjà active",
+            description=f"Une banqueroute est déjà en cours sur {target.mention} !",
+            color=discord.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    # Initialise la banqueroute
+    banqueroute_data[target.id] = {
+        "amount": BANQUEROUTE_START,
+        "start_time": time.time(),
+        "active": True
+    }
+
+    embed = discord.Embed(
+        title="Banqueroute lancée",
+        description=f"{target.mention} est maintenant en banqueroute !\nMontant initial : `{BANQUEROUTE_START}` pièces.",
+        color=discord.Color.blue()
+    )
+    embed.set_image(url="https://static.wikia.nocookie.net/hunterxhunter/images/a/a0/Potclean.png/revision/latest?cb=20170817182959&path-prefix=de")  
+    await ctx.send(embed=embed)
+
+    async def banqueroute_loop():
+        while banqueroute_data[target.id]["active"]:
+            await asyncio.sleep(BANQUEROUTE_INTERVAL)
+            data = banqueroute_data.get(target.id)
+            if not data or not data["active"]:
+                break
+
+            data["amount"] = int(data["amount"] * BANQUEROUTE_MULTIPLIER)
+
+            target_data = collection.find_one({"guild_id": ctx.guild.id, "user_id": target.id})
+            target_bank = target_data.get("bank", 0) if target_data else 0
+            target_cash = target_data.get("cash", 0) if target_data else 0
+            total_money = target_bank + target_cash
+
+            if data["amount"] > total_money:
+                role = ctx.guild.get_role(BANQUEROUTE_ROLE_ID)
+                if role and role in target.roles:
+                    await target.remove_roles(role, reason="Banqueroute non payée")
+
+                    async def restore_role():
+                        await asyncio.sleep(BANQUEROUTE_LOCK_DURATION)
+                        member = ctx.guild.get_member(target.id)
+                        if member:
+                            await member.add_roles(role, reason="Rôle restauré après 5 jours de banqueroute")
+                    bot.loop.create_task(restore_role())
+
+                collection.update_one(
+                    {"guild_id": ctx.guild.id, "user_id": target.id},
+                    {"$set": {"eco_locked_until": time.time() + BANQUEROUTE_LOCK_DURATION}}
+                )
+
+                embed = discord.Embed(
+                    title="❌ Banqueroute échouée",
+                    description=(f"{target.mention} n'a pas payé la banqueroute à temps !\n"
+                                 f"Rôle retiré et accès à l'économie bloqué 5 jours."),
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                data["active"] = False
+                break
+
+    bot.loop.create_task(banqueroute_loop())
+
+@bot.hybrid_command(
+    name="cancelbanqueroute",
+    description="Annule la banqueroute active et paie le montant accumulé."
+)
+async def cancelbanqueroute(ctx: commands.Context):
+    user = ctx.author
+    data = banqueroute_data.get(user.id)
+    if not data or not data["active"]:
+        embed = discord.Embed(
+            title="⚠️ Aucune banqueroute",
+            description="Aucune banqueroute active sur toi.",
+            color=discord.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    # Récupération des données économiques de l'utilisateur
+    user_data = collection.find_one({"guild_id": ctx.guild.id, "user_id": user.id})
+    bank = user_data.get("bank", 0) if user_data else 0
+    cash = user_data.get("cash", 0) if user_data else 0
+    total_money = bank + cash
+    amount = data["amount"]
+
+    if total_money >= amount:
+        # On retire d'abord du cash, puis de la banque si nécessaire
+        if cash >= amount:
+            cash -= amount
+        else:
+            amount_rest = amount - cash
+            cash = 0
+            bank -= amount_rest
+
+        # Mise à jour de la base
+        collection.update_one(
+            {"guild_id": ctx.guild.id, "user_id": user.id},
+            {"$set": {"bank": bank, "cash": cash}}
+        )
+
+        embed = discord.Embed(
+            title="Banqueroute annulée",
+            description=f"`{data['amount']}` pièces ont été retirées de ton total (cash + banque).",
+            color=discord.Color.green()
+        )
+        embed.set_image(url="https://static.wikia.nocookie.net/hunterxhunter/images/0/03/300px-Toritaen.jpg/revision/latest?cb=20140527145930&path-prefix=fr")  
+    else:
+        embed = discord.Embed(
+            title="⚠️ Paiement impossible",
+            description=f"Tu n'as pas assez pour payer la banqueroute ({data['amount']} pièces).",
+            color=discord.Color.orange()
+        )
+
+    data["active"] = False
+    await ctx.send(embed=embed)
+
+@banqueroute.error
+async def banqueroute_error(ctx: commands.Context, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        embed = discord.Embed(
+            title="Commande en cooldown",
+            description=f"Vous devez attendre encore **{error.retry_after:.1f} secondes** avant de réutiliser cette commande.",
+            color=discord.Color.orange()
+        )
+        await ctx.send(embed=embed)
+    else:
+        # Pour les autres erreurs non prévues (évite le crash silencieux)
+        embed = discord.Embed(
+            title="⚠️ Erreur",
+            description="Une erreur est survenue lors de l'exécution de la commande.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        raise error  # utile si tu veux aussi voir l'erreur dans les logs
+
+@bot.hybrid_command(
+    name="checkbanqueroute",
+    description="Vérifie le montant actuel de ta banqueroute."
+)
+async def checkbanqueroute(ctx: commands.Context):
+    user = ctx.author
+    data = banqueroute_data.get(user.id)
     
+    if not data or not data["active"]:
+        embed = discord.Embed(
+            title="Aucune banqueroute active",
+            description="Tu n'as aucune banqueroute en cours.",
+            color=discord.Color.orange()
+        )
+    else:
+        amount = data["amount"]
+        embed = discord.Embed(
+            title="Banqueroute en cours",
+            description=f"Le montant actuel de ta banqueroute est de `{amount}` pièces.",
+            color=discord.Color.blue()
+        )
+
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="say", description="Faire parler le bot (réservé à Isey)")
+async def say(interaction: discord.Interaction, message: str):
+    # Vérifie l'ID de l'utilisateur
+    if interaction.user.id != ISEY_ID:
+        await interaction.response.send_message(
+            "❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
+        )
+        return
+
+    # Envoie le message et confirme en privé
+    await interaction.channel.send(message)
+    await interaction.response.send_message("✅ Message envoyé avec succès !", ephemeral=True)
+
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
