@@ -46,12 +46,22 @@ token = os.environ['ETHERYA']
 # Config du bot
 intents = discord.Intents.all()
 start_time = time.time()
-bot = commands.Bot(command_prefix="!!", intents=intents, help_command=None)
+bot = commands.Bot(command_prefix=".", intents=intents, help_command=None)
 
 
 #Configuration du Bot:
 # --- ID Owner Bot ---
 ISEY_ID = 792755123587645461
+
+#Configuration Cinema Etherya
+OWNER_ID = 792755123587645461  # Ton ID
+MEMBER_ID = 1428850042147573932  # ID du membre à autoriser
+ANNONCE_EVENT_ID = 1429028131712270388  # ID du salon d'annonce
+CINEMA_ROLE_ID = 1428850042147573932
+cinema_start_times = {}
+# URL de l'image contenant le planning
+PLANNING_IMAGE_URL = "https://github.com/Iseyg91/Jeux_Eco/blob/main/Lundi%20(1).jpg?raw=true"
+
 # Définir GUILD_ID
 GUILD_ID = 1034007767050104892
 PING_ROLE_ID = 1355190216188497951
@@ -646,691 +656,6 @@ async def on_message(message):
 
     # Permet à la commande de continuer à fonctionner si d'autres événements sont enregistrés
     await bot.process_commands(message)
-
-#----------------------------------------------------------------------- EVENT:
-
-#Bienvenue : Message de Bienvenue + Ghost Ping Join
-private_threads = {}  # Stocke les fils privés des nouveaux membres
-
-# Liste des salons à ping
-salon_ids = [
-    1371811909183213639
-]
-
-class GuideView(View):
-    def __init__(self, thread):
-        super().__init__()
-        self.thread = thread
-        self.message_sent = False  # Variable pour contrôler l'envoi du message
-
-    @discord.ui.button(label="📘 Guide", style=discord.ButtonStyle.success, custom_id="guide_button_unique")
-    async def guide(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if not self.message_sent:  # Empêche l'envoi du message en doublon
-            await interaction.response.defer()
-            await start_tutorial(self.thread, interaction.user)
-            self.message_sent = True
-
-    @discord.ui.button(label="❌ Non merci", style=discord.ButtonStyle.danger, custom_id="no_guide_button_unique")
-    async def no_guide(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.send_message("🔒 Fermeture du fil...", ephemeral=True)
-        await asyncio.sleep(2)
-        await self.thread.delete()
-
-class NextStepView(View):
-    def __init__(self, thread):
-        super().__init__()
-        self.thread = thread
-
-    @discord.ui.button(label="➡️ Passer à la suite", style=discord.ButtonStyle.primary, custom_id="next_button")
-    async def next_step(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await interaction.response.defer()
-        user = interaction.user
-
-        # Envoi du message privé
-        await send_economy_info(user)
-
-        # Envoi du message de confirmation dans le fil privé
-        await self.thread.send("📩 Les détails de cette étape ont été envoyés en message privé.")
-
-        # Attente de 2 secondes
-        await asyncio.sleep(2)
-
-        # Message d'avertissement avant suppression
-        await self.thread.send("🗑️ Ce fil sera supprimé dans quelques instants.")
-
-        # Suppression du fil privé
-        await asyncio.sleep(3)
-        await self.thread.delete()
-
-async def wait_for_command(thread, user, command):
-    def check(msg):
-        return msg.channel == thread and msg.author == user and msg.content.startswith(command)
-
-    await thread.send(f"🕒 En attente de `{command}`...")  # Envoi du message d'attente
-    await bot.wait_for("message", check=check)  # Attente du message de la commande
-    await thread.send("✅ Commande exécutée ! Passons à la suite. 🚀")  # Confirmation après la commande
-    await asyncio.sleep(2)  # Pause avant de passer à l'étape suivante
-
-async def start_tutorial(thread, user):
-    tutorial_steps = [
-        ("💼 **Commande Travail**", "Utilise `!!work` pour gagner un salaire régulièrement !", "!!work"),
-        ("📦 **Commande Quotidient**", "Utilise !!daily pour gagner un salaire quotidient !", "!!daily"),
-        ("💃 **Commande Slut**", "Avec `!!slut`, tente de gagner de l'argent... Mais attention aux risques !", "!!slut"),
-        ("🔫 **Commande Crime**", "Besoin de plus de frissons ? `!!crime` te plonge dans des activités illégales !", "!!crime"),
-        ("🌿 **Commande Collecte**", "Avec `!!collect`, tu peux ramasser des ressources utiles !", "!!collect"),
-        ("📊 **Classement**", "Découvre qui a le plus d'argent en cash avec `!!lb -cash` !", "!!lb -cash"),
-        ("🕵️ **Voler un joueur**", "Tente de dérober l'argent d'un autre avec `!!rob @user` !", "!!rob"),
-        ("🏦 **Dépôt Bancaire**", "Pense à sécuriser ton argent avec `!!dep all` !", "!!dep all"),
-        ("💰 **Solde Bancaire**", "Vérifie ton argent avec `!!bal` !", "!!bal"),
-    ]
-
-    for title, desc, cmd in tutorial_steps:
-        embed = discord.Embed(title=title, description=desc, color=discord.Color.blue())
-        await thread.send(embed=embed)
-        await wait_for_command(thread, user, cmd)  # Attente de la commande de l'utilisateur
-
-    # Embed final des jeux
-    games_embed = discord.Embed(
-        title="🎲 **Autres Commandes de Jeux**",
-        description="Découvre encore plus de moyens de t'amuser et gagner des Ezryn Coins !",
-        color=discord.Color.gold()
-    )
-    games_embed.add_field(name="🐔 Cock-Fight", value="`!!cf <amount>` - Combat de Poulet !", inline=False)
-    games_embed.add_field(name="🃏 Blackjack", value="`!!bj <amount>` - Jeux de Carte !", inline=False)
-    games_embed.add_field(name="🎰 Slot Machine", value="`!!sm <amount>` - Tente un jeu risqué !", inline=False)
-    games_embed.add_field(name="🔫 Roulette Russe", value="`!!rr <amount>` - Joue avec le destin !", inline=False)
-    games_embed.add_field(name="🎡 Roulette", value="`!!roulette <amount>` - Fais tourner la roue de la fortune !", inline=False)
-    games_embed.set_footer(text="Amuse-toi bien sur Etherya ! 🚀")
-
-    await thread.send(embed=games_embed)
-    await thread.send("Clique sur **Passer à la suite** pour découvrir les systèmes impressionnants de notre Economie !", view=NextStepView(thread))
-
-async def send_economy_info(user: discord.Member):
-    try:
-        economy_embed = discord.Embed(
-            title="📌 **Lis ces salons pour optimiser tes gains !**",
-            description=(
-                "Bienvenue dans l'économie du serveur ! Pour en tirer le meilleur profit, assure-toi de lire ces salons :\n\n"
-                "💰 **Comment accéder à l'economie ?**\n➜ <#1355190022047011117>\n\n"
-                "📖 **Informations générales**\n➜ <#1355158018517500086>\n\n"
-                "💰 **Comment gagner des Coins ?**\n➜ <#1355157853299675247>\n\n"
-                "🏦 **Banque de l'Économie **\n➜ <#1364531840144244819>\n\n"
-                "🎟️ **Ticket Finances** *(Pose tes questions ici !)*\n➜ <#1355157942005006558>\n\n"
-                "📈 **Astuce :** Plus tu en sais, plus tu gagnes ! Alors prends quelques minutes pour lire ces infos. 🚀"
-            ),
-            color=discord.Color.gold()
-        )
-        economy_embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/1168755764760559637.webp?size=96&quality=lossless")
-        economy_embed.set_footer(text="Bon jeu et bons profits ! 💰")
-
-        dm_channel = await user.create_dm()
-        await dm_channel.send(embed=economy_embed)
-    except discord.Forbidden:
-        print(f"Impossible d'envoyer un MP à {user.name} ({user.id})")
-        
-@bot.event
-async def on_member_join(member):
-    guild_id = str(member.guild.id)
-
-    # Vérifie si c'est le serveur Etherya
-    if member.guild.id == ETHERYA_SERVER_ID:
-        # Envoi du message de bienvenue dans le salon de bienvenue
-        channel = bot.get_channel(WELCOME_CHANNEL_ID)
-        if channel:
-            embed = discord.Embed(
-                title="<a:fete:1172810362261880873> Bienvenue sur le serveur ! <a:fete:1172810362261880873>",
-                description=(
-                    "*<a:fire:1343873843730579478> Ici, l’économie règne en maître, les alliances se forment, les trahisons éclatent... et ta richesse ne tient qu’à un fil ! <a:fire:1343873843730579478>*\n\n"
-                    "<:better_scroll:1342376863909285930> **Avant de commencer, prends le temps de lire :**\n\n"
-                    "- <a:fleche3:1290077283100397672> **<#1355157955804139560>** pour éviter les problèmes dès le départ.\n"
-                    "- <a:fleche3:1290077283100397672> **<#1364473395982630945>** pour comprendre les bases de l’économie.\n"
-                    "- <a:fleche3:1290077283100397672> **<#1364477906096623746>** pour savoir ce que tu peux obtenir.\n\n"
-                    "💡 *Un doute ? Une question ? Ouvre un ticket et le staff t’aidera !*\n\n"
-                    "**Prépare-toi à bâtir ton empire... ou à tout perdre. Bonne chance ! 🍀**"
-                ),
-                color=discord.Color.gold()
-            )
-            embed.set_image(url="https://raw.githubusercontent.com/Cass64/EtheryaBot/main/images_etherya/etheryaBot_banniere.png")
-            await channel.send(f"{member.mention}", embed=embed)
-
-        # Envoi du ghost ping une seule fois par salon
-        for salon_id in salon_ids:
-            salon = bot.get_channel(salon_id)
-            if salon:
-                try:
-                    message = await salon.send(f"{member.mention}")
-                    await message.delete()
-                except discord.Forbidden:
-                    print(f"Le bot n'a pas la permission d'envoyer un message dans {salon.name}.")
-                except discord.HTTPException:
-                    print("Une erreur est survenue lors de l'envoi du message.")
-
-        # Envoi d'une notification de log dans le salon spécifique du serveur
-        if member.guild.id == ETHERYA_SERVER_ID:
-            channel = get_log_channel(member.guild, "utilisateurs")
-            if channel:
-                embed = discord.Embed(
-                    title="✅ Nouveau Membre",
-                    description=f"{member.mention} a rejoint le serveur.",
-                    color=discord.Color.green()
-                )
-                embed.set_thumbnail(url=member.display_avatar.url)
-                embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
-                embed.timestamp = member.joined_at or discord.utils.utcnow()
-
-                await channel.send(embed=embed)
-
-@bot.tree.command(name="guide", description="Ouvre un guide personnalisé pour comprendre l'économie du serveur.")
-async def guide_command(interaction: discord.Interaction):
-    user = interaction.user
-
-    # Vérifie si le serveur est Etherya avant d'exécuter le reste du code
-    if interaction.guild.id != ETHERYA_SERVER_ID:
-        await interaction.response.send_message("❌ Cette commande est uniquement disponible sur le serveur Etherya.", ephemeral=True)
-        return
-
-    # Crée un nouveau thread privé à chaque commande
-    channel_id = 1355198748296351854
-    channel = bot.get_channel(channel_id)
-
-    if not channel:
-        await interaction.response.send_message("❌ Le canal est introuvable ou le bot n'a pas accès à ce salon.", ephemeral=True)
-        return
-
-    # Vérifie si le bot peut créer des threads dans ce canal
-    if not channel.permissions_for(channel.guild.me).send_messages or not channel.permissions_for(channel.guild.me).manage_threads:
-        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer des threads dans ce canal.", ephemeral=True)
-        return
-
-    try:
-        # Crée un nouveau thread à chaque fois que la commande est exécutée
-        thread = await channel.create_thread(
-            name=f"🎉 Bienvenue {user.name} !", 
-            type=discord.ChannelType.private_thread,
-            invitable=True
-        )
-        await thread.add_user(user)  # Ajoute l'utilisateur au thread
-
-        # Embed de bienvenue et guide pour un nouveau thread
-        welcome_embed = discord.Embed(
-            title="🌌 Bienvenue à Etherya !",
-            description="Une aventure unique t'attend, entre **économie dynamique**, **stratégies** et **opportunités**. "
-                        "Prêt à découvrir tout ce que le serveur a à offrir ?",
-            color=discord.Color.blue()
-        )
-        welcome_embed.set_thumbnail(url=user.avatar.url if user.avatar else bot.user.avatar.url)
-        await thread.send(embed=welcome_embed)
-
-    except discord.errors.Forbidden:
-        await interaction.response.send_message("❌ Le bot n'a pas les permissions nécessaires pour créer un thread privé dans ce canal.", ephemeral=True)
-        return
-
-    # Embed du guide
-    guide_embed = discord.Embed(
-        title="📖 Besoin d'un Guide ?",
-        description="Nous avons préparé un **Guide de l'Économie** pour t'aider à comprendre notre système monétaire et "
-                    "les différentes façons d'évoluer. Veux-tu le suivre ?",
-        color=discord.Color.gold()
-    )
-    guide_embed.set_footer(text="Tu peux toujours y accéder plus tard via cette commande ! 🚀")
-    await thread.send(embed=guide_embed, view=GuideView(thread))  # Envoie le guide avec les boutons
-
-    await interaction.response.send_message("📩 Ton guide personnalisé a été ouvert.", ephemeral=True)
-
-    # IMPORTANT : Permet au bot de continuer à traiter les commandes
-    await bot.process_commands(message)
-
-#---------------------------------------------------------------------------------------- LOGGER LOG:
-
-@bot.event
-async def on_message_delete(message):
-    if message.author.bot:
-        return  # Ignore les messages de bots
-    # Log du message supprimé (si sur le serveur ETHERYA)
-    if message.guild and message.guild.id == ETHERYA_SERVER_ID:
-        log_channel = get_log_channel(message.guild, "messages")
-        if log_channel:
-            embed = discord.Embed(
-                title="🗑️ Message Supprimé",
-                description=f"**Auteur :** {message.author.mention}\n**Salon :** {message.channel.mention}",
-                color=discord.Color.red()
-            )
-            if message.content:
-                embed.add_field(name="Contenu", value=message.content, inline=False)
-            else:
-                embed.add_field(name="Contenu", value="*Aucun texte (peut-être un embed ou une pièce jointe)*", inline=False)
-
-            embed.set_footer(text=f"ID de l'utilisateur : {message.author.id}")
-            embed.timestamp = message.created_at
-
-            await log_channel.send(embed=embed)
-
-@bot.event
-async def on_message_edit(before, after):
-    if before.guild and before.guild.id == ETHERYA_SERVER_ID and before.content != after.content:
-        channel = get_log_channel(before.guild, "messages")
-        if channel:
-            embed = discord.Embed(
-                title="✏️ Message Édité",
-                description=f"**Auteur :** {before.author.mention}\n**Salon :** {before.channel.mention}",
-                color=discord.Color.orange()
-            )
-            embed.add_field(name="Avant", value=before.content or "*Vide*", inline=False)
-            embed.add_field(name="Après", value=after.content or "*Vide*", inline=False)
-            embed.set_footer(text=f"ID de l'utilisateur : {before.author.id}")
-            embed.timestamp = after.edited_at or discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-@bot.event
-async def on_member_remove(member: discord.Member):
-    guild_id = str(member.guild.id)
-
-    # Traitement du départ de membre pour un serveur spécifique (PROJECT_DELTA)
-    if member.guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(member.guild, "utilisateurs")
-        if channel:
-            embed = discord.Embed(
-                title="❌ Départ d'un Membre",
-                description=f"{member.mention} a quitté le serveur.",
-                color=discord.Color.red()
-            )
-            embed.set_thumbnail(url=member.display_avatar.url)
-            embed.set_footer(text=f"ID de l'utilisateur : {member.id}")
-            embed.timestamp = discord.utils.utcnow()
-
-            # Ajouter la durée de présence si disponible
-            if member.joined_at:
-                duration = discord.utils.utcnow() - member.joined_at
-                days = duration.days
-                hours = duration.seconds // 3600
-                minutes = (duration.seconds % 3600) // 60
-
-                formatted_duration = f"{days}j {hours}h {minutes}min"
-                embed.add_field(name="Durée sur le serveur", value=formatted_duration, inline=False)
-
-            await channel.send(embed=embed)
-
-# --- Nickname update ---
-@bot.event
-async def on_user_update(before, after):
-    # Check for username changes (this affects all mutual servers)
-    for guild in bot.guilds:
-        if guild.id == ETHERYA_SERVER_Id:
-            if before.name != after.name:
-                channel = get_log_channel(guild, "nicknames")
-                if channel:
-                    embed = discord.Embed(
-                        title="📝 Changement de Pseudo Global",
-                        description=f"{after.mention} a changé son pseudo global.",
-                        color=discord.Color.blurple()
-                    )
-                    embed.add_field(name="Avant", value=f"`{before.name}`", inline=True)
-                    embed.add_field(name="Après", value=f"`{after.name}`", inline=True)
-                    embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
-                    embed.timestamp = discord.utils.utcnow()
-
-                    await channel.send(embed=embed)
-
-@bot.event
-async def on_member_update(before, after):
-    if before.guild.id != ETHERYA_SERVER_ID:  # Vérifier si c'est le bon serveur
-        return
-
-    # --- Nickname logs ---
-    if before.nick != after.nick:
-        channel = get_log_channel(before.guild, "nicknames")
-        if channel:
-            embed = discord.Embed(
-                title="📝 Changement de Surnom",
-                description=f"{before.mention} a modifié son surnom sur le serveur.",
-                color=discord.Color.blue()
-            )
-            embed.add_field(name="Avant", value=f"`{before.nick}`" if before.nick else "*Aucun*", inline=True)
-            embed.add_field(name="Après", value=f"`{after.nick}`" if after.nick else "*Aucun*", inline=True)
-            embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-    # --- Boost du serveur ---
-    if before.premium_since is None and after.premium_since is not None:
-        channel = get_log_channel(before.guild, "boosts")
-        if channel:
-            embed = discord.Embed(
-                title="💎 Nouveau Boost",
-                description=f"{after.mention} a boosté le serveur !",
-                color=discord.Color.green()
-            )
-            embed.set_thumbnail(url=after.display_avatar.url)
-            embed.set_footer(text=f"ID de l'utilisateur : {after.id}")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-@bot.event
-async def on_guild_role_create(role):
-    guild_id = str(role.guild.id)
-    # Log classique si protection désactivée
-    if role.guild.id == ETHERYA_SERVER_ID:
-        log_channel = get_log_channel(role.guild, "roles")
-        if log_channel:
-            embed = discord.Embed(
-                title="🎭 Nouveau Rôle Créé",
-                description=f"Un nouveau rôle a été créé : **{role.name}**",
-                color=discord.Color.purple()
-            )
-            embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
-            embed.set_footer(text="Rôle créé sur le serveur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-            try:
-                await log_channel.send(embed=embed)
-                print(f"Log de création de rôle envoyé pour {role.name}.")
-            except Exception as e:
-                print(f"Erreur lors de l'envoi du log pour le rôle {role.name} : {e}")
-
-@bot.event
-async def on_guild_role_delete(role):
-    guild_id = str(role.guild.id)
-
-    # Log classique si suppression sans protection ou whitelistée
-    if role.guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(role.guild, "roles")
-        if channel:
-            embed = discord.Embed(
-                title="🎭 Rôle Supprimé",
-                description=f"Le rôle **{role.name}** a été supprimé.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="ID du Rôle", value=str(role.id), inline=False)
-            embed.set_footer(text="Rôle supprimé sur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            try:
-                await channel.send(embed=embed)
-                print(f"Log de suppression de rôle envoyé pour {role.name}.")
-            except Exception as e:
-                print(f"Erreur lors de l'envoi du log pour le rôle {role.name} : {e}")
-
-# Logs pour les mises à jour de rôle
-@bot.event
-async def on_guild_role_update(before, after):
-    if before.guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(before.guild, "roles")
-        if channel:
-            embed = discord.Embed(
-                title="🎭 Mise à Jour de Rôle",
-                description=f"Le rôle **{before.name}** a été mis à jour :",
-                color=discord.Color.orange()
-            )
-            embed.add_field(name="Avant", value=f"`{before.name}`", inline=False)
-            embed.add_field(name="Après", value=f"`{after.name}`", inline=False)
-            embed.add_field(name="ID du Rôle", value=str(after.id), inline=False)
-
-            # Ajouter des informations supplémentaires, si nécessaire
-            if before.permissions != after.permissions:
-                embed.add_field(name="Permissions", value="Permissions modifiées", inline=False)
-            
-            embed.set_footer(text="Mise à jour du rôle")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-@bot.event
-async def on_guild_channel_create(channel):
-    guild_id = str(channel.guild.id)
-    # Log de création si la protection n’est pas activée
-    if channel.guild.id == ETHERYA_SERVER_ID:
-        channel_log = get_log_channel(channel.guild, "channels")
-        if channel_log:
-            embed = discord.Embed(
-                title="🗂️ Nouveau Salon Créé",
-                description=f"Le salon **{channel.name}** a été créé.",
-                color=discord.Color.blue()
-            )
-            embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
-            embed.set_footer(text="Salon créé sur le serveur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            try:
-                await channel_log.send(embed=embed)
-            except Exception as e:
-                print(f"Erreur lors du log de création de salon : {e}")
-
-@bot.event
-async def on_guild_channel_delete(channel):
-    guild_id = str(channel.guild.id)
-    # Log normal de suppression si protection non activée
-    if channel.guild.id == ETHERYA_SERVER_ID:
-        channel_log = get_log_channel(channel.guild, "channels")
-        if channel_log:
-            embed = discord.Embed(
-                title="🗂️ Salon Supprimé",
-                description=f"Le salon **{channel.name}** a été supprimé.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
-            embed.set_footer(text="Salon supprimé sur le serveur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            try:
-                await channel_log.send(embed=embed)
-                print(f"Log de suppression envoyé pour {channel.name}.")
-            except Exception as e:
-                print(f"Erreur lors de l'envoi du log pour la suppression : {e}")
-
-# Log de la mise à jour de salon dans le serveur PROJECT_DELTA
-@bot.event
-async def on_guild_channel_update(before, after):
-    if before.guild.id == ETHERYA_SERVER_ID:
-        # Ignorer si c'est l'admin (toi) qui modifie le salon
-        if before.guild.me.id == after.guild.me.id:
-            return
-        
-        # Récupérer le salon de log pour les channels
-        channel_log = get_log_channel(before.guild, "channels")
-        if channel_log:
-            embed = discord.Embed(
-                title="🗂️ Mise à Jour de Salon",
-                description=f"Le salon **{before.name}** a été mis à jour.",
-                color=discord.Color.orange()
-            )
-            embed.add_field(name="Avant", value=f"`{before.name}`", inline=False)
-            embed.add_field(name="Après", value=f"`{after.name}`", inline=False)
-
-            # Log de modifications supplémentaires (comme les permissions, la description, etc.)
-            if before.topic != after.topic:
-                embed.add_field(name="Description", value=f"Avant : {before.topic if before.topic else 'Aucune'}\nAprès : {after.topic if after.topic else 'Aucune'}", inline=False)
-            if before.position != after.position:
-                embed.add_field(name="Position", value=f"Avant : {before.position}\nAprès : {after.position}", inline=False)
-
-            embed.set_footer(text="Mise à jour du salon sur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel_log.send(embed=embed)
-
-
-# --- Voice state update ---
-@bot.event
-async def on_voice_state_update(member, before, after):
-    if member.guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(member.guild, "vocal")
-        if channel:
-            embed = discord.Embed(
-                title="🎙️ Changement d'État Vocal",
-                description=f"Changement d'état vocal pour {member.mention}",
-                color=discord.Color.blue()
-            )
-            embed.set_footer(text="Logs des salons vocaux")
-            embed.timestamp = discord.utils.utcnow()
-
-            if after.channel:
-                embed.add_field(name="Rejoint le salon vocal", value=f"{after.channel.name}", inline=False)
-            if before.channel:
-                embed.add_field(name="Quitte le salon vocal", value=f"{before.channel.name}", inline=False)
-
-            await channel.send(embed=embed)
-
-# --- Guild update ---
-@bot.event
-async def on_guild_update(before, after):
-    if before.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(after, "serveur")  # Assurez-vous que 'after' est le bon paramètre pour obtenir le canal
-        if channel:
-            embed = discord.Embed(
-                title="⚙️ Mise à Jour du Serveur",
-                description="Des modifications ont été apportées au serveur.",
-                color=discord.Color.green()
-            )
-            embed.add_field(name="Nom du Serveur", value=f"{before.name} → {after.name}", inline=False)
-
-            # Ajouter d'autres modifications si nécessaires (par exemple, les icônes ou les paramètres de vérification)
-            if before.icon != after.icon:
-                embed.add_field(name="Icône du Serveur", value="L'icône a été changée.", inline=False)
-
-            if before.verification_level != after.verification_level:
-                embed.add_field(name="Niveau de vérification", value=f"Avant : {before.verification_level}\nAprès : {after.verification_level}", inline=False)
-
-            embed.set_footer(text="Mise à jour du serveur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-# --- Webhooks update ---
-@bot.event
-async def on_webhooks_update(guild, channel):
-    if guild.id == ETHERYA_SERVER_ID:
-        webhook_channel = get_log_channel(guild, "webhooks")
-        if webhook_channel:
-            embed = discord.Embed(
-                title="🛰️ Mise à Jour des Webhooks",
-                description=f"Les webhooks ont été mis à jour dans le salon **{channel.name}**.",
-                color=discord.Color.purple()
-            )
-            embed.add_field(name="Nom du Salon", value=channel.name, inline=False)
-            embed.add_field(name="ID du Salon", value=str(channel.id), inline=False)
-            embed.set_footer(text="Mise à jour des webhooks")
-            embed.timestamp = discord.utils.utcnow()
-
-            await webhook_channel.send(embed=embed)
-
-@bot.event
-async def on_member_ban(guild, user):
-    guild_id = str(guild.id)
-    # --- Logs de ban pour PROJECT_DELTA ---
-    if guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(guild, "sanctions")
-        if channel:
-            embed = discord.Embed(
-                title="🔨 Membre Banni",
-                description=f"Le membre **{user.mention}** a été banni du serveur.",
-                color=discord.Color.red()
-            )
-            embed.add_field(name="ID du Membre", value=str(user.id), inline=False)
-            embed.set_footer(text="Ban sur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-# --- Logs de débannissement ---
-@bot.event
-async def on_member_unban(guild, user):
-    if guild.id == ETHERYA_SERVER_ID:
-        channel = get_log_channel(guild, "sanctions")
-        if channel:
-            embed = discord.Embed(
-                title="🔓 Membre Débanni",
-                description=f"Le membre **{user.mention}** a été débanni du serveur.",
-                color=discord.Color.green()
-            )
-            embed.add_field(name="ID du Membre", value=str(user.id), inline=False)
-            embed.set_footer(text="Débannissement sur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            await channel.send(embed=embed)
-
-# --- Bot logs ---
-@bot.event
-async def on_guild_update(before, after):
-    if before.id == ETHERYA_SERVER_ID:
-        bot_channel = get_log_channel(after, "bots")
-        if bot_channel:
-            embed = discord.Embed(
-                title="🤖 Mise à Jour du Serveur",
-                description=f"Le serveur **{before.name}** a été mis à jour.",
-                color=discord.Color.blue()
-            )
-            embed.add_field(name="Nom du Serveur", value=f"{before.name} → {after.name}", inline=False)
-
-            # Ajouter d'autres informations si nécessaire
-            if before.icon != after.icon:
-                embed.add_field(name="Icône du Serveur", value="L'icône a été changée.", inline=False)
-
-            embed.set_footer(text="Mise à jour du serveur sur PROJECT_DELTA")
-            embed.timestamp = discord.utils.utcnow()
-
-            await bot_channel.send(embed=embed)
-
-#------------------------------------------------------------------------------------------------------------------------
-
-@bot.hybrid_command(
-    name="uptime",
-    description="Affiche l'uptime du bot."
-)
-async def uptime(ctx):
-    uptime_seconds = round(time.time() - start_time)
-    days = uptime_seconds // (24 * 3600)
-    hours = (uptime_seconds % (24 * 3600)) // 3600
-    minutes = (uptime_seconds % 3600) // 60
-    seconds = uptime_seconds % 60
-    embed = discord.Embed(
-        title="Uptime du bot",
-        description=f"Le bot est en ligne depuis : {days} jours, {hours} heures, {minutes} minutes, {seconds} secondes",
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.hybrid_command(
-    name="ping",
-    description="Affiche le Ping du bot."
-)
-async def ping(ctx):
-    latency = round(bot.latency * 1000)  # Latence en ms
-    embed = discord.Embed(title="Pong!", description=f"Latence: {latency}ms", color=discord.Color.green())
-
-    await ctx.send(embed=embed)
-
-# Vérification si l'utilisateur est l'owner du bot
-def is_owner(ctx):
-    return ctx.author.id == ISEY_ID
-
-@bot.command()
-async def restart(ctx):
-    if is_owner(ctx):
-        embed = discord.Embed(
-            title="Redémarrage du Bot",
-            description="Le bot va redémarrer maintenant...",
-            color=discord.Color.blue()
-        )
-        await ctx.send(embed=embed)
-        os.execv(sys.executable, ['python'] + sys.argv)  # Redémarre le bot
-    else:
-        await ctx.send("Seul l'owner peut redémarrer le bot.")
-
-@bot.hybrid_command()
-async def shutdown(ctx):
-    if is_owner(ctx):
-        embed = discord.Embed(
-            title="Arrêt du Bot",
-            description="Le bot va maintenant se fermer. Tous les services seront arrêtés.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text="Cette action est irréversible.")
-        await ctx.send(embed=embed)
-        await bot.close()
-    else:
-        await ctx.send("Seul l'owner peut arrêter le bot.")
-
 
 @bot.hybrid_command( 
     name="balance",
@@ -3646,141 +2971,7 @@ async def collect_income(ctx: commands.Context):
 
     await ctx.send("Tu n'as aucun rôle collect actif ou tous sont en cooldown.")
 
-#------------------------------------------------------------------------- Commandes d'aide : +aide, /help
-@bot.hybrid_command(name="help", description="Affiche l'aide économique pour Etherya Economie")
-async def help(ctx: commands.Context):
-    banner_url = "https://github.com/Iseyg91/Isey_aime_Cass/blob/main/BANNER_ETHERYA-topaz.png?raw=true"  # URL de la bannière
-    embed = discord.Embed(
-        title="🏡 **Accueil Etherya Economie **",
-        description=f"Hey, bienvenue {ctx.author.mention} sur la page d'accueil de Etherya Economie! 🎉\n\n"
-                    "Ici, vous trouverez toutes les informations nécessaires pour comprendre l'économie efficacement. 🌟",
-        color=discord.Color(0x1abc9c)
-    )
-    embed.set_thumbnail(url=bot.user.avatar.url)
-    embed.set_footer(text="Développé avec ❤️ par Iseyg. Merci pour votre soutien !")
-    embed.set_image(url=banner_url)  # Ajout de la bannière en bas de l'embed
-
-    # Informations générales
-    embed.add_field(name="📚 **Informations**", value=f"• **Mon préfixe** : !!\n• **Nombre de commandes** : 57", inline=False)
-
-    # Création du menu déroulant
-    select = discord.ui.Select(
-        placeholder="Choisissez une catégorie 👇", 
-        options=[
-            discord.SelectOption(label="Jeux", description="🪙 Commandes pour jouer a l'économie", emoji="💸"),
-            discord.SelectOption(label="Items & Badges", description="📦Commandes pour accéder aux Items & Badges", emoji="🛒"),
-            discord.SelectOption(label="Pouvoir", description="🌊Commandes pour attaquer d'autre joueur ou encore se défendre ", emoji="🪭"),
-            discord.SelectOption(label="Guild", description="📍Commande pour gérer votre Guild", emoji="🪄"),
-            discord.SelectOption(label="Crédits", description="💖 Remerciements et crédits", emoji="🙏")
-        ], 
-        custom_id="help_select"
-    )
-
-    # Définir la méthode pour gérer l'interaction du menu déroulant
-    async def on_select(interaction: discord.Interaction):
-        category = interaction.data['values'][0]
-        new_embed = discord.Embed(color=discord.Color(0x1abc9c))
-        new_embed.set_image(url=banner_url)  # Ajout de la bannière dans chaque catégorie
-        if category == "Jeux":
-            new_embed.title = "💴 **Commandes pour jouer a l'économie**"
-            new_embed.description = "Bienvenue dans la section Economie !"
-            new_embed.add_field(name="💰 !!bal", value="Affiche ton solde actuel en **cash**,**bank** et **total**.", inline=False)
-            new_embed.add_field(name="🏹 !!dy", value="Récupère une **somme quotidienne**.", inline=False)
-            new_embed.add_field(name="🍀 !!collect", value="Récupère des Coins.", inline=False)
-            new_embed.add_field(name="💼 !!work", value="Travaille pour gagner de l'argent !", inline=False)
-            new_embed.add_field(name="💥 !!slut", value="Comettre un **slut** pour gagner de l'argent ou risquer une amende.", inline=False)
-            new_embed.add_field(name="🚨 !!crime", value="Comettre un **crime** pour gagner de l'argent ou risquer une amende.", inline=False)
-            new_embed.add_field(name="🏆 !!lb (-cash, -bank)", value="Affiche le **classement** des joueurs avec leur cash, banque ou encore en total.", inline=False)
-            new_embed.add_field(name="💥 !!rob <@user>", value="Tente de **voler** un autre utilisateur (risque d'échec).", inline=False)
-            new_embed.add_field(name="💸 !!with <amount>", value="Retire une certaine somme d'argent de la **banque**.", inline=False)
-            new_embed.add_field(name="💳 !!dep <amount>", value="Dépose une certaine somme d'argent dans ta **banque**.", inline=False)
-            new_embed.add_field(name="🛍 !!buy c", value="Achat d'**un chicken** pour jouer au cf.", inline=False)
-            new_embed.add_field(name="🎲 !!cf <amount>", value="Joue au **chicken fight*** avec un certain montant.", inline=False)
-            new_embed.add_field(name="🍒 !!bj <amount>", value="Joue au **blackjack** avec une certaine somme.", inline=False)
-            new_embed.add_field(name="🎰 !!rr <amount>", value="Joue à la **roulette russe** avec une certaine somme.", inline=False)
-            new_embed.add_field(name="💸 !!roulette <amount> <space>", value="Mise à la **roulette** avec un certain montant.", inline=False)
-            new_embed.add_field(name="💰 !!pay <@user> <amount>", value="Envoie de l'argent à un autre utilisateur.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        if category == "Items & Badges":
-            new_embed.title = "📦 **Commandes pour accéder aux Items & Badges**"
-            new_embed.description = "Bienvenue dans la section Items & Badges !"
-            new_embed.add_field(name="🛒 /item-store", value="Accède au **magasin d'items** pour acheter des objets.", inline=False)
-            new_embed.add_field(name="📜 /item-info", value="Affiche les **détails** d'un item spécifique.", inline=False)
-            new_embed.add_field(name="💸 /item-buy", value="Permet d'acheter un item en utilisant ton solde.", inline=False)
-            new_embed.add_field(name="💰 /item-sell", value="Permet de **vendre** un item de ton inventaire à un autre joueur.", inline=False)
-            new_embed.add_field(name="📦 /item-inventory", value="Affiche les items que tu possèdes dans ton **inventaire**.", inline=False)
-            new_embed.add_field(name="⚡️ /item-use", value="Utilise un item de ton inventaire pour activer ses effets.", inline=False)
-            new_embed.add_field(name="🏆 /item-leaderboard", value="Affiche le **classement** des joueurs de l'items spécifié.", inline=False)
-            new_embed.add_field(name="🎖 /badge-store", value="Accède au **musée de badges** pour voir les badges uniques.", inline=False)
-            new_embed.add_field(name="🎖 /badge-inventory", value="Affiche les badges que tu possèdes dans ton inventaire.", inline=False)
-            new_embed.add_field(name="🏅 /rewards", value="Récupère une **récompense quotidienne**.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        if category == "Pouvoir":
-            new_embed.title = "🗃️ **Commandes pour attaquer d'autre joueur ou encore se défendre**"
-            new_embed.description = "Bienvenue dans la section Pouvoir !"
-            new_embed.add_field(name="!!nen", value="Cet objet permet d'utiliser le Nen aléatoirement, avec un serment pour chaque technique. La spécialisation est inaccessible.", inline=False)
-            new_embed.add_field(name="!!renforcement", value="Offre à son utilisateur un anti-rob de 24h grâce a un serment de nen mais ne peux pas le refaire pendant 1 semaine.", inline=False)
-            new_embed.add_field(name="!!emission <@user>", value="Maudit quelqu'un grâce a son propre nen et lui offre un collect de -20% (cooldown 1 semaine)", inline=False)
-            new_embed.add_field(name="!!manipulation", value="Manipule sa propre banque et offre un collect de 1% toutes les 4h pendant 24h (cooldown 1 semaines)", inline=False)
-            new_embed.add_field(name="!!matérialisation", value="Matérialise un objet aléatoire de la boutique (sauf exception) (tous les mois)", inline=False)
-            new_embed.add_field(name="!!transformation <@user>", value="Permet de transformer son aura en éclair et FOUDROYER la banque de quelqu'un est de lui retirer 25% de celle-ci (cooldown : 2 semaines)", inline=False)
-            new_embed.add_field(name="!!heal", value="Permet de retirer le nen que quelqu'un nous a poser grâce à un exorciste !", inline=False)
-            new_embed.add_field(name="!!imperial <@user>", value="Permet d'utiliser le démon dans votre arme et vous permet de voler votre adversaire", inline=False)
-            new_embed.add_field(name="!!haki <@user>", value="Paralyse ainsi il n’aura pas accès aux salons économiques.", inline=False)
-            new_embed.add_field(name="!!ultra", value="Vous activez l'Ultra Instinct ultime, esquivant toutes les attaques pendant (temps d'immunité). Après utilisation, 5 jours de repos sont nécessaires pour le réutiliser.", inline=False)
-            new_embed.add_field(name="!!berserk <@user>", value="Berserk te consume, tu détruis sans gain. Roll 100 : cible perd tout, tu obtiens 'L'incarnation de la Rage'. Roll ≤ 10 : perds 15% de ta banque. 7 jours de cooldown.", inline=False)
-            new_embed.add_field(name="!!armure", value="Offre une protection anti-rob de 1h. L'armure s'auto-consomme après l'utilisation.", inline=False)
-            new_embed.add_field(name="!!infini", value="Vous donne un anti-rob", inline=False)
-            new_embed.add_field(name="!!pokeball <@user>", value="Permet de voler un objet aléatoire à une personne ciblé, ou d'obtenir rien.", inline=False)
-            new_embed.add_field(name="!!float", value="Accès au salon <#1355158032195256491> pendant 15 minutes, utilisable une fois par jour", inline=False)
-            new_embed.add_field(name="!!oeil", value="Voir l'avenir et entrevoir le prochain restock pendant 10 sec, cooldown de 1 semaine.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        if category == "Guild":
-            new_embed.title = "🛡️**Commandes pour gérer votre Guild**"
-            new_embed.description = "Bienvenue dans la section Guild !"
-            new_embed.add_field(name="!!gcreate", value="Crée une guild. Coût : 5000 coins.", inline=False)
-            new_embed.add_field(name="!!g", value="Affiche les informations de votre guild.", inline=False)
-            new_embed.add_field(name="!!cdep <amount>", value="Dépose des coins dans le coffre-fort de la guild. Accès restreint.", inline=False)
-            new_embed.add_field(name="!!cwith <amount>", value="Retire des coins du coffre-fort de la guild. Accès restreint.", inline=False)
-            new_embed.add_field(name="!!gban <@user>", value="Bannit un membre de la guild (empêche de la rejoindre à nouveau).", inline=False)
-            new_embed.add_field(name="!!gdelete <guildid>", value="Supprime définitivement une guild (admin only).", inline=False)
-            new_embed.add_field(name="!!gdep <amount/all>", value="Dépose des coins dans la banque de la guild.", inline=False)
-            new_embed.add_field(name="!!gkick <@user>", value="Expulse un membre de la guild.", inline=False)
-            new_embed.add_field(name="!!gleave", value="Quitte la guild actuelle.", inline=False)
-            new_embed.add_field(name="!!gowner <@user>", value="Transfère la propriété de la guild à un autre membre.", inline=False)
-            new_embed.add_field(name="!!gunban <@user>", value="Débannit un ancien membre, lui permettant de rejoindre à nouveau la guild.", inline=False)
-            new_embed.add_field(name="!!gwith <amount>", value="Retire des coins de la banque de la guild.", inline=False)
-            new_embed.add_field(name="/dep-guild-inventory", value="Dépose un item de votre inventaire personnel dans celui de votre guild.", inline=False)
-            new_embed.add_field(name="/with-guild-inventory", value="Retire un item de l'inventaire de votre guild vers le vôtre.", inline=False)
-            new_embed.set_footer(text="♥️ by Iseyg")
-        elif category == "Crédits":
-            new_embed.title = "💖 **Crédits et Remerciements**"
-            new_embed.description = """
-            Un immense merci à **Iseyg** pour le développement de ce bot incroyable ! 🙏  
-            Sans lui, ce bot ne serait rien de plus qu'un concept. Grâce à sa passion, son travail acharné et ses compétences exceptionnelles, ce projet a pris vie et continue de grandir chaque jour. 🚀
-
-            Nous tenons également à exprimer notre gratitude envers **toute la communauté**. 💙  
-            Votre soutien constant, vos retours et vos idées font de ce bot ce qu'il est aujourd'hui. Chacun de vous, que ce soit par vos suggestions, vos contributions ou même simplement en utilisant le bot, fait une différence. 
-
-            Merci à **tous les développeurs, contributeurs et membres** qui ont aidé à faire évoluer ce projet et l’ont enrichi avec leurs talents et leurs efforts. 🙌
-
-            Et bien sûr, un grand merci à vous, **utilisateurs**, pour votre enthousiasme et votre confiance. Vous êtes la raison pour laquelle ce bot continue d’évoluer. 🌟
-
-            Restons unis et continuons à faire grandir cette aventure ensemble ! 🌍
-            """
-            new_embed.set_footer(text="♥️ by Iseyg")
-
-        await interaction.response.edit_message(embed=new_embed)
-
-    select.callback = on_select  # Attacher la fonction de callback à l'élément select
-
-    # Afficher le message avec le menu déroulant
-    view = discord.ui.View()
-    view.add_item(select)
-    
-    await ctx.send(embed=embed, view=view)
-
-#--------------------------------------------------- COMMANDE ROLL
+#-------------------------------------------------- COMMANDE ROLL
 # Définir la commande +roll
 @bot.command()
 async def roll(ctx, x: str = None):
@@ -4018,6 +3209,405 @@ def get_random_nen():
         if roll <= total:
             return nen_type
     return "renforcement"  # fallback (improbable)
+
+# === Commande Nen (ROLL)
+@bot.command()
+async def nen(ctx):
+    user = ctx.author
+    guild = ctx.guild
+
+    # Vérif rôle autorisé
+    permission_role = discord.utils.get(guild.roles, id=PERMISSION_ROLE_ID)
+    if permission_role not in user.roles:
+        return await ctx.send("❌ Tu n'es pas digne d'utiliser le Nen.")
+
+    # Vérif licence Hunter
+    if not has_license(user.id, guild.id):
+        return await ctx.send("❌ Tu n'as pas de Licence Hunter (item ID 7) dans ton inventaire.")
+
+    # Sélection Nen
+    nen_type = get_random_nen()
+    role_id = nen_roles.get(nen_type)
+    nen_role = discord.utils.get(guild.roles, id=role_id)
+
+    # Attribution du rôle Nen
+    if nen_role:
+        try:
+            await user.add_roles(nen_role)
+        except discord.Forbidden:
+            return await ctx.send("⚠️ Je n’ai pas la permission d’attribuer des rôles.")
+
+    # Embed de résultat
+    color = discord.Color.blue()
+    if nen_type == "specialisation":
+        color = discord.Color.purple()
+
+    embed = discord.Embed(
+        title="🎴 Résultat du Nen Roll",
+        description=f"Tu as éveillé le Nen de type **{nen_type.capitalize()}** !",
+        color=color
+    )
+    embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+    embed.set_footer(text="Utilise tes pouvoirs avec sagesse... ou pas.")
+
+    await ctx.send(embed=embed)
+
+#-------------------------------------- Renforcement
+
+COOLDOWN_DAYS = 7
+DURATION_HOURS = 24
+
+@bot.command(name="renforcement")
+async def renforcement(ctx):
+    user = ctx.author
+    guild = ctx.guild
+    now = datetime.utcnow()
+
+    # Vérifie que l'utilisateur a un des rôles autorisés
+    if not any(role.id in RENFORCEMENT_IDS for role in user.roles):
+        return await ctx.send("❌ Tu n'as pas le rôle requis pour utiliser cette commande.")
+
+    # Vérifie le cooldown dans MongoDB
+    cd_data = collection24.find_one({"user_id": user.id})
+    if cd_data and "last_used" in cd_data:
+        last_used = cd_data["last_used"]
+        if now - last_used < timedelta(days=COOLDOWN_DAYS):
+            remaining = (last_used + timedelta(days=COOLDOWN_DAYS)) - now
+            hours, minutes = divmod(remaining.total_seconds() // 60, 60)
+            return await ctx.send(f"⏳ Tu dois encore attendre {int(hours)}h{int(minutes)} avant de pouvoir réutiliser cette commande.")
+
+    # Donne le rôle temporairement
+    role = guild.get_role(RENFORCEMENT_ROLE_ID)
+    if not role:
+        return await ctx.send("❌ Le rôle de renforcement n'existe pas.")
+
+    await user.add_roles(role, reason="Renforcement activé")
+
+    # Embed joli avec image
+    embed = discord.Embed(
+        title="Renforcement Activé",
+        description=f"Tu as reçu le rôle **{role.name}** pour 24h.",
+        color=discord.Color.green(),
+        timestamp=now
+    )
+    embed.set_footer(text="Cooldown de 7 jours")
+    embed.set_author(name=str(user), icon_url=user.avatar.url if user.avatar else None)
+    embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/renfo.jpg?raw=true")  # Ajoute l'image
+
+    await ctx.send(embed=embed)
+
+    # Met à jour le cooldown dans Mongo
+    collection24.update_one(
+        {"user_id": user.id},
+        {"$set": {"last_used": now}},
+        upsert=True
+    )
+
+    # Attendre 24h puis retirer le rôle
+    await asyncio.sleep(DURATION_HOURS * 3600)
+    if role in user.roles:
+        try:
+            await user.remove_roles(role, reason="Renforcement expiré")
+            try:
+                await user.send("⏳ Ton rôle **Renforcement** a expiré après 24h.")
+            except discord.Forbidden:
+                pass
+        except discord.HTTPException:
+            pass
+
+#-------------------------------------- Emission
+
+COOLDOWN_DAYS = 1 
+
+@bot.command(name="emission")
+async def emission(ctx, member: discord.Member):
+    # Vérification du rôle
+    if not any(role.id in EMISSION_IDS for role in ctx.author.roles):
+        return await ctx.send("❌ Tu n'as pas le Nen nécessaire pour utiliser cette technique.")
+
+    # Cooldown MongoDB
+    cooldown = collection25.find_one({"user_id": ctx.author.id})
+    now = datetime.utcnow()
+    if cooldown and now < cooldown["next_use"]:
+        remaining = cooldown["next_use"] - now
+        return await ctx.send(f"⏳ Tu dois attendre encore {remaining.days}j {remaining.seconds // 3600}h.")
+
+    # Appliquer le rôle malus
+    role = ctx.guild.get_role(TARGET_ROLE_ID)
+    await member.add_roles(role)
+
+    # Enregistrer cooldown
+    collection25.update_one(
+        {"user_id": ctx.author.id},
+        {"$set": {"next_use": now + timedelta(days=COOLDOWN_DAYS)}},
+        upsert=True
+    )
+
+    # Embed stylé avec image
+    embed = discord.Embed(
+        title="Emission : Technique Maudite",
+        description=f"{member.mention} a été maudit pendant 24h.\nIl subira un malus de **-20%** sur ses collect !",
+        color=discord.Color.dark_purple(),
+        timestamp=now
+    )
+    embed.set_footer(text="Utilisation du Nen : Emission")
+    embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/emission.jpg?raw=true")  # Ajout de l'image
+
+    await ctx.send(embed=embed)
+
+    # Attendre 24h et retirer le rôle
+    await asyncio.sleep(86400)  # 24h en secondes
+    await member.remove_roles(role)
+
+#------------------------------------- Manipulation
+
+COOLDOWN_DAYS = 7
+
+@bot.command(name='manipulation')
+@commands.guild_only()
+async def manipulation(ctx):
+    user = ctx.author
+    guild = ctx.guild
+
+    # Vérifie si l'utilisateur a l'un des rôles autorisés
+    if not any(role.id in AUTHORIZED_MANI_IDS for role in user.roles):
+        return await ctx.send("Tu n'as pas accès à cette commande.")
+
+    # Vérifie le cooldown en DB
+    cooldown_data = collection26.find_one({"user_id": user.id})
+    now = datetime.utcnow()
+
+    if cooldown_data and now < cooldown_data["next_available"]:
+        remaining = cooldown_data["next_available"] - now
+        hours, remainder = divmod(remaining.total_seconds(), 3600)
+        minutes = remainder // 60
+        return await ctx.send(f"⏳ Tu dois attendre encore {int(hours)}h{int(minutes)}m avant de réutiliser cette commande.")
+
+    # Donne le rôle de manipulation
+    role = guild.get_role(MANIPULATION_ROLE_ID)
+    if not role:
+        return await ctx.send("❌ Le rôle de manipulation est introuvable.")
+
+    await user.add_roles(role)
+
+    # Embed avec image
+    embed = discord.Embed(
+        title="Manipulation Activée",
+        description="Tu gagnes un **collect de 1%** toutes les 4h pendant 24h.",
+        color=discord.Color.blue(),
+        timestamp=now
+    )
+    embed.set_footer(text="Cooldown de 7 jours")
+    embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/image0.jpg?raw=true")  # Ajout de l'image
+
+    await ctx.send(embed=embed)
+
+    # Mets à jour le cooldown
+    next_available = now + timedelta(days=COOLDOWN_DAYS)
+    collection26.update_one(
+        {"user_id": user.id},
+        {"$set": {"next_available": next_available}},
+        upsert=True
+    )
+
+    # Supprime le rôle après 24h
+    await asyncio.sleep(86400)
+    await user.remove_roles(role)
+    try:
+        await user.send("💤 Ton effet **Manipulation** est terminé.")
+    except discord.Forbidden:
+        pass
+
+#----------------------------------------- Materialisation
+# Cooldown en heures
+MATERIALISATION_COOLDOWN_HOURS = 6
+
+@bot.command(name="materialisation")
+async def materialisation(ctx):
+    user_id = ctx.author.id
+    guild_id = ctx.guild.id
+    now = datetime.utcnow()
+
+    # Vérifie si l'utilisateur a un rôle autorisé
+    if not any(role.id in MATERIALISATION_IDS for role in ctx.author.roles):
+        return await ctx.send("❌ Tu n’as pas le rôle requis pour utiliser la matérialisation.")
+
+    # Vérifie le cooldown
+    cd_doc = collection27.find_one({"user_id": user_id, "guild_id": guild_id})
+    if cd_doc:
+        last_use = cd_doc.get("last_use")
+        if last_use and now < last_use + timedelta(hours=MATERIALISATION_COOLDOWN_HOURS):
+            remaining = (last_use + timedelta(hours=MATERIALISATION_COOLDOWN_HOURS)) - now
+            hours, remainder = divmod(remaining.total_seconds(), 3600)
+            minutes = remainder // 60
+            embed = discord.Embed(
+                title="Cooldown actif",
+                description=f"Tu dois encore attendre **{int(hours)}h {int(minutes)}m** avant de matérialiser un item.",
+                color=discord.Color.orange()
+            )
+            return await ctx.send(embed=embed)
+
+    # Récupère un item aléatoire de la boutique (en stock uniquement, et pas interdit)
+    items = list(collection16.find({
+        "quantity": {"$gt": 0},
+        "id": {"$nin": ITEMS_INTERDITS}
+    }))
+    
+    if not items:
+        embed = discord.Embed(
+            title="❌ Aucun item disponible",
+            description="Il n'y a pas d'items à matérialiser actuellement.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    selected_item = random.choice(items)
+
+    # Met à jour l'inventaire simple
+    existing = collection7.find_one({"user_id": user_id, "guild_id": guild_id})
+    if existing:
+        inventory = existing.get("items", {})
+        inventory[str(selected_item["id"])] = inventory.get(str(selected_item["id"]), 0) + 1
+        collection7.update_one(
+            {"user_id": user_id, "guild_id": guild_id},
+            {"$set": {"items": inventory}}
+        )
+    else:
+        collection7.insert_one({
+            "user_id": user_id,
+            "guild_id": guild_id,
+            "items": {str(selected_item["id"]): 1}
+        })
+
+    # Ajoute à l'inventaire structuré
+    collection17.insert_one({
+        "guild_id": guild_id,
+        "user_id": user_id,
+        "item_id": selected_item["id"],
+        "item_name": selected_item["title"],
+        "emoji": selected_item.get("emoji"),
+        "price": selected_item["price"],
+        "obtained_at": now
+    })
+
+    # Met à jour le cooldown
+    collection27.update_one(
+        {"user_id": user_id, "guild_id": guild_id},
+        {"$set": {"last_use": now}},
+        upsert=True
+    )
+
+    # Message de confirmation avec image
+    embed = discord.Embed(
+        title="Matérialisation réussie",
+        description=f"Tu as matérialisé **{selected_item['emoji']} {selected_item['title']}** !",
+        color=discord.Color.green()
+    )
+    embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/Materi.png?raw=true")
+    await ctx.send(embed=embed)
+#------------------------------------------ Transformation
+
+@bot.command(
+    name="transformation",
+    description="Transforme ton aura en éclair et foudroie la banque d'un autre joueur pour lui retirer 25% de son solde bancaire.",
+)
+async def transformation(ctx: commands.Context, target: discord.User):
+    # Vérifier si l'utilisateur a un des rôles autorisés
+    if not any(role.id in [1416753723706708091, 1416754072316280919] for role in ctx.author.roles):
+        return await ctx.send("Désolé, tu n'as pas le rôle nécessaire pour utiliser cette commande.")
+
+    # Vérifier si l'utilisateur cible est valide
+    if target == ctx.author:
+        return await ctx.send("Tu ne peux pas utiliser cette commande sur toi-même.")
+
+    guild_id = ctx.guild.id
+    user_id = ctx.author.id
+    target_id = target.id
+
+    # Vérifier le cooldown
+    cooldown_data = collection28.find_one({"guild_id": guild_id, "user_id": user_id})
+    if cooldown_data:
+        last_used = cooldown_data.get("last_used")
+        if last_used and (datetime.utcnow() - last_used).days < 14:
+            remaining_days = 14 - (datetime.utcnow() - last_used).days
+            return await ctx.send(f"Tu as déjà utilisé cette commande récemment. Essaie dans {remaining_days} jours.")
+
+    # Récupérer les données de la banque de la cible
+    target_data = collection.find_one({"guild_id": guild_id, "user_id": target_id})
+    if not target_data:
+        target_data = {"guild_id": guild_id, "user_id": target_id, "cash": 0, "bank": 0}
+        collection.insert_one(target_data)
+
+    # Calculer la perte de la banque de la cible (25%)
+    bank_loss = target_data.get("bank", 0) * 0.25
+    new_bank_balance = target_data["bank"] - bank_loss
+
+    # Mettre à jour la banque de la cible
+    collection.update_one({"guild_id": guild_id, "user_id": target_id}, {"$set": {"bank": new_bank_balance}})
+
+    # Enregistrer le temps de la dernière utilisation pour le cooldown
+    collection28.update_one(
+        {"guild_id": guild_id, "user_id": user_id},
+        {"$set": {"last_used": datetime.utcnow()}},
+        upsert=True,
+    )
+
+    # Log de l'action
+    await log_eco_channel(
+        bot=ctx.bot,
+        guild_id=guild_id,
+        user=ctx.author,
+        action="Foudroie la banque de",
+        amount=bank_loss,
+        balance_before=target_data["bank"],
+        balance_after=new_bank_balance,
+        note=f"Transformation de l'aura en éclair. Perte de 25% de la banque de {target.display_name}."
+    )
+
+    # Embed stylé avec image
+    embed = discord.Embed(
+        title="Transformation : Aura en Éclair",
+        description=f"Tu as transformé ton aura en éclair et foudroyé la banque de {target.display_name}, lui retirant {bank_loss:.2f} d'Ether.",
+        color=discord.Color.blue(),
+        timestamp=datetime.utcnow()
+    )
+    embed.set_footer(text="Utilisation du Nen : Transformation")
+    embed.set_image(url="https://github.com/Iseyg91/Isey_aime_Cass/blob/main/IMAGE%20EMBED%20NEN/Transfo.jpg?raw=true")  # Ajout de l'image
+
+    await ctx.send(embed=embed)
+
+#-------------------------------------------- Heal
+# Commande .heal
+@bot.command()
+async def heal(ctx):
+    # Vérifier si l'utilisateur a le rôle requis
+    if HEAL_ID not in [role.id for role in ctx.author.roles]:
+        await ctx.send("Désolé, vous n'avez pas l'autorisation de retirer ce Nen.")
+        return
+
+    # Retirer le rôle malus à la personne
+    malus_role = discord.utils.get(ctx.guild.roles, id=MALUS_ROLE_ID)
+    if malus_role in ctx.author.roles:
+        await ctx.author.remove_roles(malus_role)
+        await ctx.send(f"Le rôle malus a été retiré à {ctx.author.mention}.")
+
+    # Retirer le rôle de soin (HEAL_ID)
+    heal_role = discord.utils.get(ctx.guild.roles, id=HEAL_ID)
+    if heal_role in ctx.author.roles:
+        await ctx.author.remove_roles(heal_role)
+        await ctx.send(f"Le rôle de soin a été retiré à {ctx.author.mention}.")
+
+    # Créer l'embed avec l'image spécifiée
+    embed = discord.Embed(title="Soin Exorciste", description="Le Nen a été retiré grâce à l'exorciste.", color=discord.Color.green())
+    embed.set_image(url="https://preview.redd.it/q1xtzkr219371.jpg?width=1080&crop=smart&auto=webp&s=ce05b77fe67949cc8f6c39c01a9dd93c77af1fe8")
+
+    # Envoyer l'embed
+    await ctx.send(embed=embed)
+
+# Configuration des logs
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 #---------------------------------------------- Benediction
 
 @bot.command(name="benediction")
@@ -6243,20 +5833,577 @@ async def reset_quetes(interaction: discord.Interaction):
     result = collection32.delete_many({})
     await interaction.response.send_message(f"🧹 Collection `ether_quetes` reset avec succès. {result.deleted_count} quêtes supprimées.")
 
-@bot.tree.command(name="say", description="Faire parler le bot (réservé à Isey)")
-async def say(interaction: discord.Interaction, message: str):
-    # Vérifie l'ID de l'utilisateur
-    if interaction.user.id != ISEY_ID:
-        await interaction.response.send_message(
-            "❌ Tu n'as pas la permission d'utiliser cette commande.", ephemeral=True
-        )
+# Fonction d'union des plages (par exemple, union de [6;7] et [11;19])
+def union_intervals(intervals):
+    # Tri des intervalles par le début de chaque intervalle
+    intervals.sort(key=lambda x: x[0])
+    merged = []
+    
+    for interval in intervals:
+        if not merged or merged[-1][1] < interval[0]:
+            merged.append(interval)
+        else:
+            merged[-1][1] = max(merged[-1][1], interval[1])
+    return merged
+
+# Fonction d'intersection des plages
+def intersection_intervals(intervals):
+    # Intersection de toutes les plages disponibles
+    min_end = min(interval[1] for interval in intervals)
+    max_start = max(interval[0] for interval in intervals)
+    
+    if max_start <= min_end:
+        return [(max_start, min_end)]  # Renvoie l'intersection
+    return []
+
+@bot.tree.command(name="id-items", description="📚 Affiche les IDs d'items utilisés et les plages libres")
+async def id_items(interaction: discord.Interaction):
+    # Récupérer uniquement les documents qui possèdent un champ 'id'
+    all_items = list(collection16.find({"id": {"$exists": True}}, {"id": 1, "_id": 0}))
+    used_ids = sorted(item["id"] for item in all_items)
+
+    # IDs totaux possibles
+    total_ids = list(range(1, 1001))
+
+    # Calcul des IDs libres
+    free_ids = [i for i in total_ids if i not in used_ids]
+
+    # Génération des plages libres
+    free_intervals = []
+    current_start = None
+
+    for i in total_ids:
+        if i in free_ids:
+            if current_start is None:
+                current_start = i
+        else:
+            if current_start is not None:
+                free_intervals.append((current_start, i - 1))
+                current_start = None
+    if current_start is not None:
+        free_intervals.append((current_start, 1000))
+
+    # Graphique de l'utilisation
+    usage_percentage = len(used_ids) / len(total_ids) * 100
+    free_percentage = 100 - usage_percentage
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    labels = ['Utilisés', 'Libres']
+    sizes = [usage_percentage, free_percentage]
+    colors = ['#FF6B6B', '#4ECDC4']
+    ax.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors)
+    ax.axis('equal')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight', transparent=True)
+    buf.seek(0)
+    plt.close()
+
+    # Création de l'embed Discord
+    embed = Embed(
+        title="📚 Analyse des IDs d'Items",
+        description="Voici l'état actuel des IDs utilisés et disponibles.",
+        color=discord.Color.blurple()
+    )
+
+    # Gestion du champ des IDs utilisés
+    ids_used_text = ', '.join(map(str, used_ids))
+    if len(ids_used_text) > 1024:
+        ids_used_text = ids_used_text[:1020] + "..."
+
+    embed.add_field(
+        name="🛠️ IDs Utilisés",
+        value=f"`{len(used_ids)}` IDs utilisés\n`{ids_used_text}`",
+        inline=False
+    )
+
+    # Gestion du champ des plages d'IDs libres
+    free_intervals_text = "\n".join(
+        f"`[{start} ➔ {end}]`" if start != end else f"`[{start}]`" for start, end in free_intervals
+    )
+    if len(free_intervals_text) > 1024:
+        free_intervals_text = free_intervals_text[:1020] + "..."
+
+    embed.add_field(
+        name="📖 Plages d'IDs Libres",
+        value=free_intervals_text,
+        inline=False
+    )
+
+    embed.add_field(
+        name="📊 Statistiques",
+        value=f"**Total IDs :** `{len(total_ids)}`\n"
+              f"**Utilisés :** `{len(used_ids)} ({usage_percentage:.2f}%)`\n"
+              f"**Libres :** `{len(free_ids)} ({free_percentage:.2f}%)`",
+        inline=False
+    )
+
+    embed.set_image(url="attachment://usage_graph.png")
+    embed.set_footer(text="Etherya • Visualisation des IDs", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
+
+    file = discord.File(buf, filename="usage_graph.png")
+    await interaction.response.send_message(embed=embed, file=file)
+
+@bot.tree.command(name="id-random", description="🎲 Tire un ID libre automatiquement parmi ceux disponibles en boutique")
+async def id_random(interaction: discord.Interaction):
+    # Aller chercher tous les IDs utilisés directement depuis MongoDB
+    used_ids = [doc["id"] for doc in collection16.find({}, {"id": 1}) if "id" in doc]
+
+    # IDs possibles de 1 à 1000 (par exemple)
+    total_ids = list(range(1, 1001))
+
+    # IDs libres = ceux pas utilisés
+    free_ids = [i for i in total_ids if i not in used_ids]
+
+    # Fonction pour tirer un ID libre au hasard
+    def pick_random_id():
+        return random.choice(free_ids) if free_ids else None
+
+    random_id = pick_random_id()
+
+    if random_id is None:
+        await interaction.response.send_message("❌ Aucun ID disponible.", ephemeral=True)
         return
 
-    # Envoie le message et confirme en privé
-    await interaction.channel.send(message)
-    await interaction.response.send_message("✅ Message envoyé avec succès !", ephemeral=True)
+    # Embed de réponse
+    embed = Embed(
+        title="🎲 ID Libre Tiré",
+        description=f"Voici un ID libre :\n\n`{random_id}`",
+        color=discord.Color.gold()
+    )
+    embed.set_footer(text="Clique sur 🔄 pour tirer un autre ID !", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
 
-# Token pour démarrer le bot (à partir des secrets)
-# Lancer le bot avec ton token depuis l'environnement  
-keep_alive()
-bot.run(token)
+    # Vue avec bouton Re-roll
+    class RandomIDView(View):
+        def __init__(self):
+            super().__init__(timeout=30)
+
+        @discord.ui.button(label="Re-roll 🔄", style=ButtonStyle.primary)
+        async def reroll(self, interaction_button: discord.Interaction, button: Button):
+            new_id = pick_random_id()
+            if new_id is None:
+                await interaction_button.response.edit_message(content="❌ Aucun ID disponible.", embed=None, view=None)
+                return
+
+            new_embed = Embed(
+                title="🎲 ID Libre Tiré",
+                description=f"Voici un nouvel ID libre :\n\n`{new_id}`",
+                color=discord.Color.gold()
+            )
+            new_embed.set_footer(text="Clique sur 🔄 pour tirer un autre ID !", icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
+
+            await interaction_button.response.edit_message(embed=new_embed)
+
+    await interaction.response.send_message(embed=embed, view=RandomIDView())
+#-------------------------------------------------------------Nen:
+
+#Renforcement:
+
+
+@bot.hybrid_command(
+    name="jajanken",
+    description="Attaque la banque d'un joueur avec le Jajanken (cooldown 24h)."
+)
+async def jajanken(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Vérification du rôle
+    if JAJANKEN_ID not in [role.id for role in ctx.author.roles]:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Jajanken !")
+
+    attacker = ctx.author
+    defender = user
+
+    if attacker.id == defender.id:
+        return await ctx.send("Tu ne peux pas utiliser cette commande sur toi-même.")
+
+    guild_id = ctx.guild.id
+    now = time.time()
+    cd_time = 24 * 3600  # 24h en secondes
+
+    # Vérification cooldown
+    if attacker.id in jajanken_cd and now - jajanken_cd[attacker.id] < cd_time:
+        remaining = int(cd_time - (now - jajanken_cd[attacker.id]))
+        hours, minutes = divmod(remaining // 60, 60)
+        return await ctx.send(f"⏳ Attends encore {hours}h {minutes}min avant de réutiliser cette commande.")
+
+    # Récupération ou création des données utilisateur
+    def get_or_create_user_data(guild_id: int, user_id: int):
+        data = collection.find_one({"guild_id": guild_id, "user_id": user_id})
+        if not data:
+            data = {"guild_id": guild_id, "user_id": user_id, "cash": 1500, "bank": 0}
+            collection.insert_one(data)
+        return data
+
+    attacker_data = get_or_create_user_data(guild_id, attacker.id)
+    defender_data = get_or_create_user_data(guild_id, defender.id)
+
+    attacker_bank = attacker_data.get("bank", 0)
+    defender_bank = defender_data.get("bank", 0)
+
+    # Choix aléatoire de l'attaque
+    attack = random.choice(["Pierre", "Feuille", "Ciseau"])
+    desc = ""
+    image_url = ""
+
+    if attack == "Pierre":
+        stolen = int(defender_bank * 0.25)
+        penalty = int(attacker_bank * 0.10)
+
+        defender_bank -= stolen
+        attacker_bank -= penalty
+
+        collection.update_one({"guild_id": guild_id, "user_id": attacker.id}, {"$set": {"bank": attacker_bank}})
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Pierre !**\n"
+            f"{attacker.mention} a frappé {defender.mention} et lui a retiré **25%** de sa banque "
+            f"(`-{stolen}`), mais a perdu **10%** de la sienne (`-{penalty}`)."
+        )
+        image_url = "https://64.media.tumblr.com/75d4c4fa5e934c6085cb04b9648a86a4/tumblr_mtqtkc7JZp1r5zfj8o1_500.gif"
+
+    elif attack == "Feuille":
+        stolen = int(defender_bank * 0.10)
+        defender_bank -= stolen
+
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Feuille !**\n"
+            f"{attacker.mention} attaque à distance {defender.mention} et lui retire **10%** de sa banque "
+            f"(`-{stolen}`)."
+        )
+        image_url = "https://media1.tenor.com/m/A-Rlg_GdM0kAAAAd/hxh-hunter-x-hunter.gif"
+
+    elif attack == "Ciseau":
+        stolen = int(defender_bank * 0.20)
+        defender_bank -= stolen
+
+        collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+        desc = (
+            f"**Ciseau !**\n"
+            f"{attacker.mention} tranche la banque de {defender.mention} et lui inflige un malus "
+            f"(jusqu'à `-20%`), soit `{stolen}` retirés."
+        )
+        image_url = "https://media1.tenor.com/m/vNOfkaWIV04AAAAd/gon-scissors.gif"
+
+    # Mise à jour cooldown
+    jajanken_cd[attacker.id] = now
+
+    # Embed résultat
+    embed = discord.Embed(title="Jajanken !", description=desc, color=discord.Color.red())
+    embed.set_author(name=attacker.display_name, icon_url=attacker.display_avatar.url)
+    embed.set_footer(text="Nen du Renforcement requis")
+    embed.set_image(url=image_url)
+
+    await ctx.send(embed=embed)
+
+@bot.hybrid_command(
+    name="ripper",
+    description="Décharge ton Ripper Cyclotron sur la banque d'un joueur."
+)
+async def ripper(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Vérification du rôle
+    if RIPPER_ID not in [role.id for role in ctx.author.roles]:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Ripper Cyclotron !")
+
+    attacker = ctx.author
+    defender = user
+    guild_id = ctx.guild.id
+
+    if attacker.id == defender.id:
+        return await ctx.send("Tu ne peux pas utiliser Ripper Cyclotron sur toi-même.")
+
+    # Init si pas encore dans ripper_data
+    if attacker.id not in ripper_data:
+        ripper_data[attacker.id] = {"charge": 0, "last_update": time.time()}
+
+    charge = ripper_data[attacker.id]["charge"]
+
+    if charge <= 0:
+        return await ctx.send("Ton Ripper Cyclotron n'est pas chargé ! Attends au moins 1 heure.")
+
+    # Récupération/creation des données MongoDB
+    def get_or_create_user_data(guild_id: int, user_id: int):
+        data = collection.find_one({"guild_id": guild_id, "user_id": user_id})
+        if not data:
+            data = {"guild_id": guild_id, "user_id": user_id, "cash": 1500, "bank": 0}
+            collection.insert_one(data)
+        return data
+
+    defender_data = get_or_create_user_data(guild_id, defender.id)
+    defender_bank = defender_data.get("bank", 0)
+
+    # Calcul des dégâts
+    stolen = int(defender_bank * (charge / 100))
+    defender_bank -= stolen
+
+    # Update DB cible
+    collection.update_one({"guild_id": guild_id, "user_id": defender.id}, {"$set": {"bank": defender_bank}})
+
+    # Reset charge
+    ripper_data[attacker.id]["charge"] = 0
+    ripper_data[attacker.id]["last_update"] = time.time()
+
+    # Embed résultat
+    embed = discord.Embed(
+        title="Ripper Cyclotron",
+        description=(
+            f"{attacker.mention} a déchargé son Ripper Cyclotron accumulé à **{charge}%** !\n"
+            f"{defender.mention} perd `{stolen}` de sa banque."
+        ),
+        color=discord.Color.purple()
+    )
+    embed.set_author(name=attacker.display_name, icon_url=attacker.display_avatar.url)
+    embed.set_footer(text="Maximum 100% de puissance")
+    embed.set_image(url="https://pa1.aminoapps.com/6798/5f1868b0738c98110cfd4c73245898d8a16b8efd_00.gif")
+
+    await ctx.send(embed=embed)
+
+
+@bot.hybrid_command(
+    name="impact",
+    description="Déclenche Big Bang Impact, bloquant l'économie pour tout le monde sauf toi et la cible."
+)
+async def impact(ctx: commands.Context, user: discord.User):
+    if ctx.guild is None:
+        return await ctx.send("Cette commande ne peut être utilisée qu'en serveur.")
+
+    # Vérification du rôle IMPACT_ID
+    if IMPACT_ID not in [role.id for role in ctx.author.roles]:
+        return await ctx.send("❌ Tu n'as pas la maîtrise du Big Bang Impact !")
+
+    attacker = ctx.author
+    defender = user
+    now = time.time()
+
+    # Gestion du cooldown
+    if attacker.id in impact_cd and now - impact_cd[attacker.id] < IMPACT_COOLDOWN:
+        remaining = int(IMPACT_COOLDOWN - (now - impact_cd[attacker.id]))
+        days, rem = divmod(remaining, 86400)
+        hours, rem = divmod(rem, 3600)
+        minutes, _ = divmod(rem, 60)
+        return await ctx.send(f"⏳ Tu dois encore attendre {days}j {hours}h {minutes}min avant de réutiliser Big Bang Impact.")
+
+    channel = ctx.guild.get_channel(IMPACT_CHANNEL_ID)
+    role = ctx.guild.get_role(IMPACT_ROLE_ID)
+
+    if not channel or not role:
+        return await ctx.send("Salon ou rôle introuvable !")
+
+    # Bloquer le rôle pour parler sauf l'attaquant et la cible
+    await channel.set_permissions(role, send_messages=False)
+    await channel.set_permissions(attacker, send_messages=True)
+    await channel.set_permissions(defender, send_messages=True)
+
+    impact_cd[attacker.id] = now
+
+    embed = discord.Embed(
+        title="💥 Big Bang Impact !",
+        description=f"{attacker.mention} a déclenché **Big Bang Impact** ! L'économie est bloquée pour 1h !",
+        color=discord.Color.red()
+    )
+    embed.set_image(url="https://i.makeagif.com/media/7-18-2016/668AVv.gif")
+    await ctx.send(embed=embed)
+
+    # Reset des permissions après la durée
+    async def reset_permissions():
+        await asyncio.sleep(IMPACT_DURATION)
+        await channel.set_permissions(role, overwrite=None)
+        await channel.set_permissions(attacker, overwrite=None)
+        await channel.set_permissions(defender, overwrite=None)
+        await channel.send("✅ Big Bang Impact est terminé, l'économie est débloquée !")
+
+    bot.loop.create_task(reset_permissions())
+
+@bot.hybrid_command(
+    name="banqueroute",
+    description="Lance une banqueroute sur un utilisateur."
+)
+@commands.cooldown(1, BANQUEROUTE_COOLDOWN, commands.BucketType.user)  # cooldown par utilisateur
+async def banqueroute(ctx: commands.Context, user: discord.User):
+    # Vérification du rôle de l'auteur
+    if not any(role.id == BANQUEROUTE_ID for role in ctx.author.roles):
+        embed = discord.Embed(
+            title="❌ Permission refusée",
+            description="Vous n'êtes pas autorisé à utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    target = ctx.guild.get_member(user.id)
+    if not target:
+        embed = discord.Embed(
+            title="❌ Utilisateur introuvable",
+            description="L'utilisateur n'est pas sur le serveur.",
+            color=discord.Color.red()
+        )
+        return await ctx.send(embed=embed)
+
+    if target.id in banqueroute_data and banqueroute_data[target.id]["active"]:
+        embed = discord.Embed(
+            title="⚠️ Banqueroute déjà active",
+            description=f"Une banqueroute est déjà en cours sur {target.mention} !",
+            color=discord.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    # Initialise la banqueroute
+    banqueroute_data[target.id] = {
+        "amount": BANQUEROUTE_START,
+        "start_time": time.time(),
+        "active": True
+    }
+
+    embed = discord.Embed(
+        title="Banqueroute lancée",
+        description=f"{target.mention} est maintenant en banqueroute !\nMontant initial : `{BANQUEROUTE_START}` pièces.",
+        color=discord.Color.blue()
+    )
+    embed.set_image(url="https://static.wikia.nocookie.net/hunterxhunter/images/a/a0/Potclean.png/revision/latest?cb=20170817182959&path-prefix=de")  
+    await ctx.send(embed=embed)
+
+    async def banqueroute_loop():
+        while banqueroute_data[target.id]["active"]:
+            await asyncio.sleep(BANQUEROUTE_INTERVAL)
+            data = banqueroute_data.get(target.id)
+            if not data or not data["active"]:
+                break
+
+            data["amount"] = int(data["amount"] * BANQUEROUTE_MULTIPLIER)
+
+            target_data = collection.find_one({"guild_id": ctx.guild.id, "user_id": target.id})
+            target_bank = target_data.get("bank", 0) if target_data else 0
+            target_cash = target_data.get("cash", 0) if target_data else 0
+            total_money = target_bank + target_cash
+
+            if data["amount"] > total_money:
+                role = ctx.guild.get_role(BANQUEROUTE_ROLE_ID)
+                if role and role in target.roles:
+                    await target.remove_roles(role, reason="Banqueroute non payée")
+
+                    async def restore_role():
+                        await asyncio.sleep(BANQUEROUTE_LOCK_DURATION)
+                        member = ctx.guild.get_member(target.id)
+                        if member:
+                            await member.add_roles(role, reason="Rôle restauré après 5 jours de banqueroute")
+                    bot.loop.create_task(restore_role())
+
+                collection.update_one(
+                    {"guild_id": ctx.guild.id, "user_id": target.id},
+                    {"$set": {"eco_locked_until": time.time() + BANQUEROUTE_LOCK_DURATION}}
+                )
+
+                embed = discord.Embed(
+                    title="❌ Banqueroute échouée",
+                    description=(f"{target.mention} n'a pas payé la banqueroute à temps !\n"
+                                 f"Rôle retiré et accès à l'économie bloqué 5 jours."),
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                data["active"] = False
+                break
+
+    bot.loop.create_task(banqueroute_loop())
+
+@bot.hybrid_command(
+    name="cancelbanqueroute",
+    description="Annule la banqueroute active et paie le montant accumulé."
+)
+async def cancelbanqueroute(ctx: commands.Context):
+    user = ctx.author
+    data = banqueroute_data.get(user.id)
+    if not data or not data["active"]:
+        embed = discord.Embed(
+            title="⚠️ Aucune banqueroute",
+            description="Aucune banqueroute active sur toi.",
+            color=discord.Color.orange()
+        )
+        return await ctx.send(embed=embed)
+
+    # Récupération des données économiques de l'utilisateur
+    user_data = collection.find_one({"guild_id": ctx.guild.id, "user_id": user.id})
+    bank = user_data.get("bank", 0) if user_data else 0
+    cash = user_data.get("cash", 0) if user_data else 0
+    total_money = bank + cash
+    amount = data["amount"]
+
+    if total_money >= amount:
+        # On retire d'abord du cash, puis de la banque si nécessaire
+        if cash >= amount:
+            cash -= amount
+        else:
+            amount_rest = amount - cash
+            cash = 0
+            bank -= amount_rest
+
+        # Mise à jour de la base
+        collection.update_one(
+            {"guild_id": ctx.guild.id, "user_id": user.id},
+            {"$set": {"bank": bank, "cash": cash}}
+        )
+
+        embed = discord.Embed(
+            title="Banqueroute annulée",
+            description=f"`{data['amount']}` pièces ont été retirées de ton total (cash + banque).",
+            color=discord.Color.green()
+        )
+        embed.set_image(url="https://static.wikia.nocookie.net/hunterxhunter/images/0/03/300px-Toritaen.jpg/revision/latest?cb=20140527145930&path-prefix=fr")  
+    else:
+        embed = discord.Embed(
+            title="⚠️ Paiement impossible",
+            description=f"Tu n'as pas assez pour payer la banqueroute ({data['amount']} pièces).",
+            color=discord.Color.orange()
+        )
+
+    data["active"] = False
+    await ctx.send(embed=embed)
+
+@banqueroute.error
+async def banqueroute_error(ctx: commands.Context, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        embed = discord.Embed(
+            title="Commande en cooldown",
+            description=f"Vous devez attendre encore **{error.retry_after:.1f} secondes** avant de réutiliser cette commande.",
+            color=discord.Color.orange()
+        )
+        await ctx.send(embed=embed)
+    else:
+        # Pour les autres erreurs non prévues (évite le crash silencieux)
+        embed = discord.Embed(
+            title="⚠️ Erreur",
+            description="Une erreur est survenue lors de l'exécution de la commande.",
+            color=discord.Color.red()
+        )
+        await ctx.send(embed=embed)
+        raise error  # utile si tu veux aussi voir l'erreur dans les logs
+
+@bot.hybrid_command(
+    name="checkbanqueroute",
+    description="Vérifie le montant actuel de ta banqueroute."
+)
+async def checkbanqueroute(ctx: commands.Context):
+    user = ctx.author
+    data = banqueroute_data.get(user.id)
+    
+    if not data or not data["active"]:
+        embed = discord.Embed(
+            title="Aucune banqueroute active",
+            description="Tu n'as aucune banqueroute en cours.",
+            color=discord.Color.orange()
+        )
+    else:
+        amount = data["amount"]
+        embed = discord.Embed(
+            title="Banqueroute en cours",
+            description=f"Le montant actuel de ta banqueroute est de `{amount}` pièces.",
+            color=discord.Color.blue()
+        )
+
+    await ctx.send(embed=embed)
