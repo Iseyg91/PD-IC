@@ -10525,6 +10525,27 @@ async def transfer_ticket(interaction: discord.Interaction, member: discord.Memb
     except discord.Forbidden:
         await interaction.response.send_message("⚠️ Je n'ai pas pu envoyer un message privé à ce membre.")
 
+
+
+# === Création d’un groupe de commandes ===
+test = app_commands.Group(name="test", description="Commandes de test")
+
+@test.command(name="ping", description="Répond avec Pong!")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message("🏓 Pong!")
+
+@test.command(name="echo", description="Répète ton message")
+async def echo(interaction: discord.Interaction, message: str):
+    await interaction.response.send_message(f"🗣️ Tu as dit : {message}")
+
+@test.command(name="add", description="Fait une addition simple")
+async def add(interaction: discord.Interaction, a: int, b: int):
+    result = a + b
+    await interaction.response.send_message(f"🧮 {a} + {b} = {result}")
+
+# === Ajout du groupe au bot ===
+bot.tree.add_command(test)
+
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
