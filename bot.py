@@ -1618,66 +1618,6 @@ async def on_guild_update(before, after):
 
 #------------------------------------------------------------------------------------------------------------------------
 
-@bot.hybrid_command(
-    name="uptime",
-    description="Affiche l'uptime du bot."
-)
-async def uptime(ctx):
-    uptime_seconds = round(time.time() - start_time)
-    days = uptime_seconds // (24 * 3600)
-    hours = (uptime_seconds % (24 * 3600)) // 3600
-    minutes = (uptime_seconds % 3600) // 60
-    seconds = uptime_seconds % 60
-    embed = discord.Embed(
-        title="Uptime du bot",
-        description=f"Le bot est en ligne depuis : {days} jours, {hours} heures, {minutes} minutes, {seconds} secondes",
-        color=discord.Color.blue()
-    )
-    embed.set_footer(text=f"♥️by Iseyg", icon_url=ctx.author.avatar.url)
-    await ctx.send(embed=embed)
-
-@bot.hybrid_command(
-    name="ping",
-    description="Affiche le Ping du bot."
-)
-async def ping(ctx):
-    latency = round(bot.latency * 1000)  # Latence en ms
-    embed = discord.Embed(title="Pong!", description=f"Latence: {latency}ms", color=discord.Color.green())
-
-    await ctx.send(embed=embed)
-
-# Vérification si l'utilisateur est l'owner du bot
-def is_owner(ctx):
-    return ctx.author.id == ISEY_ID
-
-@bot.command()
-async def restart(ctx):
-    if is_owner(ctx):
-        embed = discord.Embed(
-            title="Redémarrage du Bot",
-            description="Le bot va redémarrer maintenant...",
-            color=discord.Color.blue()
-        )
-        await ctx.send(embed=embed)
-        os.execv(sys.executable, ['python'] + sys.argv)  # Redémarre le bot
-    else:
-        await ctx.send("Seul l'owner peut redémarrer le bot.")
-
-@bot.hybrid_command()
-async def shutdown(ctx):
-    if is_owner(ctx):
-        embed = discord.Embed(
-            title="Arrêt du Bot",
-            description="Le bot va maintenant se fermer. Tous les services seront arrêtés.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text="Cette action est irréversible.")
-        await ctx.send(embed=embed)
-        await bot.close()
-    else:
-        await ctx.send("Seul l'owner peut arrêter le bot.")
-
-
 @bot.hybrid_command( 
     name="balance",
     aliases=["bal", "money"],
