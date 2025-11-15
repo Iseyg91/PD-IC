@@ -42,16 +42,10 @@ async def on_ready():
     bot.uptime = time.time()
     GUILD_ID = 1437505063496056864  # mets l'ID de TON serveur ici
     try:
-        guild = discord.Object(id=GUILD_ID)
-        synced = await bot.tree.sync(guild=guild)
-        print(f"Commandes slash synchronisées pour la guild : {[cmd.name for cmd in synced]}")
-    except Exception as e:
-        print(f"Erreur de synchronisation : {e}")
-        
-    # Supprime toutes les commandes globales
-    bot.tree.clear_commands(guild=None)
-    await bot.tree.sync()
-    print("Toutes les slash commands globales ont été supprimées.")
+        # Supprime toutes les commandes globales
+        bot.tree.clear_commands(guild=None)
+        await bot.tree.sync()
+        print("Toutes les slash commands globales ont été supprimées.")
 
 
 
