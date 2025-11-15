@@ -40,12 +40,10 @@ async def on_ready():
     print(f"{bot.user} est connecté.")
     bot.loop.create_task(start_background_tasks())
     bot.uptime = time.time()
-    GUILD_ID = 1437505063496056864  # mets l'ID de TON serveur ici
-    try:
-        # Supprime toutes les commandes globales
-        bot.tree.clear_commands(guild=None)
-        await bot.tree.sync()
-        print("Toutes les slash commands globales ont été supprimées.")
+# Supprime toutes les commandes globales
+    bot.tree.clear_commands(guild=None)
+    await bot.tree.sync()
+    print("Toutes les slash commands globales ont été supprimées.")
 
 
 
