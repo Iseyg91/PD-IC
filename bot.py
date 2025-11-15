@@ -50,6 +50,20 @@ async def on_ready():
 async def on_error(event, *args, **kwargs):
     print(f"Erreur : {event}")
 
+@bot.hybrid_command(name="embed", description="Envoie un embed d'exemple.")
+async def embed_cmd(ctx):
+    embed = discord.Embed(
+        title="✨ Exemple d'Embed",
+        description="Ceci est un embed envoyé par une **commande hybride**.",
+        color=discord.Color.blurple()
+    )
+
+    embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar)
+    embed.add_field(name="Fonctionne en :", value="Slash + Préfixe", inline=False)
+    embed.set_footer(text="Exemple d'embed")
+
+    await ctx.reply(embed=embed)
+
 # Token pour démarrer le bot (à partir des secrets)
 # Lancer le bot avec ton token depuis l'environnement  
 keep_alive()
