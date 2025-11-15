@@ -7,6 +7,7 @@ from pymongo import MongoClient
 from motor.motor_asyncio import AsyncIOMotorClient
 from discord import ui
 import os
+import time
 
 token = os.environ['ETHERYA']
 intents = discord.Intents.all()
