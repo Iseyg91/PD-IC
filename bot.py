@@ -40,10 +40,11 @@ async def on_ready():
     print(f"{bot.user} est connecté.")
     bot.loop.create_task(start_background_tasks())
     bot.uptime = time.time()
-
+    GUILD_ID = 1437505063496056864  # mets l'ID de TON serveur ici
     try:
-        synced = await bot.tree.sync()
-        print(f"Commandes slash synchronisées : {[cmd.name for cmd in synced]}")
+        guild = discord.Object(id=GUILD_ID)
+        synced = await bot.tree.sync(guild=guild)
+        print(f"Commandes slash synchronisées pour la guild : {[cmd.name for cmd in synced]}")
     except Exception as e:
         print(f"Erreur de synchronisation : {e}")
 
